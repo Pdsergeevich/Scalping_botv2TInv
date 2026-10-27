@@ -1,0 +1,34 @@
+[
+ {
+  "pair": "ALRS_SBER",
+  "period": "is",
+  "ewma": 1600,
+  "z": 2.8,
+  "sigma": 1.3,
+  "trades": 71,
+  "tradesPerDay": 1.48,
+  "days": 48,
+  "profitableDays": 28,
+  "gross": 23.2,
+  "fees": 7.1505,
+  "net": 16.0495,
+  "pf": 1.683,
+  "dd": 6.039675
+ },
+ {
+  "pair": "ALRS_SBER",
+  "period": "oos",
+  "ewma": 1600,
+  "z": 2.8,
+  "sigma": 1.3,
+  "trades": 67,
+  "tradesPerDay": 1.46,
+  "days": 46,
+  "profitableDays": 23,
+  "gross": 1.5,
+  "fees": 8.294975,
+  "net": -6.794975,
+  "pf": 0.831,
+  "dd": 16.82745
+ }
+]

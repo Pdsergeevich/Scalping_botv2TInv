@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bot-a-scalper"
+version = "1.0.0"
+description = "Bot A: парный скальпинг и статистический арбитраж на MOEX через T-Invest API v2"
+requires-python = ">=3.10"
+dependencies = [
+    "tzdata>=2024.1",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.1"]
+live = ["tinkoff-invest-api>=1.0"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+bot-a = "bot_a.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["bot_a*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"

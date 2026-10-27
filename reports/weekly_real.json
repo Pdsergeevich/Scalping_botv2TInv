@@ -1,0 +1,34 @@
+{
+  "title": "Бэктест CNYRUBF_CRZ6_REAL (SingleLegLeadLag)",
+  "context": {
+    "Пресет": "CNYRUBF_CRZ6_REAL",
+    "Топология": "SingleLegLeadLag",
+    "Тариф": "Trader",
+    "Z_Entry": 2.0,
+    "Z_Exit": 0.2,
+    "EwmaWindow": 400,
+    "Латентность, мс": 25,
+    "QueueFillFactor": 0.35,
+    "Тиков на минуту": 12,
+    "Период": "2026-10-18 12:27 .. 2026-10-25 12:27 MSK",
+    "Событий обработано": 253776
+  },
+  "daily": [],
+  "totals": {
+    "trades": 0,
+    "profitable_days": 0,
+    "total_days": 0,
+    "gross_pnl_rub": "0",
+    "fees_rub": "0",
+    "net_pnl_rub": "0",
+    "win_rate_pct": 0.0,
+    "profit_factor": 0.0,
+    "sharpe_annual": 0.0,
+    "avg_hold_seconds": 0.0,
+    "fee_drag_pct": 0.0,
+    "max_drawdown_rub": "0"
+  },
+  "result": {
+    "eventsProcessed": 253776
+  }
+}

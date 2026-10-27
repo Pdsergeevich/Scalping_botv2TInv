@@ -1,0 +1,41 @@
+"""Адаптер T-Invest SDK (gRPC v2)."""
+
+from bot_a.broker.tinvest import (
+    SDK_INSTALL_HINT,
+    AccountInfo,
+    BrokerOrderState,
+    SdkUnavailableError,
+    TinkoffMarketDataStream,
+    TinkoffOrderClient,
+    async_client,
+    create_client,
+    get_accounts,
+    get_candles,
+    get_order_book,
+    get_positions_money,
+    is_trading_available,
+    require_sdk,
+    resolve_instrument,
+    resolve_pair,
+    sdk_available,
+)
+
+__all__ = [
+    "SDK_INSTALL_HINT",
+    "AccountInfo",
+    "BrokerOrderState",
+    "SdkUnavailableError",
+    "TinkoffMarketDataStream",
+    "TinkoffOrderClient",
+    "async_client",
+    "create_client",
+    "get_accounts",
+    "get_candles",
+    "get_order_book",
+    "get_positions_money",
+    "is_trading_available",
+    "require_sdk",
+    "resolve_instrument",
+    "resolve_pair",
+    "sdk_available",
+]

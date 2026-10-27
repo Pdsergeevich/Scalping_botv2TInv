@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<title>Bot A — визуализация работы · VTBR/SBER</title>
+<style>
+ body{background:#0f1419;color:#d7e0ea;font-family:'Segoe UI',system-ui,sans-serif;margin:0;padding:24px}
+ h1{font-size:20px;margin:0 0 4px} h2{font-size:15px;margin:28px 0 8px;color:#9fb3c8}
+ .kpis{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 6px}
+ .kpi{background:#161d26;border:1px solid #243040;border-radius:8px;padding:10px 14px;min-width:150px}
+ .kpi b{display:block;font-size:17px;margin-top:3px}
+ .muted{color:#8b9aab;font-size:12px}
+ figure{margin:0 0 22px} img{width:100%;border-radius:8px;border:1px solid #243040}
+ figcaption{color:#8b9aab;font-size:11px;margin-top:5px}
+ table{border-collapse:collapse;font-size:11.5px;width:100%}
+ th,td{border-bottom:1px solid #243040;padding:4px 7px;text-align:right;white-space:nowrap}
+ th{color:#9fb3c8;text-align:right;position:sticky;top:0;background:#161d26}
+ td:nth-child(2),td:nth-child(3),td:nth-child(5),td:nth-child(7){text-align:left}
+ .wrap{max-height:520px;overflow:auto;border:1px solid #243040;border-radius:8px}
+</style></head><body>
+<h1>Bot A — как работает бот на реальных данных MOEX</h1>
+<div class="muted">пресет VTBR/SBER · топология SingleLegLeadLag ·
+ Z_Entry 2.8 · Z_Exit 0.2 · Z_Stop 6.0 ·
+ EWMA 2400 · MaxHold 1800 c ·
+ точек траектории 17419</div>
+<div class="kpis">
+ <div class="kpi">Сделок<b>16</b></div>
+ <div class="kpi">Net PnL<b style="color:#2ecc71">+0.43 RUB</b></div>
+ <div class="kpi">Gross / комиссии<b>+0.88 / 0.45</b></div>
+ <div class="kpi">Дней в плюсе<b>7/12</b></div>
+ <div class="kpi">Profit Factor<b>1.46</b></div>
+ <div class="kpi">Max DD<b>0.44 RUB</b></div>
+ <div class="kpi">Sharpe (год.)<b>2.62</b></div>
+ <div class="kpi">Ср. удержание<b>27 мин</b></div>
+</div>
+<h2>Графики</h2>
+<figure><img src="01_overview.png" alt="01_overview"><figcaption>01_overview.png</figcaption></figure>
+<figure><img src="02_equity.png" alt="02_equity"><figcaption>02_equity.png</figcaption></figure>
+<figure><img src="03_daily_pnl.png" alt="03_daily_pnl"><figcaption>03_daily_pnl.png</figcaption></figure>
+<figure><img src="04_trades_and_exits.png" alt="04_trades_and_exits"><figcaption>04_trades_and_exits.png</figcaption></figure>
+<figure><img src="05_zoom_01_trade_1.png" alt="05_zoom_01_trade_1"><figcaption>05_zoom_01_trade_1.png</figcaption></figure>
+<figure><img src="05_zoom_02_trade_2.png" alt="05_zoom_02_trade_2"><figcaption>05_zoom_02_trade_2.png</figcaption></figure>
+<figure><img src="05_zoom_03_trade_3.png" alt="05_zoom_03_trade_3"><figcaption>05_zoom_03_trade_3.png</figcaption></figure>
+<figure><img src="05_zoom_04_trade_17.png" alt="05_zoom_04_trade_17"><figcaption>05_zoom_04_trade_17.png</figcaption></figure>
+<h2>Все сделки: когда вошёл, когда вышел</h2>
+<div class="wrap"><table>
+<tr><th>#</th><th>открытие</th><th>сторона</th><th>цена входа</th><th>закрытие</th>
+<th>цена выхода</th><th>причина</th><th>мин</th><th>Z вх.</th><th>Z вых.</th>
+<th>MFE</th><th>MAE</th><th>gross</th><th>fees</th><th>net</th></tr>
+<tr><td>1</td><td>05.10 10:05:05</td><td>sell</td><td>52.055</td><td>05.10 10:35:10</td><td>52.465</td><td>HardStop</td><td>30</td><td>-3.46</td><td>-2.16</td><td>+0.000</td><td>-0.465</td><td>-0.410</td><td>0.026</td><td>-0.436</td></tr>
+<tr><td>2</td><td>06.10 10:43:05</td><td>buy</td><td>53.820</td><td>06.10 11:13:40</td><td>54.105</td><td>TimeStop</td><td>31</td><td>+3.57</td><td>+0.87</td><td>+0.374</td><td>-0.119</td><td>+0.285</td><td>0.027</td><td>+0.258</td></tr>
+<tr><td>3</td><td>07.10 11:57:00</td><td>buy</td><td>55.270</td><td>07.10 12:27:35</td><td>55.625</td><td>TimeStop</td><td>31</td><td>+4.34</td><td>+0.84</td><td>+0.479</td><td>-0.063</td><td>+0.355</td><td>0.028</td><td>+0.327</td></tr>
+<tr><td>4</td><td>08.10 10:27:05</td><td>sell</td><td>55.060</td><td>08.10 10:57:10</td><td>55.085</td><td>TimeStop</td><td>30</td><td>-4.37</td><td>-1.62</td><td>+0.189</td><td>-0.178</td><td>-0.025</td><td>0.028</td><td>-0.053</td></tr>
+<tr><td>5</td><td>09.10 18:11:15</td><td>buy</td><td>53.490</td><td>09.10 18:41:25</td><td>53.705</td><td>TimeStop</td><td>30</td><td>+2.91</td><td>+0.59</td><td>+0.234</td><td>-0.164</td><td>+0.215</td><td>0.027</td><td>+0.188</td></tr>
+<tr><td>6</td><td>12.10 10:26:25</td><td>buy</td><td>55.035</td><td>12.10 10:57:00</td><td>54.985</td><td>TimeStop</td><td>31</td><td>+2.82</td><td>+1.01</td><td>+0.088</td><td>-0.084</td><td>-0.050</td><td>0.028</td><td>-0.078</td></tr>
+<tr><td>7</td><td>13.10 10:08:55</td><td>sell</td><td>55.010</td><td>13.10 10:16:20</td><td>54.780</td><td>TakeProfit</td><td>7</td><td>-4.92</td><td>+0.24</td><td>+0.229</td><td>-0.013</td><td>+0.230</td><td>0.027</td><td>+0.203</td></tr>
+<tr><td>8</td><td>13.10 11:10:25</td><td>sell</td><td>55.075</td><td>13.10 11:40:30</td><td>55.105</td><td>TimeStop</td><td>30</td><td>-2.81</td><td>-0.26</td><td>+0.069</td><td>-0.039</td><td>-0.030</td><td>0.028</td><td>-0.058</td></tr>
+<tr><td>9</td><td>14.10 12:03:05</td><td>sell</td><td>56.505</td><td>14.10 12:28:40</td><td>56.430</td><td>TakeProfit</td><td>26</td><td>-4.10</td><td>-1.04</td><td>+0.229</td><td>-0.099</td><td>+0.075</td><td>0.028</td><td>+0.047</td></tr>
+<tr><td>10</td><td>19.10 10:05:15</td><td>sell</td><td>55.760</td><td>19.10 10:35:20</td><td>55.740</td><td>TimeStop</td><td>30</td><td>-4.96</td><td>-1.14</td><td>+0.129</td><td>-0.030</td><td>+0.020</td><td>0.028</td><td>-0.008</td></tr>
+<tr><td>11</td><td>21.10 10:20:05</td><td>sell</td><td>58.020</td><td>21.10 10:33:40</td><td>57.970</td><td>TakeProfit</td><td>14</td><td>-3.82</td><td>-0.15</td><td>+0.099</td><td>-0.069</td><td>+0.050</td><td>0.029</td><td>+0.021</td></tr>
+<tr><td>12</td><td>21.10 11:43:25</td><td>sell</td><td>58.225</td><td>21.10 11:59:00</td><td>58.070</td><td>TakeProfit</td><td>16</td><td>-2.82</td><td>-0.35</td><td>+0.223</td><td>-0.028</td><td>+0.155</td><td>0.029</td><td>+0.126</td></tr>
+<tr><td>14</td><td>22.10 10:18:10</td><td>buy</td><td>56.730</td><td>22.10 10:48:30</td><td>56.960</td><td>TimeStop</td><td>30</td><td>+3.14</td><td>+0.61</td><td>+0.229</td><td>-0.013</td><td>+0.230</td><td>0.028</td><td>+0.202</td></tr>
+<tr><td>15</td><td>22.10 17:03:25</td><td>buy</td><td>56.630</td><td>22.10 17:33:30</td><td>56.615</td><td>TimeStop</td><td>30</td><td>+2.96</td><td>+1.26</td><td>+0.078</td><td>-0.090</td><td>-0.015</td><td>0.028</td><td>-0.043</td></tr>
+<tr><td>16</td><td>23.10 10:34:45</td><td>sell</td><td>56.875</td><td>23.10 11:04:50</td><td>56.840</td><td>TimeStop</td><td>30</td><td>-4.53</td><td>-0.98</td><td>+0.105</td><td>-0.068</td><td>+0.035</td><td>0.028</td><td>+0.007</td></tr>
+<tr><td>17</td><td>23.10 17:18:05</td><td>sell</td><td>56.625</td><td>23.10 17:48:15</td><td>56.865</td><td>TimeStop</td><td>30</td><td>-2.80</td><td>-1.22</td><td>+0.000</td><td>-0.559</td><td>-0.240</td><td>0.028</td><td>-0.268</td></tr>
+</table></div>
+</body></html>

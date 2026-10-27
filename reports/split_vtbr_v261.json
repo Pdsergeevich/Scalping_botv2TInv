@@ -1,0 +1,34 @@
+[
+ {
+  "pair": "VTBR_SBER",
+  "period": "oos",
+  "ewma": 2400,
+  "z": 2.8,
+  "sigma": 1.3,
+  "trades": 33,
+  "tradesPerDay": 1.22,
+  "days": 27,
+  "profitableDays": 15,
+  "gross": 2.25,
+  "fees": 1.27009,
+  "net": 0.97991,
+  "pf": 1.251,
+  "dd": 1.51575875
+ },
+ {
+  "pair": "VTBR_SBER",
+  "period": "is",
+  "ewma": 2400,
+  "z": 2.8,
+  "sigma": 1.3,
+  "trades": 53,
+  "tradesPerDay": 1.2,
+  "days": 44,
+  "profitableDays": 25,
+  "gross": 1.87,
+  "fees": 1.4422875,
+  "net": 0.4277125,
+  "pf": 1.108,
+  "dd": 1.37939375
+ }
+]

@@ -1,0 +1,4 @@
+# Живые режимы (preflight / record / paper / live) требуют SDK T-Invest.
+# ВАЖНО: у grpcio/protobuf нет колёс под Python 3.14 — используйте Python 3.10-3.13.
+-r requirements.txt
+tinkoff-invest-api>=1.0

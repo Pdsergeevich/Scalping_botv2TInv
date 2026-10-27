@@ -1,0 +1,34 @@
+[
+ {
+  "pair": "AFKS_SBER",
+  "period": "is",
+  "ewma": 1600,
+  "z": 2.8,
+  "sigma": 1.3,
+  "trades": 78,
+  "tradesPerDay": 1.62,
+  "days": 48,
+  "profitableDays": 23,
+  "gross": 52.5,
+  "fees": 30.710125,
+  "net": 21.789875,
+  "pf": 1.203,
+  "dd": 29.103175
+ },
+ {
+  "pair": "AFKS_SBER",
+  "period": "oos",
+  "ewma": 1600,
+  "z": 2.8,
+  "sigma": 1.3,
+  "trades": 72,
+  "tradesPerDay": 1.47,
+  "days": 49,
+  "profitableDays": 26,
+  "gross": 86.6,
+  "fees": 40.1944,
+  "net": 46.4056,
+  "pf": 1.323,
+  "dd": 43.995075
+ }
+]

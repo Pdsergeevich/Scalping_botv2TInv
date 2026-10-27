@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<title>Bot A — визуализация работы · VTBR/SBER</title>
+<style>
+ body{background:#0f1419;color:#d7e0ea;font-family:'Segoe UI',system-ui,sans-serif;margin:0;padding:24px}
+ h1{font-size:20px;margin:0 0 4px} h2{font-size:15px;margin:28px 0 8px;color:#9fb3c8}
+ .kpis{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 6px}
+ .kpi{background:#161d26;border:1px solid #243040;border-radius:8px;padding:10px 14px;min-width:150px}
+ .kpi b{display:block;font-size:17px;margin-top:3px}
+ .muted{color:#8b9aab;font-size:12px}
+ figure{margin:0 0 22px} img{width:100%;border-radius:8px;border:1px solid #243040}
+ figcaption{color:#8b9aab;font-size:11px;margin-top:5px}
+ table{border-collapse:collapse;font-size:11.5px;width:100%}
+ th,td{border-bottom:1px solid #243040;padding:4px 7px;text-align:right;white-space:nowrap}
+ th{color:#9fb3c8;text-align:right;position:sticky;top:0;background:#161d26}
+ td:nth-child(2),td:nth-child(3),td:nth-child(5),td:nth-child(7){text-align:left}
+ .wrap{max-height:520px;overflow:auto;border:1px solid #243040;border-radius:8px}
+</style></head><body>
+<h1>Bot A — как работает бот на реальных данных MOEX</h1>
+<div class="muted">пресет VTBR/SBER · топология SingleLegLeadLag ·
+ Z_Entry 2.8 · Z_Exit 0.2 · Z_Stop 6.0 ·
+ EWMA 2400 · MaxHold 1800 c ·
+ точек траектории 152953</div>
+<div class="kpis">
+ <div class="kpi">Сделок<b>122</b></div>
+ <div class="kpi">Net PnL<b style="color:#2ecc71">+3.20 RUB</b></div>
+ <div class="kpi">Gross / комиссии<b>+7.24 / 4.04</b></div>
+ <div class="kpi">Дней в плюсе<b>60/93</b></div>
+ <div class="kpi">Profit Factor<b>1.37</b></div>
+ <div class="kpi">Max DD<b>2.17 RUB</b></div>
+ <div class="kpi">Sharpe (год.)<b>1.95</b></div>
+ <div class="kpi">Ср. удержание<b>24 мин</b></div>
+</div>
+<h2>Графики</h2>
+<figure><img src="01_overview.png" alt="01_overview"><figcaption>01_overview.png</figcaption></figure>
+<figure><img src="02_equity.png" alt="02_equity"><figcaption>02_equity.png</figcaption></figure>
+<figure><img src="03_daily_pnl.png" alt="03_daily_pnl"><figcaption>03_daily_pnl.png</figcaption></figure>
+<figure><img src="04_trades_and_exits.png" alt="04_trades_and_exits"><figcaption>04_trades_and_exits.png</figcaption></figure>
+<figure><img src="05_zoom_01_trade_14.png" alt="05_zoom_01_trade_14"><figcaption>05_zoom_01_trade_14.png</figcaption></figure>
+<figure><img src="05_zoom_02_trade_38.png" alt="05_zoom_02_trade_38"><figcaption>05_zoom_02_trade_38.png</figcaption></figure>
+<figure><img src="05_zoom_03_trade_72.png" alt="05_zoom_03_trade_72"><figcaption>05_zoom_03_trade_72.png</figcaption></figure>
+<figure><img src="05_zoom_04_trade_125.png" alt="05_zoom_04_trade_125"><figcaption>05_zoom_04_trade_125.png</figcaption></figure>
+<h2>Все сделки: когда вошёл, когда вышел</h2>
+<div class="wrap"><table>
+<tr><th>#</th><th>открытие</th><th>сторона</th><th>цена входа</th><th>закрытие</th>
+<th>цена выхода</th><th>причина</th><th>мин</th><th>Z вх.</th><th>Z вых.</th>
+<th>MFE</th><th>MAE</th><th>gross</th><th>fees</th><th>net</th></tr>
+<tr><td>1</td><td>27.04 10:07:45</td><td>sell</td><td>94.470</td><td>27.04 10:38:20</td><td>94.500</td><td>TimeStop</td><td>31</td><td>-4.29</td><td>-0.34</td><td>+0.108</td><td>-0.264</td><td>-0.030</td><td>0.047</td><td>-0.077</td></tr>
+<tr><td>2</td><td>27.04 12:12:30</td><td>sell</td><td>94.315</td><td>27.04 12:26:40</td><td>94.030</td><td>TakeProfit</td><td>14</td><td>-3.25</td><td>+0.17</td><td>+0.284</td><td>-0.003</td><td>+0.285</td><td>0.047</td><td>+0.238</td></tr>
+<tr><td>5</td><td>28.04 12:09:15</td><td>buy</td><td>92.535</td><td>28.04 12:25:00</td><td>92.900</td><td>TakeProfit</td><td>16</td><td>+3.73</td><td>-0.17</td><td>+0.394</td><td>+0.000</td><td>+0.365</td><td>0.046</td><td>+0.319</td></tr>
+<tr><td>6</td><td>29.04 11:00:45</td><td>sell</td><td>93.005</td><td>29.04 11:30:50</td><td>93.235</td><td>TimeStop</td><td>30</td><td>-3.68</td><td>-1.16</td><td>+0.078</td><td>-0.294</td><td>-0.230</td><td>0.047</td><td>-0.277</td></tr>
+<tr><td>7</td><td>30.04 11:19:25</td><td>buy</td><td>91.860</td><td>30.04 11:49:30</td><td>92.075</td><td>TimeStop</td><td>30</td><td>+3.07</td><td>+0.28</td><td>+0.453</td><td>-0.038</td><td>+0.215</td><td>0.046</td><td>+0.169</td></tr>
+<tr><td>9</td><td>04.05 11:15:45</td><td>sell</td><td>91.810</td><td>04.05 11:36:40</td><td>91.535</td><td>TakeProfit</td><td>21</td><td>-3.14</td><td>-0.06</td><td>+0.374</td><td>-0.059</td><td>+0.275</td><td>0.046</td><td>+0.229</td></tr>
+<tr><td>10</td><td>05.05 12:23:45</td><td>buy</td><td>89.410</td><td>05.05 12:53:50</td><td>89.195</td><td>TimeStop</td><td>30</td><td>+3.52</td><td>+1.46</td><td>+0.140</td><td>-0.244</td><td>-0.215</td><td>0.045</td><td>-0.260</td></tr>
+<tr><td>11</td><td>06.05 10:07:05</td><td>buy</td><td>91.890</td><td>06.05 10:37:40</td><td>91.815</td><td>TimeStop</td><td>31</td><td>+2.98</td><td>+0.98</td><td>+0.175</td><td>-0.090</td><td>-0.075</td><td>0.046</td><td>-0.121</td></tr>
+<tr><td>12</td><td>06.05 16:07:45</td><td>buy</td><td>90.195</td><td>06.05 16:35:20</td><td>90.650</td><td>TakeProfit</td><td>28</td><td>+4.04</td><td>-0.50</td><td>+0.559</td><td>-0.009</td><td>+0.455</td><td>0.045</td><td>+0.410</td></tr>
+<tr><td>14</td><td>07.05 15:40:25</td><td>sell</td><td>92.060</td><td>07.05 16:10:30</td><td>92.970</td><td>HardStop</td><td>30</td><td>-2.99</td><td>-1.65</td><td>+0.000</td><td>-1.094</td><td>-0.910</td><td>0.046</td><td>-0.956</td></tr>
+<tr><td>15</td><td>08.05 17:34:45</td><td>buy</td><td>91.980</td><td>08.05 18:05:20</td><td>92.140</td><td>TimeStop</td><td>31</td><td>+2.84</td><td>+0.65</td><td>+0.253</td><td>-0.054</td><td>+0.160</td><td>0.046</td><td>+0.114</td></tr>
+<tr><td>16</td><td>11.05 12:11:20</td><td>sell</td><td>92.975</td><td>11.05 12:20:45</td><td>92.770</td><td>TakeProfit</td><td>9</td><td>-3.27</td><td>+0.05</td><td>+0.205</td><td>-0.075</td><td>+0.205</td><td>0.046</td><td>+0.159</td></tr>
+<tr><td>18</td><td>12.05 10:16:05</td><td>sell</td><td>93.085</td><td>12.05 10:46:25</td><td>92.960</td><td>TimeStop</td><td>30</td><td>-3.95</td><td>-0.07</td><td>+0.184</td><td>-0.003</td><td>+0.125</td><td>0.047</td><td>+0.078</td></tr>
+<tr><td>21</td><td>12.05 15:31:15</td><td>sell</td><td>93.655</td><td>12.05 16:01:20</td><td>93.625</td><td>TimeStop</td><td>30</td><td>-4.10</td><td>-0.44</td><td>+0.219</td><td>-0.149</td><td>+0.030</td><td>0.047</td><td>-0.017</td></tr>
+<tr><td>22</td><td>14.05 15:51:25</td><td>buy</td><td>92.365</td><td>14.05 16:21:30</td><td>92.085</td><td>TimeStop</td><td>30</td><td>+2.86</td><td>+1.17</td><td>+0.094</td><td>-0.443</td><td>-0.280</td><td>0.046</td><td>-0.326</td></tr>
+<tr><td>23</td><td>15.05 10:36:25</td><td>sell</td><td>90.530</td><td>15.05 10:52:00</td><td>90.480</td><td>TakeProfit</td><td>16</td><td>-2.95</td><td>-0.47</td><td>+0.138</td><td>-0.003</td><td>+0.050</td><td>0.045</td><td>+0.005</td></tr>
+<tr><td>24</td><td>15.05 16:17:00</td><td>buy</td><td>89.730</td><td>15.05 16:18:00</td><td>89.930</td><td>TakeProfit</td><td>1</td><td>+4.57</td><td>+2.47</td><td>+0.494</td><td>+0.000</td><td>+0.200</td><td>0.045</td><td>+0.155</td></tr>
+<tr><td>26</td><td>18.05 16:49:10</td><td>buy</td><td>89.805</td><td>18.05 16:49:40</td><td>90.025</td><td>TakeProfit</td><td>0</td><td>+3.47</td><td>+0.14</td><td>+0.219</td><td>-0.003</td><td>+0.220</td><td>0.045</td><td>+0.175</td></tr>
+<tr><td>28</td><td>18.05 17:05:05</td><td>buy</td><td>89.680</td><td>18.05 17:32:50</td><td>89.835</td><td>TakeProfit</td><td>28</td><td>+2.86</td><td>-0.87</td><td>+0.203</td><td>-0.018</td><td>+0.155</td><td>0.045</td><td>+0.110</td></tr>
+<tr><td>29</td><td>21.05 12:02:15</td><td>buy</td><td>89.360</td><td>21.05 12:32:35</td><td>89.445</td><td>TimeStop</td><td>30</td><td>+3.12</td><td>+0.70</td><td>+0.134</td><td>-0.050</td><td>+0.085</td><td>0.045</td><td>+0.040</td></tr>
+<tr><td>31</td><td>22.05 16:04:45</td><td>sell</td><td>90.520</td><td>22.05 16:10:35</td><td>90.290</td><td>TakeProfit</td><td>6</td><td>-3.66</td><td>+0.01</td><td>+0.229</td><td>-0.114</td><td>+0.230</td><td>0.045</td><td>+0.185</td></tr>
+<tr><td>33</td><td>22.05 17:21:05</td><td>sell</td><td>90.800</td><td>22.05 17:36:15</td><td>90.515</td><td>TakeProfit</td><td>15</td><td>-2.92</td><td>+0.24</td><td>+0.284</td><td>-0.069</td><td>+0.285</td><td>0.045</td><td>+0.240</td></tr>
+<tr><td>36</td><td>25.05 18:18:15</td><td>buy</td><td>87.825</td><td>25.05 18:48:30</td><td>88.230</td><td>TimeStop</td><td>30</td><td>+3.20</td><td>+0.73</td><td>+0.684</td><td>-0.013</td><td>+0.405</td><td>0.044</td><td>+0.361</td></tr>
+<tr><td>37</td><td>26.05 10:09:05</td><td>sell</td><td>87.155</td><td>26.05 10:35:30</td><td>86.990</td><td>TakeProfit</td><td>26</td><td>-2.99</td><td>+0.33</td><td>+0.294</td><td>-0.439</td><td>+0.165</td><td>0.044</td><td>+0.121</td></tr>
+<tr><td>38</td><td>26.05 16:24:25</td><td>sell</td><td>88.005</td><td>26.05 16:54:30</td><td>89.405</td><td>HardStop</td><td>30</td><td>-4.97</td><td>-0.59</td><td>+0.000</td><td>-2.794</td><td>-1.400</td><td>0.044</td><td>-1.444</td></tr>
+<tr><td>40</td><td>28.05 12:23:45</td><td>buy</td><td>80.365</td><td>28.05 12:54:20</td><td>80.470</td><td>TimeStop</td><td>31</td><td>+2.81</td><td>+0.15</td><td>+0.179</td><td>-0.064</td><td>+0.105</td><td>0.040</td><td>+0.065</td></tr>
+<tr><td>41</td><td>01.06 15:36:45</td><td>buy</td><td>78.760</td><td>01.06 16:06:50</td><td>78.880</td><td>TimeStop</td><td>30</td><td>+3.29</td><td>-0.04</td><td>+0.144</td><td>-0.249</td><td>+0.120</td><td>0.039</td><td>+0.081</td></tr>
+<tr><td>42</td><td>02.06 10:08:25</td><td>buy</td><td>78.040</td><td>02.06 10:39:00</td><td>78.120</td><td>TimeStop</td><td>31</td><td>+2.97</td><td>+0.22</td><td>+0.164</td><td>-0.053</td><td>+0.080</td><td>0.039</td><td>+0.041</td></tr>
+<tr><td>44</td><td>04.06 16:35:55</td><td>buy</td><td>76.260</td><td>04.06 17:05:35</td><td>76.520</td><td>TakeProfit</td><td>30</td><td>+4.87</td><td>-0.78</td><td>+0.260</td><td>-0.379</td><td>+0.260</td><td>0.038</td><td>+0.222</td></tr>
+<tr><td>45</td><td>05.06 15:49:45</td><td>sell</td><td>76.760</td><td>05.06 16:19:50</td><td>76.910</td><td>TimeStop</td><td>30</td><td>-2.83</td><td>-1.50</td><td>+0.083</td><td>-0.154</td><td>-0.150</td><td>0.038</td><td>-0.188</td></tr>
+<tr><td>46</td><td>08.06 10:12:05</td><td>sell</td><td>76.495</td><td>08.06 10:42:40</td><td>76.750</td><td>TimeStop</td><td>31</td><td>-2.87</td><td>-1.01</td><td>+0.183</td><td>-0.379</td><td>-0.255</td><td>0.038</td><td>-0.293</td></tr>
+<tr><td>48</td><td>09.06 10:17:55</td><td>buy</td><td>74.500</td><td>09.06 10:48:30</td><td>74.535</td><td>TimeStop</td><td>31</td><td>+3.33</td><td>+0.39</td><td>+0.189</td><td>-0.229</td><td>+0.035</td><td>0.037</td><td>-0.002</td></tr>
+<tr><td>50</td><td>09.06 11:04:05</td><td>buy</td><td>73.890</td><td>09.06 11:34:10</td><td>73.745</td><td>TimeStop</td><td>30</td><td>+2.88</td><td>+0.61</td><td>+0.013</td><td>-0.469</td><td>-0.145</td><td>0.037</td><td>-0.182</td></tr>
+<tr><td>53</td><td>11.06 10:53:15</td><td>buy</td><td>74.385</td><td>11.06 11:11:35</td><td>74.635</td><td>TakeProfit</td><td>18</td><td>+4.60</td><td>-0.13</td><td>+0.250</td><td>-0.049</td><td>+0.250</td><td>0.037</td><td>+0.213</td></tr>
+<tr><td>54</td><td>15.06 11:09:45</td><td>sell</td><td>76.415</td><td>15.06 11:39:50</td><td>76.460</td><td>TimeStop</td><td>30</td><td>-2.85</td><td>-0.49</td><td>+0.023</td><td>-0.089</td><td>-0.045</td><td>0.038</td><td>-0.083</td></tr>
+<tr><td>56</td><td>16.06 16:59:15</td><td>buy</td><td>78.750</td><td>16.06 17:14:40</td><td>78.945</td><td>TakeProfit</td><td>15</td><td>+2.93</td><td>-0.19</td><td>+0.194</td><td>+0.000</td><td>+0.195</td><td>0.039</td><td>+0.156</td></tr>
+<tr><td>60</td><td>19.06 16:32:25</td><td>buy</td><td>75.295</td><td>19.06 16:52:00</td><td>75.665</td><td>TakeProfit</td><td>20</td><td>+3.58</td><td>-0.49</td><td>+0.385</td><td>-0.609</td><td>+0.370</td><td>0.038</td><td>+0.332</td></tr>
+<tr><td>61</td><td>22.06 12:12:25</td><td>buy</td><td>75.035</td><td>22.06 12:42:30</td><td>74.900</td><td>HardStop</td><td>30</td><td>+2.96</td><td>+2.03</td><td>+0.169</td><td>-0.234</td><td>-0.135</td><td>0.037</td><td>-0.172</td></tr>
+<tr><td>63</td><td>24.06 10:30:45</td><td>buy</td><td>72.950</td><td>24.06 11:00:50</td><td>73.015</td><td>TimeStop</td><td>30</td><td>+3.10</td><td>+0.34</td><td>+0.144</td><td>-0.099</td><td>+0.065</td><td>0.036</td><td>+0.029</td></tr>
+<tr><td>64</td><td>24.06 11:08:20</td><td>sell</td><td>73.320</td><td>24.06 11:38:25</td><td>73.505</td><td>TimeStop</td><td>30</td><td>-3.03</td><td>-1.07</td><td>+0.059</td><td>-0.414</td><td>-0.185</td><td>0.037</td><td>-0.222</td></tr>
+<tr><td>66</td><td>25.06 17:36:30</td><td>buy</td><td>70.400</td><td>25.06 17:49:55</td><td>70.320</td><td>HardStop</td><td>13</td><td>+3.07</td><td>-0.74</td><td>+0.019</td><td>-0.284</td><td>-0.080</td><td>0.035</td><td>-0.115</td></tr>
+<tr><td>67</td><td>29.06 10:14:45</td><td>sell</td><td>71.825</td><td>29.06 10:40:40</td><td>71.745</td><td>TakeProfit</td><td>26</td><td>-2.88</td><td>+0.57</td><td>+0.079</td><td>-0.120</td><td>+0.080</td><td>0.036</td><td>+0.044</td></tr>
+<tr><td>68</td><td>30.06 11:20:00</td><td>sell</td><td>75.430</td><td>30.06 11:50:05</td><td>75.305</td><td>TimeStop</td><td>30</td><td>-3.99</td><td>-0.33</td><td>+0.199</td><td>-0.228</td><td>+0.125</td><td>0.038</td><td>+0.087</td></tr>
+<tr><td>69</td><td>30.06 17:30:05</td><td>buy</td><td>74.965</td><td>30.06 17:42:50</td><td>75.000</td><td>TakeProfit</td><td>13</td><td>+2.85</td><td>-0.28</td><td>+0.194</td><td>-0.074</td><td>+0.035</td><td>0.037</td><td>-0.002</td></tr>
+<tr><td>70</td><td>02.07 17:53:10</td><td>sell</td><td>71.220</td><td>02.07 18:23:15</td><td>71.425</td><td>TimeStop</td><td>30</td><td>-3.00</td><td>-1.44</td><td>+0.085</td><td>-0.379</td><td>-0.205</td><td>0.036</td><td>-0.241</td></tr>
+<tr><td>71</td><td>06.07 16:27:05</td><td>sell</td><td>70.000</td><td>06.07 16:47:45</td><td>69.800</td><td>TakeProfit</td><td>21</td><td>-3.14</td><td>+0.48</td><td>+0.200</td><td>-0.084</td><td>+0.200</td><td>0.035</td><td>+0.165</td></tr>
+<tr><td>72</td><td>06.07 18:16:10</td><td>buy</td><td>69.335</td><td>06.07 18:46:25</td><td>68.830</td><td>TimeStop</td><td>30</td><td>+2.85</td><td>+1.99</td><td>+0.020</td><td>-0.574</td><td>-0.505</td><td>0.035</td><td>-0.540</td></tr>
+<tr><td>73</td><td>08.07 12:18:45</td><td>buy</td><td>64.275</td><td>08.07 12:42:25</td><td>64.260</td><td>Scratch</td><td>24</td><td>+3.10</td><td>-0.30</td><td>+0.134</td><td>-0.669</td><td>-0.015</td><td>0.032</td><td>-0.047</td></tr>
+<tr><td>74</td><td>09.07 11:03:25</td><td>buy</td><td>64.140</td><td>09.07 11:13:40</td><td>64.435</td><td>TakeProfit</td><td>10</td><td>+4.13</td><td>-0.28</td><td>+0.294</td><td>+0.000</td><td>+0.295</td><td>0.032</td><td>+0.263</td></tr>
+<tr><td>75</td><td>09.07 18:06:55</td><td>sell</td><td>65.700</td><td>09.07 18:15:30</td><td>65.460</td><td>TakeProfit</td><td>9</td><td>-3.64</td><td>+0.23</td><td>+0.239</td><td>-0.393</td><td>+0.240</td><td>0.033</td><td>+0.207</td></tr>
+<tr><td>76</td><td>10.07 17:12:35</td><td>sell</td><td>64.995</td><td>10.07 17:30:40</td><td>65.380</td><td>HardStop</td><td>18</td><td>-2.81</td><td>+0.93</td><td>+0.004</td><td>-0.439</td><td>-0.385</td><td>0.033</td><td>-0.418</td></tr>
+<tr><td>77</td><td>13.07 16:29:00</td><td>sell</td><td>65.345</td><td>13.07 16:59:35</td><td>65.435</td><td>TimeStop</td><td>31</td><td>-4.31</td><td>-1.64</td><td>+0.124</td><td>-0.089</td><td>-0.090</td><td>0.033</td><td>-0.123</td></tr>
+<tr><td>78</td><td>15.07 12:10:40</td><td>sell</td><td>64.655</td><td>15.07 12:13:40</td><td>64.535</td><td>TakeProfit</td><td>3</td><td>-2.98</td><td>+0.03</td><td>+0.120</td><td>-0.016</td><td>+0.120</td><td>0.032</td><td>+0.088</td></tr>
+<tr><td>79</td><td>16.07 17:13:30</td><td>sell</td><td>59.790</td><td>16.07 17:43:35</td><td>59.540</td><td>TimeStop</td><td>30</td><td>-2.86</td><td>-0.81</td><td>+0.284</td><td>-0.114</td><td>+0.250</td><td>0.030</td><td>+0.220</td></tr>
+<tr><td>80</td><td>17.07 10:11:50</td><td>sell</td><td>57.305</td><td>17.07 10:17:10</td><td>57.295</td><td>TakeProfit</td><td>5</td><td>-2.80</td><td>-0.23</td><td>+0.284</td><td>-0.144</td><td>+0.010</td><td>0.029</td><td>-0.019</td></tr>
+<tr><td>81</td><td>20.07 10:05:20</td><td>sell</td><td>52.560</td><td>20.07 10:35:25</td><td>52.110</td><td>TimeStop</td><td>30</td><td>-3.10</td><td>-0.47</td><td>+0.999</td><td>-0.274</td><td>+0.450</td><td>0.026</td><td>+0.424</td></tr>
+<tr><td>83</td><td>22.07 16:09:10</td><td>sell</td><td>57.725</td><td>22.07 16:39:15</td><td>57.600</td><td>TimeStop</td><td>30</td><td>-3.37</td><td>-1.28</td><td>+0.364</td><td>-0.018</td><td>+0.125</td><td>0.029</td><td>+0.096</td></tr>
+<tr><td>84</td><td>23.07 11:21:45</td><td>sell</td><td>58.175</td><td>23.07 11:40:40</td><td>57.900</td><td>TakeProfit</td><td>19</td><td>-3.28</td><td>-0.04</td><td>+0.339</td><td>-0.018</td><td>+0.275</td><td>0.029</td><td>+0.246</td></tr>
+<tr><td>85</td><td>24.07 10:05:05</td><td>sell</td><td>57.525</td><td>24.07 10:15:55</td><td>57.235</td><td>TakeProfit</td><td>11</td><td>-3.32</td><td>+0.46</td><td>+0.419</td><td>-0.020</td><td>+0.290</td><td>0.029</td><td>+0.261</td></tr>
+<tr><td>86</td><td>28.07 11:45:50</td><td>sell</td><td>58.600</td><td>28.07 12:09:40</td><td>58.560</td><td>TakeProfit</td><td>24</td><td>-3.08</td><td>+0.30</td><td>+0.039</td><td>-0.145</td><td>+0.040</td><td>0.029</td><td>+0.011</td></tr>
+<tr><td>87</td><td>30.07 10:18:30</td><td>buy</td><td>56.900</td><td>30.07 10:37:40</td><td>57.055</td><td>TakeProfit</td><td>19</td><td>+2.83</td><td>-0.56</td><td>+0.154</td><td>-0.194</td><td>+0.155</td><td>0.028</td><td>+0.127</td></tr>
+<tr><td>88</td><td>31.07 10:06:30</td><td>buy</td><td>56.125</td><td>31.07 10:26:40</td><td>56.510</td><td>TakeProfit</td><td>20</td><td>+3.70</td><td>-0.42</td><td>+0.385</td><td>-0.119</td><td>+0.385</td><td>0.028</td><td>+0.357</td></tr>
+<tr><td>89</td><td>31.07 12:05:00</td><td>sell</td><td>56.365</td><td>31.07 12:35:35</td><td>56.420</td><td>TimeStop</td><td>31</td><td>-2.90</td><td>-1.13</td><td>+0.099</td><td>-0.125</td><td>-0.055</td><td>0.028</td><td>-0.083</td></tr>
+<tr><td>91</td><td>31.07 15:48:05</td><td>sell</td><td>56.505</td><td>31.07 15:51:40</td><td>56.465</td><td>TakeProfit</td><td>4</td><td>-3.19</td><td>-1.50</td><td>+0.174</td><td>-0.064</td><td>+0.040</td><td>0.028</td><td>+0.012</td></tr>
+<tr><td>92</td><td>31.07 15:56:25</td><td>sell</td><td>56.705</td><td>31.07 16:27:00</td><td>56.630</td><td>TimeStop</td><td>31</td><td>-3.83</td><td>-0.72</td><td>+0.194</td><td>-0.158</td><td>+0.075</td><td>0.028</td><td>+0.047</td></tr>
+<tr><td>93</td><td>03.08 10:09:40</td><td>buy</td><td>56.525</td><td>03.08 10:33:00</td><td>56.715</td><td>TakeProfit</td><td>23</td><td>+2.90</td><td>-0.24</td><td>+0.229</td><td>-0.034</td><td>+0.190</td><td>0.028</td><td>+0.162</td></tr>
+<tr><td>94</td><td>04.08 10:29:45</td><td>buy</td><td>57.355</td><td>04.08 11:00:20</td><td>57.435</td><td>TimeStop</td><td>31</td><td>+3.39</td><td>+0.75</td><td>+0.233</td><td>+0.000</td><td>+0.080</td><td>0.029</td><td>+0.051</td></tr>
+<tr><td>95</td><td>04.08 18:06:05</td><td>buy</td><td>56.710</td><td>04.08 18:36:40</td><td>56.915</td><td>TimeStop</td><td>31</td><td>+2.92</td><td>+0.78</td><td>+0.323</td><td>-0.008</td><td>+0.205</td><td>0.028</td><td>+0.177</td></tr>
+<tr><td>96</td><td>05.08 18:26:45</td><td>buy</td><td>56.245</td><td>05.08 18:32:40</td><td>56.420</td><td>TakeProfit</td><td>6</td><td>+3.35</td><td>+0.25</td><td>+0.229</td><td>-0.048</td><td>+0.175</td><td>0.028</td><td>+0.147</td></tr>
+<tr><td>97</td><td>06.08 10:07:10</td><td>buy</td><td>56.775</td><td>06.08 10:16:40</td><td>57.040</td><td>TakeProfit</td><td>10</td><td>+2.84</td><td>-0.15</td><td>+0.265</td><td>-0.009</td><td>+0.265</td><td>0.028</td><td>+0.237</td></tr>
+<tr><td>98</td><td>06.08 15:56:25</td><td>buy</td><td>55.255</td><td>06.08 16:27:00</td><td>55.345</td><td>TimeStop</td><td>31</td><td>+3.47</td><td>+0.83</td><td>+0.250</td><td>-0.153</td><td>+0.090</td><td>0.028</td><td>+0.062</td></tr>
+<tr><td>99</td><td>07.08 10:06:45</td><td>sell</td><td>55.930</td><td>07.08 10:18:15</td><td>55.765</td><td>TakeProfit</td><td>12</td><td>-3.55</td><td>+0.08</td><td>+0.164</td><td>-0.033</td><td>+0.165</td><td>0.028</td><td>+0.137</td></tr>
+<tr><td>100</td><td>07.08 12:19:45</td><td>buy</td><td>55.525</td><td>07.08 12:50:20</td><td>55.685</td><td>TimeStop</td><td>31</td><td>+4.88</td><td>+0.06</td><td>+0.174</td><td>-0.114</td><td>+0.160</td><td>0.028</td><td>+0.132</td></tr>
+<tr><td>101</td><td>11.08 10:23:45</td><td>sell</td><td>56.620</td><td>11.08 10:54:05</td><td>56.970</td><td>HardStop</td><td>30</td><td>-4.70</td><td>-0.93</td><td>+0.049</td><td>-0.474</td><td>-0.350</td><td>0.028</td><td>-0.378</td></tr>
+<tr><td>102</td><td>12.08 18:07:05</td><td>buy</td><td>57.370</td><td>12.08 18:18:40</td><td>57.685</td><td>TakeProfit</td><td>12</td><td>+3.10</td><td>-0.08</td><td>+0.318</td><td>-0.038</td><td>+0.315</td><td>0.029</td><td>+0.286</td></tr>
+<tr><td>103</td><td>13.08 10:10:05</td><td>buy</td><td>56.690</td><td>13.08 10:33:00</td><td>56.725</td><td>TakeProfit</td><td>23</td><td>+3.94</td><td>-0.52</td><td>+0.045</td><td>-0.279</td><td>+0.035</td><td>0.028</td><td>+0.007</td></tr>
+<tr><td>104</td><td>13.08 11:26:00</td><td>sell</td><td>57.025</td><td>13.08 11:56:05</td><td>56.920</td><td>TimeStop</td><td>30</td><td>-2.87</td><td>-0.27</td><td>+0.119</td><td>-0.048</td><td>+0.105</td><td>0.028</td><td>+0.077</td></tr>
+<tr><td>105</td><td>14.08 10:05:05</td><td>sell</td><td>55.650</td><td>14.08 10:35:30</td><td>55.640</td><td>TimeStop</td><td>30</td><td>-3.00</td><td>-0.46</td><td>+0.059</td><td>-0.153</td><td>+0.010</td><td>0.028</td><td>-0.018</td></tr>
+<tr><td>106</td><td>17.08 10:09:25</td><td>buy</td><td>53.680</td><td>17.08 10:39:30</td><td>53.505</td><td>HardStop</td><td>30</td><td>+3.88</td><td>+0.90</td><td>+0.204</td><td>-0.579</td><td>-0.175</td><td>0.027</td><td>-0.202</td></tr>
+<tr><td>107</td><td>19.08 18:26:10</td><td>sell</td><td>53.735</td><td>19.08 18:56:35</td><td>53.775</td><td>TimeStop</td><td>30</td><td>-3.25</td><td>-0.67</td><td>+0.070</td><td>-0.218</td><td>-0.040</td><td>0.027</td><td>-0.067</td></tr>
+<tr><td>108</td><td>20.08 12:15:50</td><td>sell</td><td>54.205</td><td>20.08 12:45:55</td><td>54.180</td><td>TimeStop</td><td>30</td><td>-3.50</td><td>-1.09</td><td>+0.105</td><td>-0.033</td><td>+0.025</td><td>0.027</td><td>-0.002</td></tr>
+<tr><td>109</td><td>24.08 10:08:10</td><td>buy</td><td>51.640</td><td>24.08 10:11:20</td><td>51.900</td><td>TakeProfit</td><td>3</td><td>+3.28</td><td>+0.01</td><td>+0.258</td><td>-0.104</td><td>+0.260</td><td>0.026</td><td>+0.234</td></tr>
+<tr><td>110</td><td>24.08 10:27:10</td><td>buy</td><td>51.330</td><td>24.08 10:46:50</td><td>51.575</td><td>TakeProfit</td><td>20</td><td>+3.12</td><td>-0.18</td><td>+0.294</td><td>-0.023</td><td>+0.245</td><td>0.026</td><td>+0.219</td></tr>
+<tr><td>111</td><td>24.08 15:50:55</td><td>sell</td><td>51.525</td><td>24.08 16:18:40</td><td>51.240</td><td>TakeProfit</td><td>28</td><td>-2.96</td><td>+0.33</td><td>+0.284</td><td>-0.003</td><td>+0.285</td><td>0.026</td><td>+0.259</td></tr>
+<tr><td>112</td><td>25.08 10:18:35</td><td>buy</td><td>51.570</td><td>25.08 10:49:10</td><td>51.420</td><td>TimeStop</td><td>31</td><td>+3.61</td><td>+1.16</td><td>+0.058</td><td>-0.278</td><td>-0.150</td><td>0.026</td><td>-0.176</td></tr>
+<tr><td>113</td><td>27.08 10:32:45</td><td>sell</td><td>50.020</td><td>27.08 10:36:40</td><td>49.935</td><td>TakeProfit</td><td>4</td><td>-2.86</td><td>-0.23</td><td>+0.084</td><td>-0.058</td><td>+0.085</td><td>0.025</td><td>+0.060</td></tr>
+<tr><td>114</td><td>27.08 12:07:25</td><td>sell</td><td>50.040</td><td>27.08 12:38:00</td><td>50.255</td><td>TimeStop</td><td>31</td><td>-2.86</td><td>-0.71</td><td>+0.054</td><td>-0.374</td><td>-0.215</td><td>0.025</td><td>-0.240</td></tr>
+<tr><td>115</td><td>31.08 10:05:50</td><td>sell</td><td>50.390</td><td>31.08 10:35:55</td><td>50.425</td><td>TimeStop</td><td>30</td><td>-2.92</td><td>-0.71</td><td>+0.098</td><td>-0.084</td><td>-0.035</td><td>0.025</td><td>-0.060</td></tr>
+<tr><td>116</td><td>02.09 18:27:35</td><td>sell</td><td>51.960</td><td>02.09 18:57:40</td><td>51.815</td><td>TimeStop</td><td>30</td><td>-3.55</td><td>-0.03</td><td>+0.309</td><td>-0.038</td><td>+0.145</td><td>0.026</td><td>+0.119</td></tr>
+<tr><td>117</td><td>03.09 12:08:25</td><td>sell</td><td>52.120</td><td>03.09 12:14:55</td><td>52.000</td><td>TakeProfit</td><td>6</td><td>-2.91</td><td>+0.18</td><td>+0.125</td><td>-0.009</td><td>+0.120</td><td>0.026</td><td>+0.094</td></tr>
+<tr><td>118</td><td>03.09 15:52:25</td><td>sell</td><td>51.570</td><td>03.09 16:23:00</td><td>51.585</td><td>TimeStop</td><td>31</td><td>-2.91</td><td>-0.37</td><td>+0.079</td><td>-0.113</td><td>-0.015</td><td>0.026</td><td>-0.041</td></tr>
+<tr><td>119</td><td>04.09 10:34:05</td><td>sell</td><td>52.415</td><td>04.09 10:57:40</td><td>52.225</td><td>TakeProfit</td><td>24</td><td>-3.76</td><td>+0.34</td><td>+0.189</td><td>-0.118</td><td>+0.190</td><td>0.026</td><td>+0.164</td></tr>
+<tr><td>120</td><td>08.09 11:29:45</td><td>buy</td><td>52.285</td><td>08.09 11:52:35</td><td>52.500</td><td>TakeProfit</td><td>23</td><td>+4.14</td><td>-0.37</td><td>+0.214</td><td>-0.014</td><td>+0.215</td><td>0.026</td><td>+0.189</td></tr>
+<tr><td>121</td><td>10.09 15:30:05</td><td>sell</td><td>51.735</td><td>10.09 16:00:10</td><td>51.660</td><td>TimeStop</td><td>30</td><td>-3.37</td><td>-0.34</td><td>+0.075</td><td>-0.008</td><td>+0.075</td><td>0.026</td><td>+0.049</td></tr>
+<tr><td>122</td><td>10.09 18:00:10</td><td>buy</td><td>51.710</td><td>10.09 18:13:35</td><td>51.940</td><td>TakeProfit</td><td>13</td><td>+2.86</td><td>-0.35</td><td>+0.230</td><td>-0.030</td><td>+0.230</td><td>0.026</td><td>+0.204</td></tr>
+<tr><td>123</td><td>17.09 17:03:50</td><td>sell</td><td>49.850</td><td>17.09 17:33:55</td><td>49.665</td><td>TimeStop</td><td>30</td><td>-2.94</td><td>-0.26</td><td>+0.414</td><td>-0.038</td><td>+0.185</td><td>0.025</td><td>+0.160</td></tr>
+<tr><td>124</td><td>18.09 12:14:45</td><td>sell</td><td>50.340</td><td>18.09 12:32:00</td><td>50.275</td><td>TakeProfit</td><td>17</td><td>-2.92</td><td>-0.05</td><td>+0.089</td><td>-0.114</td><td>+0.065</td><td>0.025</td><td>+0.040</td></tr>
+<tr><td>125</td><td>22.09 10:18:45</td><td>sell</td><td>50.650</td><td>22.09 10:48:50</td><td>51.240</td><td>HardStop</td><td>30</td><td>-4.71</td><td>-1.84</td><td>+0.098</td><td>-0.595</td><td>-0.590</td><td>0.025</td><td>-0.615</td></tr>
+<tr><td>126</td><td>23.09 10:09:15</td><td>sell</td><td>51.540</td><td>23.09 10:09:40</td><td>51.370</td><td>TakeProfit</td><td>0</td><td>-2.96</td><td>-0.22</td><td>+0.169</td><td>-0.003</td><td>+0.170</td><td>0.026</td><td>+0.144</td></tr>
+<tr><td>127</td><td>25.09 11:25:45</td><td>sell</td><td>51.415</td><td>25.09 11:55:50</td><td>51.300</td><td>TimeStop</td><td>30</td><td>-4.44</td><td>-0.39</td><td>+0.173</td><td>-0.080</td><td>+0.115</td><td>0.026</td><td>+0.089</td></tr>
+<tr><td>128</td><td>25.09 16:40:45</td><td>sell</td><td>51.690</td><td>25.09 17:11:20</td><td>51.870</td><td>TimeStop</td><td>31</td><td>-4.22</td><td>-1.56</td><td>+0.083</td><td>-0.224</td><td>-0.180</td><td>0.026</td><td>-0.206</td></tr>
+<tr><td>130</td><td>30.09 10:05:05</td><td>sell</td><td>52.415</td><td>30.09 10:35:10</td><td>52.280</td><td>TimeStop</td><td>30</td><td>-3.40</td><td>-0.52</td><td>+0.208</td><td>-0.084</td><td>+0.135</td><td>0.026</td><td>+0.109</td></tr>
+<tr><td>131</td><td>30.09 15:57:25</td><td>buy</td><td>51.895</td><td>30.09 16:27:30</td><td>52.040</td><td>TimeStop</td><td>30</td><td>+2.91</td><td>+1.11</td><td>+0.259</td><td>-0.234</td><td>+0.145</td><td>0.026</td><td>+0.119</td></tr>
+<tr><td>132</td><td>01.10 10:05:05</td><td>sell</td><td>52.510</td><td>01.10 10:35:10</td><td>52.460</td><td>TimeStop</td><td>30</td><td>-3.00</td><td>+0.01</td><td>+0.158</td><td>-0.124</td><td>+0.050</td><td>0.026</td><td>+0.024</td></tr>
+<tr><td>133</td><td>02.10 10:39:35</td><td>sell</td><td>52.405</td><td>02.10 11:10:10</td><td>52.270</td><td>TimeStop</td><td>31</td><td>-4.45</td><td>-0.10</td><td>+0.178</td><td>-0.018</td><td>+0.135</td><td>0.026</td><td>+0.109</td></tr>
+<tr><td>134</td><td>05.10 10:20:20</td><td>sell</td><td>52.400</td><td>05.10 10:50:25</td><td>52.370</td><td>TimeStop</td><td>30</td><td>-4.33</td><td>-0.29</td><td>+0.143</td><td>-0.083</td><td>+0.030</td><td>0.026</td><td>+0.004</td></tr>
+<tr><td>135</td><td>06.10 10:42:25</td><td>buy</td><td>53.920</td><td>06.10 11:12:30</td><td>54.095</td><td>TimeStop</td><td>30</td><td>+3.86</td><td>+0.37</td><td>+0.274</td><td>-0.219</td><td>+0.175</td><td>0.027</td><td>+0.148</td></tr>
+<tr><td>136</td><td>07.10 11:58:10</td><td>buy</td><td>55.325</td><td>07.10 12:28:30</td><td>55.605</td><td>TimeStop</td><td>30</td><td>+3.10</td><td>+0.66</td><td>+0.424</td><td>-0.033</td><td>+0.280</td><td>0.028</td><td>+0.252</td></tr>
+<tr><td>137</td><td>08.10 10:26:25</td><td>sell</td><td>55.115</td><td>08.10 10:57:00</td><td>55.095</td><td>TimeStop</td><td>31</td><td>-4.34</td><td>-1.19</td><td>+0.244</td><td>-0.123</td><td>+0.020</td><td>0.028</td><td>-0.008</td></tr>
+<tr><td>138</td><td>09.10 11:00:05</td><td>sell</td><td>54.325</td><td>09.10 11:18:30</td><td>54.190</td><td>TakeProfit</td><td>18</td><td>-3.10</td><td>+0.23</td><td>+0.144</td><td>-0.013</td><td>+0.135</td><td>0.027</td><td>+0.108</td></tr>
+<tr><td>140</td><td>09.10 18:11:10</td><td>buy</td><td>53.490</td><td>09.10 18:41:25</td><td>53.705</td><td>TimeStop</td><td>30</td><td>+3.72</td><td>+0.28</td><td>+0.234</td><td>-0.164</td><td>+0.215</td><td>0.027</td><td>+0.188</td></tr>
+<tr><td>141</td><td>12.10 10:23:00</td><td>buy</td><td>55.110</td><td>12.10 10:53:35</td><td>54.965</td><td>TimeStop</td><td>31</td><td>+2.99</td><td>+0.91</td><td>+0.013</td><td>-0.159</td><td>-0.145</td><td>0.028</td><td>-0.173</td></tr>
+<tr><td>142</td><td>13.10 10:08:55</td><td>sell</td><td>55.010</td><td>13.10 10:16:15</td><td>54.800</td><td>TakeProfit</td><td>7</td><td>-4.75</td><td>+0.10</td><td>+0.209</td><td>-0.013</td><td>+0.210</td><td>0.027</td><td>+0.183</td></tr>
+<tr><td>143</td><td>14.10 12:03:10</td><td>sell</td><td>56.505</td><td>14.10 12:28:40</td><td>56.430</td><td>TakeProfit</td><td>26</td><td>-3.52</td><td>-0.62</td><td>+0.229</td><td>-0.099</td><td>+0.075</td><td>0.028</td><td>+0.047</td></tr>
+<tr><td>144</td><td>15.10 10:37:55</td><td>sell</td><td>55.345</td><td>15.10 11:08:30</td><td>55.335</td><td>TimeStop</td><td>31</td><td>-3.04</td><td>-0.76</td><td>+0.089</td><td>-0.139</td><td>+0.010</td><td>0.028</td><td>-0.018</td></tr>
+<tr><td>145</td><td>19.10 10:05:55</td><td>sell</td><td>55.745</td><td>19.10 10:36:00</td><td>55.710</td><td>TimeStop</td><td>30</td><td>-3.07</td><td>-0.50</td><td>+0.114</td><td>-0.045</td><td>+0.035</td><td>0.028</td><td>+0.007</td></tr>
+<tr><td>146</td><td>20.10 11:44:05</td><td>sell</td><td>57.195</td><td>20.10 12:14:10</td><td>57.070</td><td>TimeStop</td><td>30</td><td>-3.14</td><td>-0.49</td><td>+0.230</td><td>-0.013</td><td>+0.125</td><td>0.029</td><td>+0.096</td></tr>
+<tr><td>147</td><td>21.10 10:19:25</td><td>sell</td><td>57.990</td><td>21.10 10:32:35</td><td>57.950</td><td>TakeProfit</td><td>13</td><td>-3.77</td><td>+0.32</td><td>+0.054</td><td>-0.099</td><td>+0.040</td><td>0.029</td><td>+0.011</td></tr>
+<tr><td>148</td><td>21.10 11:43:25</td><td>sell</td><td>58.200</td><td>21.10 11:57:20</td><td>58.055</td><td>TakeProfit</td><td>14</td><td>-3.16</td><td>+0.09</td><td>+0.198</td><td>-0.053</td><td>+0.145</td><td>0.029</td><td>+0.116</td></tr>
+<tr><td>149</td><td>22.10 10:05:05</td><td>buy</td><td>56.850</td><td>22.10 10:35:40</td><td>56.770</td><td>TimeStop</td><td>31</td><td>+4.19</td><td>+1.16</td><td>+0.159</td><td>-0.209</td><td>-0.080</td><td>0.028</td><td>-0.108</td></tr>
+<tr><td>150</td><td>23.10 10:28:05</td><td>sell</td><td>56.840</td><td>23.10 10:58:10</td><td>56.790</td><td>TimeStop</td><td>30</td><td>-2.97</td><td>-0.20</td><td>+0.080</td><td>-0.103</td><td>+0.050</td><td>0.028</td><td>+0.022</td></tr>
+<tr><td>151</td><td>23.10 17:20:10</td><td>sell</td><td>56.690</td><td>23.10 17:50:15</td><td>56.880</td><td>TimeStop</td><td>30</td><td>-2.81</td><td>-0.79</td><td>+0.000</td><td>-0.494</td><td>-0.190</td><td>0.028</td><td>-0.218</td></tr>
+</table></div>
+</body></html>

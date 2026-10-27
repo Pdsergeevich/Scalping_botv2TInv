@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<title>Bot A — визуализация работы · VTBR/SBER</title>
+<style>
+ body{background:#0f1419;color:#d7e0ea;font-family:'Segoe UI',system-ui,sans-serif;margin:0;padding:24px}
+ h1{font-size:20px;margin:0 0 4px} h2{font-size:15px;margin:28px 0 8px;color:#9fb3c8}
+ .kpis{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 6px}
+ .kpi{background:#161d26;border:1px solid #243040;border-radius:8px;padding:10px 14px;min-width:150px}
+ .kpi b{display:block;font-size:17px;margin-top:3px}
+ .muted{color:#8b9aab;font-size:12px}
+ figure{margin:0 0 22px} img{width:100%;border-radius:8px;border:1px solid #243040}
+ figcaption{color:#8b9aab;font-size:11px;margin-top:5px}
+ table{border-collapse:collapse;font-size:11.5px;width:100%}
+ th,td{border-bottom:1px solid #243040;padding:4px 7px;text-align:right;white-space:nowrap}
+ th{color:#9fb3c8;text-align:right;position:sticky;top:0;background:#161d26}
+ td:nth-child(2),td:nth-child(3),td:nth-child(5),td:nth-child(7){text-align:left}
+ .wrap{max-height:520px;overflow:auto;border:1px solid #243040;border-radius:8px}
+</style></head><body>
+<h1>Bot A — как работает бот на реальных данных MOEX</h1>
+<div class="muted">пресет VTBR/SBER · топология SingleLegLeadLag ·
+ Z_Entry 2.8 · Z_Exit 0.2 · Z_Stop 6.0 ·
+ EWMA 2400 · MaxHold 1800 c ·
+ точек траектории 120</div>
+<div class="kpis">
+ <div class="kpi">Сделок<b>0</b></div>
+ <div class="kpi">Net PnL<b style="color:#2ecc71">+0.00 RUB</b></div>
+ <div class="kpi">Gross / комиссии<b>+0.00 / 0.00</b></div>
+ <div class="kpi">Дней в плюсе<b>0/0</b></div>
+ <div class="kpi">Profit Factor<b>0.00</b></div>
+ <div class="kpi">Max DD<b>0.00 RUB</b></div>
+ <div class="kpi">Sharpe (год.)<b>0.00</b></div>
+ <div class="kpi">Ср. удержание<b>0 мин</b></div>
+</div>
+<h2>Графики</h2>
+<figure><img src="01_overview.png" alt="01_overview"><figcaption>01_overview.png</figcaption></figure>
+<figure><img src="02_equity.png" alt="02_equity"><figcaption>02_equity.png</figcaption></figure>
+<figure><img src="03_daily_pnl.png" alt="03_daily_pnl"><figcaption>03_daily_pnl.png</figcaption></figure>
+<figure><img src="04_trades_and_exits.png" alt="04_trades_and_exits"><figcaption>04_trades_and_exits.png</figcaption></figure>
+<h2>Все сделки: когда вошёл, когда вышел</h2>
+<div class="wrap"><table>
+<tr><th>#</th><th>открытие</th><th>сторона</th><th>цена входа</th><th>закрытие</th>
+<th>цена выхода</th><th>причина</th><th>мин</th><th>Z вх.</th><th>Z вых.</th>
+<th>MFE</th><th>MAE</th><th>gross</th><th>fees</th><th>net</th></tr>
+
+</table></div>
+</body></html>

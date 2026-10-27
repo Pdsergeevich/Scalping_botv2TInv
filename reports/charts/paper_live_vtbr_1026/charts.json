@@ -1,0 +1,15 @@
+{
+  "preset": "VTBR_SBER",
+  "topology": "SingleLegLeadLag",
+  "trades": 0,
+  "netPnlRub": "0",
+  "grossPnlRub": "0",
+  "feesRub": "0",
+  "charts": [
+    "01_overview.png",
+    "02_equity.png",
+    "03_daily_pnl.png",
+    "04_trades_and_exits.png",
+    "index.html"
+  ]
+}

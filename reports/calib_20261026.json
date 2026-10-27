@@ -1,0 +1,86 @@
+{
+ "preset": "VTBR_SBER",
+ "date": "2026-10-26",
+ "window": "10:00-21:30",
+ "zEntry": 2.8,
+ "live": {
+  "n": 247,
+  "std": 0.6686,
+  "mean": 0.5568,
+  "absMean": 0.7405,
+  "maxAbs": 1.351,
+  "p95": 1.28,
+  "p99": 1.327,
+  "p995": 1.349,
+  "aboveEntry": 0,
+  "aboveEntryPct": 0.0
+ },
+ "candleTicks": {
+  "n": 247,
+  "std": 0.5836,
+  "mean": -0.9241,
+  "absMean": 1.0129,
+  "maxAbs": 1.722,
+  "p95": 1.518,
+  "p99": 1.617,
+  "p995": 1.63,
+  "aboveEntry": 0,
+  "aboveEntryPct": 0.0
+ },
+ "candleClose": {
+  "n": 27,
+  "std": 0.2305,
+  "mean": -1.213,
+  "absMean": 1.213,
+  "maxAbs": 1.522,
+  "p95": 1.522,
+  "p99": 1.522,
+  "p995": 1.522,
+  "aboveEntry": 0,
+  "aboveEntryPct": 0.0
+ },
+ "liveFull": {
+  "n": 247,
+  "std": 0.6686,
+  "mean": 0.5568,
+  "absMean": 0.7405,
+  "maxAbs": 1.351,
+  "p95": 1.28,
+  "p99": 1.327,
+  "p995": 1.349,
+  "aboveEntry": 0,
+  "aboveEntryPct": 0.0
+ },
+ "candleTicksFull": {
+  "n": 8292,
+  "std": 0.9876,
+  "mean": -0.0806,
+  "absMean": 0.8353,
+  "maxAbs": 2.713,
+  "p95": 1.754,
+  "p99": 2.086,
+  "p995": 2.213,
+  "aboveEntry": 0,
+  "aboveEntryPct": 0.0
+ },
+ "candleCloseFull": {
+  "n": 691,
+  "std": 1.0478,
+  "mean": -0.0265,
+  "absMean": 0.8818,
+  "maxAbs": 3.096,
+  "p95": 1.89,
+  "p99": 2.359,
+  "p995": 2.455,
+  "aboveEntry": 1,
+  "aboveEntryPct": 0.145
+ },
+ "ratios": {
+  "stdTicksOverLive": 0.873,
+  "p99TicksOverLive": 1.219,
+  "p99CloseOverLive": 1.147,
+  "p99TicksOverClose": 0.884,
+  "p995TicksOverClose": 0.901,
+  "maxTicksOverClose": 0.876
+ }
+}

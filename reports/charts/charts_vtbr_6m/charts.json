@@ -1,0 +1,19 @@
+{
+  "preset": "VTBR_SBER",
+  "topology": "SingleLegLeadLag",
+  "trades": 122,
+  "netPnlRub": "3.20227750",
+  "grossPnlRub": "7.240",
+  "feesRub": "4.03772250",
+  "charts": [
+    "01_overview.png",
+    "02_equity.png",
+    "03_daily_pnl.png",
+    "04_trades_and_exits.png",
+    "05_zoom_01_trade_14.png",
+    "05_zoom_02_trade_38.png",
+    "05_zoom_03_trade_72.png",
+    "05_zoom_04_trade_125.png",
+    "index.html"
+  ]
+}
