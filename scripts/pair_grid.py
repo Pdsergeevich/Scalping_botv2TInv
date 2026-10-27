@@ -1,15 +1,16 @@
-"""Параллельный грид по парам/окнам/порогам на ISS-данных (v2.6).
+"""Грид по парам/окнам/порогам на ISS-данных (v2.6).
 
 Один прогон — это `HistoricalCandleBacktester` без записи отчётов на диск.
-Конфигурации выполняются в пуле процессов, поэтому грид из десятков прогонов
-укладывается в минуты.
+По умолчанию конфигурации идут последовательно в одном процессе: параллельный
+пул из 6–15 процессов выводил CPU на 100 % и ронял видеодрайвер, поэтому
+`--jobs` ограничен (по умолчанию 1, максимум 4) и между прогонами есть пауза.
 
 Примеры:
     py -3 scripts/pair_grid.py --pairs VTBR/SBER ALRS/SBER \
-        --ewma 900 1200 1600 2400 --z 2.6 2.8 --periods oos is 6m --jobs 8 \
+        --ewma 900 1200 1600 2400 --z 2.6 2.8 --periods oos is 6m \
         --json reports/ewma_grid_v26.json
 
-    py -3 scripts/pair_grid.py --pairs AFLT/SBER AFKS/SBER --periods 6m --jobs 6
+    py -3 scripts/pair_grid.py --pairs AFLT/SBER AFKS/SBER --periods 6m
     py -3 scripts/pair_grid.py --pairs SPZ6/SRZ6 --futures --sigma 0.95 1.05 1.15 --periods 3m 6m
 """
 
@@ -20,6 +21,7 @@ import asyncio
 import json
 import logging
 import sys
+import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import replace
 from datetime import datetime
@@ -28,6 +30,16 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+
+from bot_a.utils.process_guard import (  # noqa: E402 — нужен sys.path выше
+    hard_limit,
+    limit_blas_threads,
+    lower_priority,
+    resolve_jobs,
+    worker_init,
+)
+
+limit_blas_threads(1)
 
 PERIODS: Dict[str, Tuple[str, str]] = {
     "oos": ("2026-04-25", "2026-07-25"),
@@ -168,7 +180,18 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     parser.add_argument("--tariff", default="Premium")
     parser.add_argument("--futures", action="store_true")
-    parser.add_argument("--jobs", type=int, default=6)
+    parser.add_argument(
+        "--jobs",
+        type=int,
+        default=1,
+        help=f"процессов (по умолчанию 1, максимум {hard_limit()})",
+    )
+    parser.add_argument(
+        "--pause-ms",
+        type=int,
+        default=150,
+        help="пауза между прогонами в одном процессе, мс",
+    )
     parser.add_argument("--json", dest="json_out", default="")
     args = parser.parse_args(argv)
 
@@ -208,17 +231,23 @@ def main(argv: Optional[List[str]] = None) -> int:
                                     }
                                 )
 
-    print(f"конфигураций: {len(specs)}, процессов: {args.jobs}")
+    jobs = resolve_jobs(args.jobs)
+    print(f"конфигураций: {len(specs)}, процессов: {jobs}")
+    lower_priority()
     rows: List[Dict[str, Any]] = []
-    with ProcessPoolExecutor(max_workers=max(args.jobs, 1)) as pool:
-        futures = {pool.submit(_run_spec, spec): spec for spec in specs}
-        done = 0
-        for future in as_completed(futures):
-            done += 1
+    pause_seconds = max(args.pause_ms, 0) / 1000.0
+
+    def _collect(item: Dict[str, Any]) -> Dict[str, Any]:
+        rows.append(item)
+        if pause_seconds:
+            time.sleep(pause_seconds)
+        return item
+
+    if jobs <= 1:
+        for index, spec in enumerate(specs, start=1):
             try:
-                rows.append(future.result())
+                _collect(_run_spec(spec))
             except Exception as exc:  # noqa: BLE001
-                spec = futures[future]
                 rows.append(
                     {
                         "pair": spec["pair"],
@@ -229,8 +258,30 @@ def main(argv: Optional[List[str]] = None) -> int:
                         "error": f"{type(exc).__name__}: {exc}",
                     }
                 )
-            if done % 8 == 0:
-                print(f"  готово {done}/{len(specs)}")
+            if index % 8 == 0:
+                print(f"  готово {index}/{len(specs)}")
+    else:
+        with ProcessPoolExecutor(max_workers=jobs, initializer=worker_init) as pool:
+            futures = {pool.submit(_run_spec, spec): spec for spec in specs}
+            done = 0
+            for future in as_completed(futures):
+                done += 1
+                try:
+                    _collect(future.result())
+                except Exception as exc:  # noqa: BLE001
+                    spec = futures[future]
+                    rows.append(
+                        {
+                            "pair": spec["pair"],
+                            "period": spec["period"],
+                            "ewma": spec["ewma"],
+                            "z": spec["z"],
+                            "sigma": spec["sigma"],
+                            "error": f"{type(exc).__name__}: {exc}",
+                        }
+                    )
+                if done % 8 == 0:
+                    print(f"  готово {done}/{len(specs)}")
 
     print()
     _print_table(rows)

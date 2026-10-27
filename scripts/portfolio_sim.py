@@ -18,6 +18,7 @@ import logging
 import math
 import statistics
 import sys
+import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import replace
@@ -27,6 +28,16 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+
+from bot_a.utils.process_guard import (  # noqa: E402 — нужен sys.path выше
+    hard_limit,
+    limit_blas_threads,
+    lower_priority,
+    resolve_jobs,
+    worker_init,
+)
+
+limit_blas_threads(1)
 
 PERIODS: Dict[str, Tuple[str, str]] = {
     "oos": ("2026-04-25", "2026-07-25"),
@@ -184,7 +195,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--period", default="6m", choices=sorted(PERIODS))
     parser.add_argument("--tariff", default="Premium")
     parser.add_argument("--notional", type=float, default=0.0, help="целевой номинал на пару, RUB")
-    parser.add_argument("--jobs", type=int, default=6)
+    parser.add_argument(
+        "--jobs",
+        type=int,
+        default=1,
+        help=f"процессов (по умолчанию 1, максимум {hard_limit()})",
+    )
     parser.add_argument("--json", dest="json_out", default="")
     args = parser.parse_args(argv)
 
@@ -243,17 +259,29 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("нет валидных спек")
         return 2
     print(f"пар в портфеле: {len(specs)}")
+    jobs = resolve_jobs(args.jobs)
+    print(f"процессов: {jobs}")
+    lower_priority()
     runs: List[Dict[str, Any]] = []
-    with ProcessPoolExecutor(max_workers=max(args.jobs, 1)) as pool:
-        futures = {pool.submit(_run_leg, spec): spec for spec in specs}
-        for future in as_completed(futures):
-            spec = futures[future]
+    if jobs <= 1:
+        for spec in specs:
             try:
-                row = future.result()
+                row = _run_leg(spec)
             except Exception as exc:  # noqa: BLE001
                 row = {"pair": spec["pair"], "error": f"{type(exc).__name__}: {exc}"}
             row["notional_per_lot"] = spec.get("notional_per_lot", 0.0)
             runs.append(row)
+    else:
+        with ProcessPoolExecutor(max_workers=jobs, initializer=worker_init) as pool:
+            futures = {pool.submit(_run_leg, spec): spec for spec in specs}
+            for future in as_completed(futures):
+                spec = futures[future]
+                try:
+                    row = future.result()
+                except Exception as exc:  # noqa: BLE001
+                    row = {"pair": spec["pair"], "error": f"{type(exc).__name__}: {exc}"}
+                row["notional_per_lot"] = spec.get("notional_per_lot", 0.0)
+                runs.append(row)
 
     combined: Dict[str, float] = defaultdict(float)
     total_trades = 0

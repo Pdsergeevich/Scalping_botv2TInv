@@ -289,7 +289,10 @@ class LiveWatchService:
 
         try:
             fee = engine._current_round_trip_fee(params.quantity_lots)  # noqa: SLF001
-            sigma_leg1 = engine._sigma_leg1_rub(metrics)  # noqa: SLF001
+            # v2.6.3: σ на позицию, чтобы сравнение с комиссией было в одних единицах.
+            sigma_leg1 = float(engine._sigma_leg1_rub(metrics)) * max(  # noqa: SLF001
+                int(params.quantity_lots), 1
+            )
             vol_ok = (
                 not params.use_vol_to_fee_filter
                 or float(sigma_leg1) >= float(fee) * params.min_sigma_to_fee_ratio

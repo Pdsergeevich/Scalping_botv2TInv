@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -18,6 +17,7 @@ from bot_a.backtest.synthetics import TICKS_PER_MINUTE
 from bot_a.config import AppConfig, PairPreset
 from bot_a.engine.fsm import StrategyParams
 from bot_a.models.domain import BacktestTotals, DailyBacktestSummary, ExecutionTopology
+from bot_a.utils.process_guard import resolve_jobs, worker_init
 from bot_a.utils.quotation import fmt_rub
 from bot_a.utils.time_provider import now_ms
 
@@ -118,7 +118,7 @@ class GridSearchOptimizer:
         self._preset = preset
         self._source = source
         self._base_params = base_params or config.strategy
-        self._jobs = jobs if jobs is not None else max((os.cpu_count() or 1) - 1, 1)
+        self._jobs = resolve_jobs(jobs)
         self._ticks = ticks_per_minute
         self._log = logger or logging.getLogger(LOGGER_NAME)
 
@@ -195,7 +195,9 @@ class GridSearchOptimizer:
                 for params, topology in combinations
             ]
             loop = asyncio.get_running_loop()
-            with ProcessPoolExecutor(max_workers=min(self._jobs, len(payloads))) as pool:
+            with ProcessPoolExecutor(
+                max_workers=min(self._jobs, len(payloads)), initializer=worker_init
+            ) as pool:
                 raw_results = await loop.run_in_executor(None, lambda: list(pool.map(_worker, payloads)))
             for item in raw_results:
                 results.append(

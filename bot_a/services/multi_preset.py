@@ -35,6 +35,12 @@ from bot_a.utils.time_provider import MSK, RealTimeProvider, ms_to_msk
 LOGGER_NAME = "bot_a.multi"
 DEFAULT_PORT = 8099
 
+# --- v2.6.3: адаптивный backoff на HTTP 429 (rate limit T-Invest REST) ---
+RATE_LIMIT_STATUS = 429
+THROTTLE_MIN_SECONDS = 2.0
+THROTTLE_MAX_SECONDS = 20.0
+THROTTLE_DECAY_SECONDS = 90.0
+
 
 @dataclass(slots=True)
 class PairRuntime:
@@ -50,6 +56,7 @@ class PairRuntime:
     prints: List[Dict[str, Any]] = field(default_factory=list)
     seen_trades: set = field(default_factory=set)
     rest_errors: int = 0
+    rate_limited: int = 0
     snapshots: int = 0
     last_seen_trade_id: int = 0
 
@@ -123,6 +130,9 @@ class MultiPresetRunner:
         self._runtimes: List[PairRuntime] = []
         self._server: Optional[ThreadingHTTPServer] = None
         self._thread: Optional[threading.Thread] = None
+        self._throttle_seconds = THROTTLE_MIN_SECONDS
+        self._throttle_until = 0.0
+        self._last_rate_limit = 0.0
 
     # ------------------------------------------------------------------ сборка
     async def _build_runtime(self, preset: PairPreset) -> Optional[PairRuntime]:
@@ -268,6 +278,7 @@ class MultiPresetRunner:
                 if deadline is not None and time.monotonic() >= deadline:
                     self._log.info("Длительность сессии истекла")
                     break
+                await self._wait_throttle()
                 for runtime in self._runtimes:
                     await self._poll_pair(runtime)
                 now = time.monotonic()
@@ -307,7 +318,10 @@ class MultiPresetRunner:
             except (TInvestRestError, TimeoutError, ConnectionError, OSError) as exc:
                 runtime.rest_errors += 1
                 failed.append(leg)
-                if runtime.rest_errors % 20 == 1:
+                if getattr(exc, "status", 0) == RATE_LIMIT_STATUS:
+                    runtime.rate_limited += 1
+                    self._note_rate_limit()
+                elif runtime.rest_errors % 20 == 1:
                     self._log.warning("%s: GetOrderBook %s: %s", runtime.name, meta.ticker, exc)
                 continue
             if book is None:
@@ -326,6 +340,29 @@ class MultiPresetRunner:
                 "%s: рассинхрон стаканов (%d): %s", runtime.name, runtime.syncer.skew_skips, decision.reason
             )
         await runtime.engine.on_clock()
+
+    def _note_rate_limit(self) -> None:
+        """HTTP 429: притормаживаем весь цикл опроса и растим паузу."""
+        now = time.monotonic()
+        self._throttle_seconds = min(self._throttle_seconds * 2.0, THROTTLE_MAX_SECONDS)
+        self._throttle_until = max(self._throttle_until, now + self._throttle_seconds)
+        if now - self._last_rate_limit > 30.0:
+            self._last_rate_limit = now
+            self._log.warning(
+                "HTTP 429 (rate limit T-Invest REST): пауза опроса %.1f с", self._throttle_seconds
+            )
+
+    async def _wait_throttle(self) -> None:
+        """Выдерживает паузу после 429 и постепенно возвращает нормальный темп."""
+        now = time.monotonic()
+        pause = self._throttle_until - now
+        if pause > 0:
+            await asyncio.sleep(pause)
+        elif (
+            self._throttle_seconds > THROTTLE_MIN_SECONDS
+            and now - self._last_rate_limit >= THROTTLE_DECAY_SECONDS
+        ):
+            self._throttle_seconds = max(self._throttle_seconds / 2.0, THROTTLE_MIN_SECONDS)
 
     async def _poll_trades(self, runtime: PairRuntime) -> None:
         since = datetime.now(tz=timezone.utc) - timedelta(seconds=60)
@@ -363,7 +400,12 @@ class MultiPresetRunner:
         runtime.day.feed(metrics, bool(entry.get("ready")), float(params.z_entry))
         snapshot = engine.snapshot()
         fee = float(engine._current_round_trip_fee(params.quantity_lots))  # noqa: SLF001
-        sigma = float(engine._sigma_leg1_rub(metrics)) if metrics is not None else 0.0  # noqa: SLF001
+        # v2.6.3: σ на всю позицию — иначе при 55 лотах отношение падает в 55 раз.
+        sigma = (
+            float(engine._sigma_leg1_rub(metrics)) * max(int(params.quantity_lots), 1)  # noqa: SLF001
+            if metrics is not None
+            else 0.0
+        )
         return {
             "name": runtime.name,
             "leg1": runtime.preset.leg1.ticker,
@@ -399,6 +441,7 @@ class MultiPresetRunner:
             },
             "snapshots": runtime.snapshots,
             "restErrors": runtime.rest_errors,
+            "rateLimited": runtime.rate_limited,
             "skewSkips": runtime.syncer.skew_skips,
             "day": runtime.day.payload(float(params.z_entry)),
             "book": None
@@ -522,7 +565,7 @@ async function tick(){
     <td class="${sign(p.netRub)}">${fmt(p.netRub,3)}</td>
     <td>${fmt(p.day?p.day.maxAbs:null,2)}</td>
     <td>${p.skewSkips}</td>
-    <td class="${p.restErrors?'neg':'muted'}">${p.restErrors}</td></tr>`;
+    <td class="${p.restErrors?'neg':'muted'}" title="всего ошибок REST: ${p.restErrors}, из них HTTP 429 (rate limit): ${p.rateLimited||0}">${p.restErrors}</td></tr>`;
   }).join('');
   document.getElementById('rows').innerHTML=rows||'<tr><td colspan="12" class="muted">нет пар</td></tr>';
  }catch(e){ document.getElementById('clock').textContent='нет связи'; }

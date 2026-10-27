@@ -71,7 +71,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="режим синтеза: ticks (12 подтиков на минуту) или close (только закрытия 1-мин баров)",
     )
     parser.add_argument("--recordings", default=None, help="путь к .jsonl.gz или каталогу записей")
-    parser.add_argument("--jobs", type=int, default=None, help="число процессов для optimize")
+    parser.add_argument(
+        "--jobs",
+        type=int,
+        default=None,
+        help="число процессов для optimize (по умолчанию 2, максимум 4 — чтобы не грузить CPU)",
+    )
     parser.add_argument(
         "--record-interval-ms",
         type=int,

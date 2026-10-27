@@ -953,6 +953,16 @@ class PairScalpingStateMachine:
         self._counters["signals"] += 1
         side = Side.BUY if long_signal else Side.SELL
         quantity = self._guard.clamp_quantity(params.quantity_lots)
+        if quantity < int(params.quantity_lots):
+            # v2.6.3: предохранитель режет персональный размер пары — это надо видеть,
+            # иначе equal-notional портфель тихо торгует одним лотом.
+            self._log_throttled(
+                "lot-clamp",
+                logging.WARNING,
+                "Позиция урезана предохранителем: quantityLots=%d → %d (risk.maxPositionLots)",
+                int(params.quantity_lots),
+                quantity,
+            )
         entry_price = metrics.best_bid_leg1 if side is Side.BUY else metrics.best_ask_leg1
         if entry_price <= 0:
             return
@@ -978,7 +988,10 @@ class PairScalpingStateMachine:
         if self._topology is ExecutionTopology.DUAL_LEG_HEDGED:
             slippage += TinkoffFeeCalculator.slippage_buffer_rub(self._leg2, params.slippage_buffer_steps, quantity)
         if params.use_vol_to_fee_filter and fee_round_trip > ZERO:
-            sigma_leg1 = self._sigma_leg1_rub(metrics)
+            # v2.6.3: сравниваем сопоставимые величины — σ_leg1 НА ПОЗИЦИЮ против
+            # комиссии НА ПОЗИЦИЮ. Без множителя quantity фильтр падал в 55 раз
+            # при quantityLots=55 и блокировал любые входы.
+            sigma_leg1 = self._sigma_leg1_rub(metrics) * Decimal(max(quantity, 1))
             ratio = float(sigma_leg1 / fee_round_trip)
             if ratio < params.min_sigma_to_fee_ratio:
                 # v2.4: сжатие волатильности относительно рублёвой комиссии — стоим в стороне.
