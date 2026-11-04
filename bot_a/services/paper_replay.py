@@ -18,7 +18,11 @@ from datetime import datetime, time
 from typing import Any, Dict, List, Optional, Tuple
 
 from bot_a.backtest.candles import Candle
-from bot_a.backtest.historical_candles import BacktestResult, iter_candle_events
+from bot_a.backtest.historical_candles import (
+    BacktestResult,
+    align_close_mode_params,
+    iter_candle_events,
+)
 from bot_a.backtest.iss_source import IssCandleSource
 from bot_a.config import AppConfig, PairPreset
 from bot_a.economics.fees import TinkoffFeeCalculator
@@ -43,19 +47,25 @@ class PaperReplayService:
         params: Optional[StrategyParams] = None,
         topology: Optional[ExecutionTopology] = None,
         logger: Optional[logging.Logger] = None,
+        synth_mode: str = "ticks",
     ) -> None:
         self._config = config
         self._preset = preset
         self._source = source or IssCandleSource(config.path(config.storage.data_cache_dir))
-        self._params = replace(
-            params or config.strategy,
-            beta=float(preset.beta),
-            beta_mode=(
-                preset.beta_mode
-                if (params or config.strategy).beta_mode in ("", "auto")
-                else (params or config.strategy).beta_mode
+        self._synth_mode = synth_mode if synth_mode in ("ticks", "close") else "ticks"
+        self._params = align_close_mode_params(
+            replace(
+                params or config.strategy,
+                beta=float(preset.beta),
+                beta_mode=(
+                    preset.beta_mode
+                    if (params or config.strategy).beta_mode in ("", "auto")
+                    else (params or config.strategy).beta_mode
+                ),
+                stat_sample_interval_seconds=float(config.execution.stat_sample_interval_seconds),
             ),
-            stat_sample_interval_seconds=float(config.execution.stat_sample_interval_seconds),
+            self._synth_mode,
+            float(config.execution.stat_sample_interval_seconds),
         )
         self._topology = topology or config.execution.topology
         self._log = logger or logging.getLogger(LOGGER_NAME)
@@ -132,7 +142,7 @@ class PaperReplayService:
             candles2,
             depth=self._config.execution.order_book_depth,
             phase_lock=True,
-            synth_mode="ticks",
+            synth_mode=self._synth_mode,
         )
         processed = 0
         for event in events:

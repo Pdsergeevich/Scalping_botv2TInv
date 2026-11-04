@@ -178,7 +178,7 @@ def _session_windows_check(config: AppConfig) -> MondayCheck:
     detail = {
         "AllDay": "торговля всю сессию (включая обед и вечер)",
         "MainSessionOnly": "входы 10:03–18:35 MSK",
-        "PrimeHoursOnly": "входы 10:05–12:30 и 15:30–18:35 MSK",
+        "PrimeHoursOnly": "входы 10:10–12:30 и 15:30–18:35 MSK",
     }.get(windows.mode, mode)
     return MondayCheck(
         "Окна входа (v2.3)",

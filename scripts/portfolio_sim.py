@@ -61,7 +61,10 @@ def _run_leg(spec: Dict[str, Any]) -> Dict[str, Any]:
     config = config.with_overrides(tariff=Tariff(spec["tariff"]))
     config = replace(
         config,
-        risk=replace(config.risk, active_session_windows="PrimeHoursOnly"),
+        risk=replace(
+            config.risk,
+            active_session_windows=spec.get("windows", "PrimeHoursOnly"),
+        ),
         execution=replace(config.execution, topology=ExecutionTopology(spec["topology"])),
         strategy=config.strategy.with_overrides(
             z_entry=float(spec["z"]),
@@ -79,7 +82,10 @@ def _run_leg(spec: Dict[str, Any]) -> Dict[str, Any]:
         datetime.fromisoformat(spec["end"]).replace(hour=23, minute=59, tzinfo=MSK)
     )
     backtester = HistoricalCandleBacktester(
-        config, preset, IssCandleSource(config.path(config.storage.data_cache_dir))
+        config,
+        preset,
+        IssCandleSource(config.path(config.storage.data_cache_dir)),
+        synth_mode=spec.get("synth_mode", "ticks"),
     )
     try:
         result = asyncio.run(backtester.run(start_ms=start_ms, end_ms=end_ms, write_report=False))
@@ -196,6 +202,18 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--tariff", default="Premium")
     parser.add_argument("--notional", type=float, default=0.0, help="целевой номинал на пару, RUB")
     parser.add_argument(
+        "--synth-mode",
+        default="ticks",
+        choices=["ticks", "close"],
+        help="синтез тиков: ticks (12 на минуту) или close (только закрытия баров)",
+    )
+    parser.add_argument(
+        "--windows",
+        default="PrimeHoursOnly",
+        choices=["AllDay", "MainSessionOnly", "PrimeHoursOnly"],
+        help="окна входа (risk.activeSessionWindows)",
+    )
+    parser.add_argument(
         "--jobs",
         type=int,
         default=1,
@@ -251,6 +269,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                 "lots": lots,
                 "topology": preset.topology or "SingleLegLeadLag",
                 "tariff": args.tariff,
+                "synth_mode": args.synth_mode,
+                "windows": args.windows,
                 "notional_per_lot": round(notional, 2),
             }
         )

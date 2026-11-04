@@ -90,6 +90,19 @@ def build_parser() -> argparse.ArgumentParser:
         default=8099,
         help="порт live-дашборда для --mode watch (по умолчанию 8099)",
     )
+    parser.add_argument(
+        "--record-l2",
+        dest="record_l2",
+        action="store_true",
+        default=None,
+        help="писать живой L2 в recordings/ (по умолчанию включено для --preset ALL_ACTIVE)",
+    )
+    parser.add_argument(
+        "--no-record-l2",
+        dest="record_l2",
+        action="store_false",
+        help="не писать L2 на диск",
+    )
     parser.add_argument("--duration", type=float, default=None, help="длительность работы, секунды")
     parser.add_argument("--log-level", default=None, help="уровень логирования (Information/Debug)")
     parser.add_argument("--report-stem", default=None, help="префикс файлов отчёта")
@@ -259,6 +272,9 @@ async def _run_all_active(args: argparse.Namespace, config: AppConfig, logger) -
     )
     stop = asyncio.Event()
     _install_stop_handler(stop)
+    # v2.6.6: для ALL_ACTIVE живой L2 пишется на диск по умолчанию — иначе после
+    # сессии нечем проверить, где исполнение между `ticks` и `close`.
+    record_l2 = True if args.record_l2 is None else bool(args.record_l2)
     runner = MultiPresetRunner(
         config,
         presets,
@@ -268,6 +284,7 @@ async def _run_all_active(args: argparse.Namespace, config: AppConfig, logger) -
         port=int(args.port),
         serve_dashboard=True,
         logger=logger,
+        record_l2=record_l2,
     )
     print(f"Мульти-дашборд: http://127.0.0.1:{int(args.port)}/  (Ctrl+C — остановка)")
     try:
@@ -592,7 +609,9 @@ async def _dispatch(args: argparse.Namespace, config: AppConfig, logger) -> int:
             from bot_a.services.paper_replay import PaperReplayService
 
             resolved = await _resolve_iss_preset(preset)
-            service = PaperReplayService(config, resolved, logger=logger)
+            service = PaperReplayService(
+                config, resolved, logger=logger, synth_mode=args.synth_mode
+            )
             if start_ms is None or end_ms is None:
                 day = datetime.now(MSK).date()
                 start_ms = msk_to_ms(datetime.combine(day, time(9, 50, tzinfo=MSK)))

@@ -315,6 +315,8 @@ class LiveWatchService:
             if engine._topology is ExecutionTopology.SINGLE_LEG_LEAD_LAG and metrics.beta > 1e-9:  # noqa: SLF001
                 # v2.6.1: как и в ядре, приводим ожидаемый возврат к рублям Leg1.
                 expected = Decimal(expected) / Decimal(str(metrics.beta))
+            # v2.6.4: возврат — на 1 лот, комиссия и слиппедж — на всю позицию.
+            expected = Decimal(expected) * Decimal(max(int(params.quantity_lots), 1))
             slippage = TinkoffFeeCalculator.slippage_buffer_rub(
                 engine._leg1, params.slippage_buffer_steps, params.quantity_lots  # noqa: SLF001
             )
@@ -785,7 +787,7 @@ svg{width:100%;height:120px;display:block}
   <table><thead><tr><th class="l">#</th><th class="l">вход</th><th class="l">выход</th>
   <th>сторона</th><th>цена вх.</th><th>цена вых.</th><th class="l">причина</th><th>мин</th><th>net</th></tr></thead>
   <tbody id="trades"><tr><td colspan="9" class="l">пока нет сделок</td></tr></tbody></table>
-  <div class="note">Окно входа: PrimeHoursOnly (10:05–12:30, 15:30–18:35 MSK). Сигнал требует |Z| ≥ Z_entry.</div>
+  <div class="note">Окно входа: PrimeHoursOnly (10:10–12:30, 15:30–18:35 MSK). Сигнал требует |Z| ≥ Z_entry.</div>
  </div>
  <div class="panel">
   <h2>Лента сделок (принты) <span id="printCounts" class="note"></span></h2>

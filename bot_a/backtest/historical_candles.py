@@ -31,6 +31,116 @@ from bot_a.utils.time_provider import ms_to_msk, now_ms
 
 LOGGER_NAME = "bot_a.backtest"
 
+#: Доля минуты, которую занимает один статистический замер (5 с -> 1/12 минуты).
+STAT_SAMPLE_SECONDS_DEFAULT = 5.0
+#: Минимальные размеры окон после приведения к каденции ``close``.
+CLOSE_MIN_EWMA = 10
+CLOSE_MIN_MACRO_WINDOW = 100
+CLOSE_MIN_MACRO_SAMPLES = 20
+CLOSE_MIN_REGIME_WINDOW = 2
+#: Во сколько раз медленнее идут события в режиме ``close`` (12 замеров -> 1 бар).
+REGIME_SCALE_DIVISOR = 6.0
+
+
+def _samples_per_minute(stat_sample_seconds: float) -> float:
+    return max(60.0 / max(float(stat_sample_seconds), 1.0), 1.0)
+
+
+def align_ewma_window(
+    ewma_window: int, synth_mode: str, stat_sample_seconds: float = STAT_SAMPLE_SECONDS_DEFAULT
+) -> int:
+    """Переводит «тиковое» окно EWMA в бары для режима ``close``.
+
+    В режиме ``ticks`` статистика обновляется каждые ``stat_sample_seconds`` секунд
+    (12 раз в минуту), поэтому ``EwmaWindow = 2400`` — это ~200 минут истории.
+    В режиме ``close`` один замер приходится на минуту, и то же число баров дало бы
+    40 часов. Чтобы горизонт оставался тем же (200 мин / 75 мин / 133 мин), окно
+    делится на число замеров в минуте.
+    """
+    if synth_mode != "close":
+        return int(ewma_window)
+    scaled = int(round(int(ewma_window) / _samples_per_minute(stat_sample_seconds)))
+    return max(scaled, CLOSE_MIN_EWMA)
+
+
+def align_macro_beta_window(
+    macro_beta_window: int, synth_mode: str, stat_sample_seconds: float = STAT_SAMPLE_SECONDS_DEFAULT
+) -> int:
+    """v2.6.5: макро-окно беты в ``close`` тоже меряется барами (14400 -> 1200)."""
+    if synth_mode != "close":
+        return int(macro_beta_window)
+    scaled = int(round(int(macro_beta_window) / _samples_per_minute(stat_sample_seconds)))
+    return max(scaled, CLOSE_MIN_MACRO_WINDOW)
+
+
+def align_macro_beta_min_samples(
+    macro_beta_min_samples: int,
+    synth_mode: str,
+    stat_sample_seconds: float = STAT_SAMPLE_SECONDS_DEFAULT,
+) -> int:
+    """v2.6.5: порог «достаточно данных для макро-беты» (1800 -> 150)."""
+    if synth_mode != "close":
+        return int(macro_beta_min_samples)
+    scaled = int(round(int(macro_beta_min_samples) / _samples_per_minute(stat_sample_seconds)))
+    return max(scaled, CLOSE_MIN_MACRO_SAMPLES)
+
+
+def align_regime_window(regime_window: int, synth_mode: str) -> int:
+    """v2.6.5: окно режимного фильтра (K) в ``close`` — 12 -> 2 бара (2 минуты).
+
+    Делим не на 12, а на 6: на одном баре доля движения ноги либо 0 %, либо 100 %,
+    и сравнение с ``regime_dominant_share`` теряет смысл. Два бара — минимум, на
+    котором «какая нога ведёт» ещё измеримо, и это 2 минуты вместо 12.
+    """
+    if synth_mode != "close":
+        return int(regime_window)
+    scaled = int(round(int(regime_window) / REGIME_SCALE_DIVISOR))
+    return max(scaled, CLOSE_MIN_REGIME_WINDOW)
+
+
+def align_close_mode_params(
+    params: StrategyParams, synth_mode: str, stat_sample_seconds: float = STAT_SAMPLE_SECONDS_DEFAULT
+) -> StrategyParams:
+    """Приводит ВСЕ временные окна к каденции режима (v2.6.5).
+
+    До этой правки в ``close`` пересчитывалось только окно EWMA, а макро-окно беты
+    (``14400`` замеров = 20 часов) превращалось в 30 торговых дней, порог
+    ``macroBetaMinSamples`` — в 2.5 дня, а окно режимного фильтра ``12`` — в 12 минут.
+    Из-за этого ``beta_drift`` и ``regimeSkips`` в close-бенчмарке были искажены.
+    """
+    if synth_mode != "close":
+        return params
+
+    from dataclasses import replace
+
+    aligned = replace(
+        params,
+        ewma_window=align_ewma_window(params.ewma_window, synth_mode, stat_sample_seconds),
+        macro_beta_window=align_macro_beta_window(
+            params.macro_beta_window, synth_mode, stat_sample_seconds
+        ),
+        macro_beta_min_samples=align_macro_beta_min_samples(
+            params.macro_beta_min_samples, synth_mode, stat_sample_seconds
+        ),
+        regime_window=align_regime_window(params.regime_window, synth_mode),
+    )
+    if aligned == params:
+        return params
+    return aligned
+
+
+def describe_close_alignment(
+    original: StrategyParams, aligned: StrategyParams
+) -> List[Tuple[str, int, int]]:
+    """Список (название, было, стало) для лога — только реально изменённые окна."""
+    pairs = (
+        ("EwmaWindow", original.ewma_window, aligned.ewma_window),
+        ("MacroBetaWindow", original.macro_beta_window, aligned.macro_beta_window),
+        ("MacroBetaMinSamples", original.macro_beta_min_samples, aligned.macro_beta_min_samples),
+        ("RegimeWindow(K)", original.regime_window, aligned.regime_window),
+    )
+    return [item for item in pairs if item[1] != item[2]]
+
 
 @dataclass(frozen=True, slots=True)
 class BacktestResult:
@@ -179,14 +289,23 @@ class HistoricalCandleBacktester:
         self._config = config
         self._preset = preset
         self._source = source
-        self._params = params or config.strategy
+        self._synth_mode = synth_mode
+        self._requested_params = params or config.strategy
+        self._params = align_close_mode_params(
+            self._requested_params, synth_mode, config.execution.stat_sample_interval_seconds
+        )
         self._topology = topology or config.execution.topology
         self._ticks = ticks_per_minute
-        self._synth_mode = synth_mode
         self._phase_lock = phase_lock
         self._log = logger or logging.getLogger(LOGGER_NAME)
         self._last_candles: Tuple[List[Candle], List[Candle]] = ([], [])
         self._last_window: Tuple[int, int] = (0, 0)
+        changes = describe_close_alignment(self._requested_params, self._params)
+        if changes:
+            self._log.info(
+                "Режим close: окна приведены к минутным барам — %s",
+                ", ".join(f"{name} {before} → {after}" for name, before, after in changes),
+            )
 
     @property
     def last_candles(self) -> Tuple[List[Candle], List[Candle]]:
@@ -220,14 +339,6 @@ class HistoricalCandleBacktester:
                 "Не удалось загрузить свечи обеих ног. Проверьте токен, тикеры и торговые дни в периоде."
             )
         self._log.info("Свечей: %s = %d, %s = %d", self._preset.leg1.ticker, len(candles1), self._preset.leg2.ticker, len(candles2))
-        if self._synth_mode == "close" and self._params.ewma_window > 480:
-            self._log.warning(
-                "Режим close: EwmaWindow=%d трактуется как %d минутных баров (%.1f ч). "
-                "Для 1-минутных данных разумно 120–240 баров (--ewma-window 120).",
-                self._params.ewma_window,
-                self._params.ewma_window,
-                self._params.ewma_window / 60.0,
-            )
         outcome = await simulate_on_candles(
             self._config,
             self._preset,

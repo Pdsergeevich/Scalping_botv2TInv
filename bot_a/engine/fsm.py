@@ -974,6 +974,10 @@ class PairScalpingStateMachine:
             # v2.6.1: ожидаемый возврат спреда приводим к рублям Leg1 (делим на бету),
             # иначе фильтр покрытия комиссии сравнивает разные единицы.
             expected_gross = dec(expected_gross / dec(metrics.beta))
+        # v2.6.4: спред-калькулятор считает на 1 лот, а комиссия и слиппедж ниже — на всю
+        # позицию. Без множителя quantity фильтр покрытия комиссии навсегда блокировал
+        # пары с quantityLots > 1 (VTBR 55 лотов: 0.08 RUB возврата против fee 1.58 RUB).
+        expected_gross = dec(expected_gross * Decimal(max(int(quantity), 1)))
         # При лонге Leg1 хедж продаёт Leg2 (по биду), при шорте — покупает (по аску).
         leg2_reference = metrics.best_bid_leg2 if side is Side.BUY else metrics.best_ask_leg2
         fee_round_trip = self._fees.estimated_round_trip_fee(
@@ -1342,8 +1346,14 @@ class PairScalpingStateMachine:
         params = self._params
         fee = position.round_trip_fee_rub
         beta = position.frozen_beta if position.frozen_beta > 1e-9 else 1.0
+        # v2.6.4: девиация спреда считается на 1 лот, а fee — на всю позицию.
+        # Без множителя Q цель тейка на 55–60 лотах выходила в Q раз ближе нужного.
+        position_lots = max(position.leg1_filled_qty, 1)
         deviation_rub = dec(
-            abs(position.entry_spread - position.frozen_mu) * params.tp_deviation_fraction / beta
+            abs(position.entry_spread - position.frozen_mu)
+            * params.tp_deviation_fraction
+            / beta
+            * position_lots
         )
         fee_floor = fee * params.tp_min_fee_multiple
         profit_floor = fee * params.min_net_profit_multiplier

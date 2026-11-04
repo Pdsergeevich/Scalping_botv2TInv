@@ -72,11 +72,22 @@ def test_monday_readiness_margin_covers_every_active_preset():
     assert len(margin_checks) == len(config.trading_preset_names())
     assert all(item.ok for item in margin_checks)
     assert not any("CNYRUBF_CRZ6" in item.name for item in margin_checks)
-    spz = next(item for item in margin_checks if "SPZ6_SRZ6" in item.name)
-    expected = config.preset("SPZ6_SRZ6").leg1.position_margin_rub(1) * Decimal("1.25")
-    assert spz.ok
-    assert "25" in spz.detail
-    assert round(float(expected), 2) > 1000.0
+    # v2.6.5: SPZ6_SRZ6 выключен как артефакт моста — в проверке ГО его быть не должно.
+    assert not any("SPZ6_SRZ6" in item.name for item in margin_checks)
+
+
+def test_disabled_spz6_is_excluded_from_portfolio():
+    """v2.6.5: разреженные бары SPZ6 (253 против 752 у SRZ6) давали ложную прибыль."""
+    config = _config()
+    assert "SPZ6_SRZ6" in config.preset_names()
+    assert "SPZ6_SRZ6" not in config.trading_preset_names()
+    assert config.preset("SPZ6_SRZ6").enabled is False
+    assert set(config.trading_preset_names()) == {
+        "AFKS_SBER",
+        "IRAO_SBER",
+        "MTLR_SBER",
+        "VTBR_SBER",
+    }
 
 
 def test_disabled_preset_excluded_from_trading_set():

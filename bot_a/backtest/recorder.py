@@ -15,7 +15,7 @@ from typing import Any, List, Optional, Tuple
 from bot_a.backtest.recording_format import event_to_dict
 from bot_a.config import AppConfig, PairPreset
 from bot_a.models.domain import MarketEvent
-from bot_a.utils.time_provider import RealTimeProvider
+from bot_a.utils.time_provider import MSK, RealTimeProvider
 
 LOGGER_NAME = "bot_a.recorder"
 
@@ -73,11 +73,20 @@ class RecorderStats:
 class MarketDataRecorder:
     """Двухканальная запись: gzip-JSONL и батчевая вставка в PostgreSQL."""
 
-    def __init__(self, config: AppConfig, preset: PairPreset, logger: Optional[logging.Logger] = None) -> None:
+    def __init__(
+        self,
+        config: AppConfig,
+        preset: PairPreset,
+        logger: Optional[logging.Logger] = None,
+        daily: bool = False,
+    ) -> None:
         self._config = config
         self._preset = preset
         self._log = logger or logging.getLogger(LOGGER_NAME)
         self._settings = config.storage
+        # v2.6.6: суточный файл `{пресет}_{YYYY-MM-DD}.jsonl.gz` — в него дописываются
+        # все прогоны одного дня, и он сразу годится для `--source recordings`.
+        self._daily = bool(daily)
         self._file_handle: Optional[gzip.GzipFile] = None
         self._connection: Any = None
         self._books_buffer: List[Tuple[Any, ...]] = []
@@ -85,6 +94,7 @@ class MarketDataRecorder:
         self._last_flush = time.monotonic()
         self._stats = RecorderStats(started_ms=int(time.time() * 1000))
         self._file_path: Optional[Path] = None
+        self._file_day: Optional[str] = None
 
     @property
     def stats(self) -> RecorderStats:
@@ -93,6 +103,10 @@ class MarketDataRecorder:
     @property
     def file_path(self) -> Optional[Path]:
         return self._file_path
+
+    @property
+    def daily(self) -> bool:
+        return self._daily
 
     async def start(self) -> None:
         if self._settings.record_to_files:
@@ -105,13 +119,33 @@ class MarketDataRecorder:
             "вкл" if self._connection is not None else "выкл",
         )
 
-    def _open_file(self) -> None:
+    def _open_file(self, day: Optional[str] = None) -> None:
         directory = self._config.path(self._settings.recordings_dir)
         directory.mkdir(parents=True, exist_ok=True)
-        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self._file_path = directory / f"{self._preset.name}_{stamp}.jsonl.gz"
+        if self._daily:
+            day = day or datetime.now(tz=MSK).strftime("%Y-%m-%d")
+            name = f"{self._preset.name}_{day}.jsonl.gz"
+        else:
+            name = f"{self._preset.name}_{datetime.now():%Y%m%d_%H%M%S}.jsonl.gz"
+        self._file_path = directory / name
         self._file_handle = gzip.open(self._file_path, "at", encoding="utf-8", compresslevel=6)
-        self._stats.files.append(str(self._file_path))
+        self._file_day = day if self._daily else None
+        if str(self._file_path) not in self._stats.files:
+            self._stats.files.append(str(self._file_path))
+
+    def _rotate_if_new_day(self) -> None:
+        """Суточный файл: при переходе через полночь открываем новый (MSK)."""
+        if not self._daily or self._file_handle is None:
+            return
+        today = datetime.now(tz=MSK).strftime("%Y-%m-%d")
+        if today == self._file_day:
+            return
+        try:
+            self._file_handle.close()
+        finally:
+            self._file_handle = None
+        self._open_file(today)
+        self._log.info("Запись L2: новый торговый день — файл %s", self._file_path)
 
     def _open_postgres(self) -> None:
         dsn = self._settings.postgres_dsn
@@ -134,6 +168,7 @@ class MarketDataRecorder:
             self._connection = None
 
     def write(self, event: MarketEvent) -> None:
+        self._rotate_if_new_day()
         payload = event_to_dict(event)
         if self._file_handle is not None:
             line = json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n"

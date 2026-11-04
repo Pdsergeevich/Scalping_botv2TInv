@@ -21,6 +21,27 @@ import asyncio
 import pytest
 
 
+def test_prime_hours_skip_opening_auction_gap():
+    """v2.6.5: утреннее окно начинается в 10:10, а не в 10:05.
+
+    Вход ровно на открытии ловит остаточный гэп аукциона: 27.10.2026 сделка
+    VTBR в 10:05 дала −9.01 ₽ (`ticks`) / −12.04 ₽ (`close`), тогда как входы
+    после 10:10 закрылись по тейку.
+    """
+    prime = IntradayEntryWindows("PrimeHoursOnly")
+
+    assert prime.allows(datetime(2026, 10, 20, 10, 4, tzinfo=MSK)) is False
+    assert prime.allows(datetime(2026, 10, 20, 10, 5, tzinfo=MSK)) is False
+    assert prime.allows(datetime(2026, 10, 20, 10, 9, tzinfo=MSK)) is False
+    assert prime.allows(datetime(2026, 10, 20, 10, 10, tzinfo=MSK)) is True
+    assert prime.allows(datetime(2026, 10, 20, 12, 29, tzinfo=MSK)) is True
+    assert prime.allows(datetime(2026, 10, 20, 12, 30, tzinfo=MSK)) is False
+    assert prime.allows(datetime(2026, 10, 20, 15, 30, tzinfo=MSK)) is True
+    assert prime.allows(datetime(2026, 10, 20, 18, 35, tzinfo=MSK)) is False
+    # вторая половина дня не сдвигалась
+    assert prime.allows(datetime(2026, 10, 20, 16, 0, tzinfo=MSK)) is True
+
+
 def test_session_window_modes():
     all_day = IntradayEntryWindows("AllDay")
     main = IntradayEntryWindows("MainSessionOnly")
@@ -222,7 +243,7 @@ def test_entry_blocked_outside_active_window(tmp_path):
         params = _params(ghost_flat_seconds=99999, use_breakeven_ratchet=False, use_tp_decay=False)
         preset = make_preset(leg1, leg2)
         config = make_config(tmp_path, preset, params, ExecutionTopology.SINGLE_LEG_LEAD_LAG)
-        # 10:00 MSK — раньше начала активных окон (10:03 / 10:05).
+        # 10:00 MSK — раньше начала активных окон (10:03 / 10:10).
         clock = SimulatedTimeProvider(trading_start_ms())
         fee = TinkoffFeeCalculator(config.fees.tariff, clock=clock)
         gateway = SimulatedOrderExecutionGateway(
@@ -250,7 +271,7 @@ def test_entry_blocked_outside_active_window(tmp_path):
         assert engine.counters["sessionSkips"] > 0
         assert engine.state is FsmState.IDLE
 
-        # После 10:05 вход разрешён.
+        # После 10:10 вход разрешён.
         clock.advance(6 * 60 * 1000)
         for _ in range(4):
             await _tick(engine, clock, gateway, Decimal("100.00"), Decimal("104.00"))

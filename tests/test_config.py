@@ -39,13 +39,13 @@ def test_load_repository_config():
         "AFKS_SBER",
         "IRAO_SBER",
         "MTLR_SBER",
-        "SPZ6_SRZ6",
         "VTBR_SBER",
     }
     assert config.disabled_preset_names() == [
         "CNYRUBF_CRZ6",
         "IMOEXF_MMZ6",
         "SBERP_SBER",
+        "SPZ6_SRZ6",
         "SVZ6_GDZ6",
         "T_SBER",
     ]

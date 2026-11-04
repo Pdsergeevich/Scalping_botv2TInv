@@ -20,13 +20,14 @@ import argparse
 import asyncio
 import sys
 from collections import Counter, defaultdict
+from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from bot_a.backtest.historical_candles import iter_candle_events  # noqa: E402
+from bot_a.backtest.historical_candles import align_close_mode_params, iter_candle_events  # noqa: E402
 from bot_a.backtest.iss_source import IssCandleSource  # noqa: E402
 from bot_a.cli import _apply_cli_overrides, build_parser, _parse_period  # noqa: E402
 from bot_a.config import AppConfig  # noqa: E402
@@ -182,6 +183,13 @@ async def _run(args: argparse.Namespace) -> int:
         return 2
 
     params: StrategyParams = config.strategy
+    if getattr(args, "synth_mode", "ticks") == "close":
+        # v2.6.5: в режиме close ВСЕ временные окна меряются барами, а не замерами.
+        params = align_close_mode_params(
+            params,
+            "close",
+            float(config.execution.stat_sample_interval_seconds),
+        )
     clock = SimulatedTimeProvider(start_ms)
     fee_calculator = TinkoffFeeCalculator(config.fees.tariff, clock=clock)
     gateway = SimulatedOrderExecutionGateway(
@@ -237,7 +245,7 @@ async def _run(args: argparse.Namespace) -> int:
         list(candles2),
         depth=config.execution.order_book_depth,
         phase_lock=True,
-        synth_mode="ticks",
+        synth_mode=getattr(args, "synth_mode", "ticks"),
     )
     last_sample_ms = -1
     for event in events:

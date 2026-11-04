@@ -99,6 +99,10 @@ class IntradayEntryWindows:
 
     Выходы и аварийные закрытия ограничений не имеют — фильтр действует только
     на открытие новых позиций, чтобы не торговать в «мёртвые» часы.
+
+    v2.6.5: утреннее окно начинается в 10:10, а не в 10:05 — аукцион открытия
+    оставляет в спреде «хвост» (27.10 вход ровно в 10:05 дал −9 RUB на VTBR),
+    и десяти минут хватает, чтобы гэп осел.
     """
 
     ALL_DAY = "AllDay"
@@ -112,7 +116,7 @@ class IntradayEntryWindows:
             self._windows: Tuple[SessionWindow, ...] = (SessionWindow(_minutes(10, 3), _minutes(18, 35)),)
         elif self._mode == self.PRIME_HOURS_ONLY:
             self._windows = (
-                SessionWindow(_minutes(10, 5), _minutes(12, 30)),
+                SessionWindow(_minutes(10, 10), _minutes(12, 30)),
                 SessionWindow(_minutes(15, 30), _minutes(18, 35)),
             )
         else:
@@ -133,7 +137,7 @@ class IntradayEntryWindows:
             return None
         if self._mode == self.MAIN_SESSION_ONLY:
             return "вне основной сессии для входа (10:03–18:35 MSK)"
-        return "вне активных часов для входа (10:05–12:30 и 15:30–18:35 MSK)"
+        return "вне активных часов для входа (10:10–12:30 и 15:30–18:35 MSK)"
 
 
 class DailyKillSwitch:

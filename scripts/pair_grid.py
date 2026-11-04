@@ -94,7 +94,10 @@ def _run_spec(spec: Dict[str, Any]) -> Dict[str, Any]:
     config = config.with_overrides(tariff=Tariff(spec["tariff"]))
     config = replace(
         config,
-        risk=replace(config.risk, active_session_windows="PrimeHoursOnly"),
+        risk=replace(
+            config.risk,
+            active_session_windows=spec.get("windows", "PrimeHoursOnly"),
+        ),
         strategy=config.strategy.with_overrides(
             z_entry=float(spec["z"]),
             ewma_window=int(spec["ewma"]),
@@ -115,6 +118,7 @@ def _run_spec(spec: Dict[str, Any]) -> Dict[str, Any]:
         config,
         spec["preset"],
         IssCandleSource(config.path(config.storage.data_cache_dir)),
+        synth_mode=spec.get("synth_mode", "ticks"),
     )
     try:
         result = asyncio.run(
@@ -134,6 +138,8 @@ def _run_spec(spec: Dict[str, Any]) -> Dict[str, Any]:
         "tp_dev": spec.get("tp_dev", 0.85),
         "tp_fee": spec.get("tp_fee", 2.5),
         "lots": spec.get("lots", 1),
+        "synth_mode": spec.get("synth_mode", "ticks"),
+        "ewma_effective": int(result.params.ewma_window),
         "trades": int(totals.trades),
         "tradesPerDay": round(totals.trades / days, 2),
         "days": int(totals.total_days),
@@ -180,6 +186,18 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     parser.add_argument("--tariff", default="Premium")
     parser.add_argument("--futures", action="store_true")
+    parser.add_argument(
+        "--synth-mode",
+        default="ticks",
+        choices=["ticks", "close"],
+        help="синтез внутриминутных тиков: ticks (12 на минуту) или close (только закрытия)",
+    )
+    parser.add_argument(
+        "--windows",
+        default="PrimeHoursOnly",
+        choices=["AllDay", "MainSessionOnly", "PrimeHoursOnly"],
+        help="окна входа (risk.activeSessionWindows)",
+    )
     parser.add_argument(
         "--jobs",
         type=int,
@@ -228,6 +246,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                                         "tp_fee": tp_fee,
                                         "lots": args.lots,
                                         "tariff": args.tariff,
+                                        "synth_mode": args.synth_mode,
+                                        "windows": args.windows,
                                     }
                                 )
 

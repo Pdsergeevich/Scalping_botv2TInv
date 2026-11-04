@@ -1,0 +1,48 @@
+# --- секреты: никогда не коммитим ---
+secrets/*
+!secrets/README.md
+*.pem
+*.key
+.env
+.env.*
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+venv/
+.venv/
+env/
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# --- рабочие данные прогонов (создаются ботом) ---
+logs/
+*.log
+state/
+recordings/
+*.jsonl
+*.jsonl.gz
+
+# --- кэш свечей MOEX ISS: 400+ МБ, скачивается заново ---
+data_cache/
+
+# --- графики: бинарные PNG, пересобираются из отчётов ---
+reports/charts/
+*.out
+*.err
+
+# --- служебные файлы окружения ---
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.swp
+Thumbs.db
+desktop.ini

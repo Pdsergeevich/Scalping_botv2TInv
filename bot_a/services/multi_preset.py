@@ -7,6 +7,10 @@
 Режимы:
 * ``watch`` — только наблюдение (исполнение симулятором, деньги не тратятся);
 * ``paper`` — тот же путь, но с журналом сделок и периодической сводкой в консоль.
+
+v2.6.6: каждый синхронизированный стакан обеих ног дополнительно пишется в
+``recordings/{пресет}_{YYYY-MM-DD}.jsonl.gz`` — тот же формат, что читает
+``--mode backtest --source recordings`` (``TickReplayBacktester``).
 """
 
 from __future__ import annotations
@@ -21,12 +25,14 @@ from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Dict, List, Optional, Sequence
 
+from bot_a.backtest.recorder import MarketDataRecorder
 from bot_a.broker.tinkoff_rest_client import TInvestRestClient, TInvestRestError
 from bot_a.config import AppConfig, PairPreset
 from bot_a.economics.fees import TinkoffFeeCalculator
 from bot_a.engine.factory import create_engine, create_guard
 from bot_a.engine.ledger import PortfolioLedger
 from bot_a.execution.simulated_gateway import SimulatedOrderExecutionGateway
+from bot_a.models.domain import MarketEvent
 from bot_a.services.l2_sync import PairBookSyncer
 from bot_a.services.live_dashboard import LiveWatchService, _DayTracker, _f
 from bot_a.utils.quotation import dec
@@ -59,6 +65,8 @@ class PairRuntime:
     rate_limited: int = 0
     snapshots: int = 0
     last_seen_trade_id: int = 0
+    recorder: Any = None
+    recorded_books: int = 0
 
     @property
     def name(self) -> str:
@@ -117,6 +125,7 @@ class MultiPresetRunner:
         port: int = DEFAULT_PORT,
         serve_dashboard: bool = True,
         logger: Optional[logging.Logger] = None,
+        record_l2: bool = False,
     ) -> None:
         self._config = config
         self._presets = list(presets)
@@ -133,6 +142,8 @@ class MultiPresetRunner:
         self._throttle_seconds = THROTTLE_MIN_SECONDS
         self._throttle_until = 0.0
         self._last_rate_limit = 0.0
+        # v2.6.6: авто-запись синхронизированных стаканов в recordings/.
+        self._record_l2 = bool(record_l2)
 
     # ------------------------------------------------------------------ сборка
     async def _build_runtime(self, preset: PairPreset) -> Optional[PairRuntime]:
@@ -179,6 +190,11 @@ class MultiPresetRunner:
             ),
             day=_DayTracker(preset.name, self._config.path(self._config.storage.state_dir)),
         )
+        if self._record_l2:
+            recorder = MarketDataRecorder(self._config, preset, logger=self._log, daily=True)
+            await recorder.start()
+            runtime.recorder = recorder
+            self._log.info("%s: запись L2 → %s", preset.name, recorder.file_path)
         days = int(self._config.execution.bootstrap_warmup_days)
         if days > 0:
             from bot_a.services.bootstrap import bootstrap_warmup
@@ -305,8 +321,27 @@ class MultiPresetRunner:
                 except Exception:  # noqa: BLE001
                     pass
                 await runtime.gateway.stop()
+                await self._close_recorder(runtime)
             self._stop_server()
         return {"pairs": [self._pair_payload(runtime) for runtime in self._runtimes]}
+
+    async def _close_recorder(self, runtime: PairRuntime) -> None:
+        """Закрывает суточный файл записи пары (сбрасывает буферы gzip)."""
+        recorder = runtime.recorder
+        if recorder is None:
+            return
+        try:
+            await recorder.close()
+            self._log.info(
+                "%s: запись L2 завершена — стаканов %d, файл %s",
+                runtime.name,
+                runtime.recorded_books,
+                recorder.file_path,
+            )
+        except Exception as exc:  # noqa: BLE001 — остановка не должна падать из-за записи
+            self._log.warning("%s: закрытие записи не удалось: %s", runtime.name, exc)
+        finally:
+            runtime.recorder = None
 
     async def _poll_pair(self, runtime: PairRuntime) -> None:
         fresh: Dict[int, Any] = {}
@@ -335,11 +370,31 @@ class MultiPresetRunner:
             for leg in (1, 2):
                 await runtime.engine.on_order_book(leg, fresh[leg])
                 runtime.snapshots += 1
+            self._record_books(runtime, fresh)
         elif runtime.syncer.skew_skips % 50 == 1:
             self._log.warning(
                 "%s: рассинхрон стаканов (%d): %s", runtime.name, runtime.syncer.skew_skips, decision.reason
             )
         await runtime.engine.on_clock()
+
+    def _record_books(self, runtime: PairRuntime, fresh: Dict[int, Any]) -> None:
+        """v2.6.6: пишем в recordings только пары стаканов, прошедшие синхронизацию.
+
+        Рассинхронизированные или неполные снимки не сохраняем — иначе реплей получит
+        фантомные выбросы Z, которые бот в живом режиме отбросил.
+        """
+        recorder = runtime.recorder
+        if recorder is None:
+            return
+        for leg in (1, 2):
+            book = fresh.get(leg)
+            if book is None:
+                continue
+            try:
+                recorder.write(MarketEvent.of_book(leg, book))
+                runtime.recorded_books += 1
+            except (OSError, ValueError) as exc:
+                self._log.warning("%s: запись стакана Leg%d не удалась: %s", runtime.name, leg, exc)
 
     def _note_rate_limit(self) -> None:
         """HTTP 429: притормаживаем весь цикл опроса и растим паузу."""
@@ -443,6 +498,8 @@ class MultiPresetRunner:
             "restErrors": runtime.rest_errors,
             "rateLimited": runtime.rate_limited,
             "skewSkips": runtime.syncer.skew_skips,
+            "recordedBooks": runtime.recorded_books,
+            "recordPath": str(runtime.recorder.file_path) if runtime.recorder else None,
             "day": runtime.day.payload(float(params.z_entry)),
             "book": None
             if 1 not in runtime.books
@@ -470,7 +527,7 @@ class MultiPresetRunner:
         elapsed = time.monotonic() - started
         header = (
             f"{'пара':<14}{'Z':>7}{'до входа':>10}{'S/Fee':>7}{'βдрейф%':>9}"
-            f"{'OBI':>7}{'сдел.':>7}{'net':>9}{'макс|Z|':>9}{'skew':>6}"
+            f"{'OBI':>7}{'сдел.':>7}{'net':>9}{'макс|Z|':>9}{'skew':>6}{'запис.':>8}"
         )
         self._log.info("── сводка (%.0f c) ──\n%s", elapsed, header)
         for runtime in self._runtimes:
@@ -478,7 +535,7 @@ class MultiPresetRunner:
             z = payload["z"]
             day = payload["day"]
             self._log.info(
-                "%-14s%7s%10.2f%7s%9s%7s%7d%9.3f%9.2f%6d",
+                "%-14s%7s%10.2f%7s%9s%7s%7d%9.3f%9.2f%6d%8d",
                 payload["name"],
                 "—" if z is None else f"{z:+.2f}",
                 payload["distance"],
@@ -489,6 +546,7 @@ class MultiPresetRunner:
                 payload["netRub"],
                 day.get("maxAbs", 0.0),
                 payload["skewSkips"],
+                payload["recordedBooks"],
             )
 
     # ------------------------------------------------------------------ HTTP
@@ -537,8 +595,8 @@ tr.ready{background:rgba(38,208,124,.10)}
 <table><thead><tr>
 <th style="text-align:left">пара</th><th>состояние</th><th>Z</th><th>до входа</th><th>σ/Fee</th>
 <th>β дрейф</th><th>OBI</th><th>сделок</th><th>net RUB</th><th>день: макс |Z|</th>
-<th>skew</th><th>ошибки</th>
-</tr></thead><tbody id="rows"><tr><td colspan="12" class="muted">загрузка…</td></tr></tbody></table>
+<th>skew</th><th>ошибки</th><th>L2 записан</th>
+</tr></thead><tbody id="rows"><tr><td colspan="13" class="muted">загрузка…</td></tr></tbody></table>
 <div class="hint">Зелёная строка — все 8 фильтров входа выполнены прямо сейчас. Данные: REST
 MarketDataService/GetOrderBook обеих ног с проверкой синхронности (v2.5), исполнение — симулятор.</div>
 </div>
@@ -565,9 +623,10 @@ async function tick(){
     <td class="${sign(p.netRub)}">${fmt(p.netRub,3)}</td>
     <td>${fmt(p.day?p.day.maxAbs:null,2)}</td>
     <td>${p.skewSkips}</td>
-    <td class="${p.restErrors?'neg':'muted'}" title="всего ошибок REST: ${p.restErrors}, из них HTTP 429 (rate limit): ${p.rateLimited||0}">${p.restErrors}</td></tr>`;
+    <td class="${p.restErrors?'neg':'muted'}" title="всего ошибок REST: ${p.restErrors}, из них HTTP 429 (rate limit): ${p.rateLimited||0}">${p.restErrors}</td>
+    <td class="muted" title="${p.recordPath||'запись выключена'}">${p.recordedBooks||0}</td></tr>`;
   }).join('');
-  document.getElementById('rows').innerHTML=rows||'<tr><td colspan="12" class="muted">нет пар</td></tr>';
+  document.getElementById('rows').innerHTML=rows||'<tr><td colspan="13" class="muted">нет пар</td></tr>';
  }catch(e){ document.getElementById('clock').textContent='нет связи'; }
 }
 tick(); setInterval(tick, 2000);
