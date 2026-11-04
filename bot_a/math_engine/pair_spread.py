@@ -17,6 +17,43 @@ OBI_DEPTH = 5
 BETA_MODES = ("static", "same_underlying", "slow_ratio", "dynamic")
 MIN_VARIANCE = 1e-12
 _WEIGHT_CACHE: Dict[int, Tuple[float, ...]] = {}
+_MSK_OFFSET_MS = 3 * 3600 * 1000
+
+
+def parse_clock_msk(value: str) -> Optional[int]:
+    """``"10:00:15"`` -> миллисекунды от начала суток (MSK). ``None``, если пусто."""
+    text = (value or "").strip()
+    if not text:
+        return None
+    parts = text.split(":")
+    try:
+        hours = int(parts[0])
+        minutes = int(parts[1]) if len(parts) > 1 else 0
+        seconds = int(parts[2]) if len(parts) > 2 else 0
+    except (ValueError, IndexError):
+        return None
+    return ((hours * 60 + minutes) * 60 + seconds) * 1000
+
+
+def parse_clock_windows(value: str) -> Tuple[Tuple[int, int], ...]:
+    """``"13:58-14:05,18:40-19:05"`` -> кортеж интервалов в мс от начала суток."""
+    windows: List[Tuple[int, int]] = []
+    for chunk in (value or "").split(","):
+        chunk = chunk.strip()
+        if not chunk or "-" not in chunk:
+            continue
+        left, right = chunk.split("-", 1)
+        start = parse_clock_msk(left)
+        end = parse_clock_msk(right)
+        if start is None or end is None or end <= start:
+            continue
+        windows.append((start, end))
+    return tuple(windows)
+
+
+def msk_time_of_day_ms(time_ms: int) -> int:
+    """Время суток по MSK в миллисекундах (учитывает только сдвиг UTC+3)."""
+    return (int(time_ms) + _MSK_OFFSET_MS) % 86_400_000
 
 
 def obi_weights(depth: int = OBI_DEPTH) -> Tuple[float, ...]:
@@ -42,6 +79,14 @@ class BookStats:
     @property
     def mid(self) -> float:
         return (float(self.best_bid) + float(self.best_ask)) / 2.0
+
+    @property
+    def spread_bps(self) -> float:
+        """Относительный спред стакана в базисных пунктах (широкий = аукцион)."""
+        center = self.mid
+        if center <= 0:
+            return 0.0
+        return (float(self.best_ask) - float(self.best_bid)) / center * 10_000.0
 
     @property
     def spread_steps_value(self) -> float:
@@ -154,12 +199,19 @@ class PairSpreadCalculator:
         "_beta_macro",
         "_stat_interval_ms",
         "_last_stat_ms",
+        "_last_beta_ms",
         "_obi_depth",
         "_ewma",
         "_books",
         "_stats",
         "_last",
         "_pending",
+        "_freeze_until_ms",
+        "_freeze_windows",
+        "_max_spread_bps",
+        "_freeze_reason",
+        "_frozen_ticks",
+        "_gate_bypass",
     )
 
     def __init__(
@@ -177,6 +229,9 @@ class PairSpreadCalculator:
         macro_beta_window: int = 14400,
         macro_beta_min_samples: int = 1800,
         stat_sample_interval_seconds: float = 0.0,
+        stat_freeze_until_msk: str = "",
+        stat_freeze_windows: str = "",
+        max_valid_spread_bps: float = 0.0,
     ) -> None:
         self._leg1 = leg1
         self._leg2 = leg2
@@ -213,12 +268,25 @@ class PairSpreadCalculator:
         interval = max(float(stat_sample_interval_seconds), 0.0)
         self._stat_interval_ms = int(round(interval * 1000.0))
         self._last_stat_ms: Optional[int] = None
+        self._last_beta_ms: Optional[int] = None
         self._obi_depth = int(obi_depth)
         self._ewma = EwmaZScore(ewma_window)
         self._books: List[Optional[OrderBookSnapshot]] = [None, None]
         self._stats: List[Optional[BookStats]] = [None, None]
         self._last: Optional[SpreadMetrics] = None
         self._pending = [False, False]
+        # v2.7: окна, в которых статистика (mu/sigma/beta/regime) не двигается.
+        parsed = parse_clock_msk(stat_freeze_until_msk)
+        self._freeze_until_ms = parsed if parsed is not None else 0
+        self._freeze_windows = parse_clock_windows(stat_freeze_windows)
+        self._max_spread_bps = max(float(max_valid_spread_bps), 0.0)
+        self._freeze_reason: Optional[str] = None
+        self._frozen_ticks = 0
+        self._gate_bypass = False
+
+    def set_stat_gate_bypass(self, value: bool) -> None:
+        """v2.8: отключить гейт пре-маркета (только для прогрева историей)."""
+        self._gate_bypass = bool(value)
 
     @property
     def beta(self) -> float:
@@ -242,8 +310,61 @@ class PairSpreadCalculator:
         return self._beta_macro
 
     @property
+    def beta_observations(self) -> int:
+        """Сколько снимков участвовало в оценке активной беты."""
+        return self._beta_observations
+
+    @property
+    def macro_samples(self) -> int:
+        """Сколько снимков набрала макро-бета (нужно ``macroBetaMinSamples``)."""
+        return self._macro_count
+
+    @property
     def stat_sample_interval_seconds(self) -> float:
         return self._stat_interval_ms / 1000.0
+
+    @property
+    def freeze_reason(self) -> Optional[str]:
+        """Причина, по которой последний тик не двигал статистику (``None`` — не было)."""
+        return self._freeze_reason
+
+    @property
+    def frozen_ticks(self) -> int:
+        """Сколько тиков отброшено из статистики по гейту v2.7."""
+        return self._frozen_ticks
+
+    def _stat_gate(
+        self,
+        time_ms: int,
+        stats1: Optional[BookStats],
+        stats2: Optional[BookStats],
+    ) -> Optional[str]:
+        """Почему тик нельзя пускать в статистику (v2.7).
+
+        Три причины, каждая из которых на живом рынке портила базу:
+
+        * пре-маркет и аукцион открытия — до ``stat_freeze_until_msk`` (10:00:15 MSK);
+          именно оттуда брался ``|Z| = 12.98`` в 09:20 у ``AFKS``;
+        * клиринговые аукционы (13:58–14:05, 18:40–19:05) — те же широкие котировки;
+        * аномально широкий спред стакана (``max_valid_spread_bps``) — признак аукциона
+          или дырки в книге, по которой нельзя считать спред пары.
+        """
+        if stats1 is None or stats2 is None:
+            return "нет стакана"
+        if self._gate_bypass:
+            return None
+        if self._freeze_until_ms or self._freeze_windows:
+            minute_of_day = msk_time_of_day_ms(time_ms)
+            if self._freeze_until_ms and minute_of_day < self._freeze_until_ms:
+                return "пре-маркет (до 10:00:15 MSK)"
+            for start, end in self._freeze_windows:
+                if start <= minute_of_day < end:
+                    return "клиринговый аукцион"
+        if self._max_spread_bps > 0:
+            widest = max(stats1.spread_bps, stats2.spread_bps)
+            if widest > self._max_spread_bps:
+                return f"широкий стакан ({widest:.0f} bps)"
+        return None
 
     def _stat_due(self, time_ms: int) -> bool:
         """Пора ли сдвинуть статистические окна (v2.4.1).
@@ -255,6 +376,21 @@ class PairSpreadCalculator:
             return True
         last = self._last_stat_ms
         if last is None or time_ms - last >= self._stat_interval_ms:
+            return True
+        return False
+
+    def _beta_due(self, time_ms: int) -> bool:
+        """Пора ли двигать бету и макро-бету (v2.6.7).
+
+        Считается по собственному таймеру: согласованный снимок обеих ног может
+        прийти в «несэмпловый» тик, когда ноги фазово синхронизированы и несут
+        одну метку времени. Каденция ``stat_sample_interval_seconds`` сохраняется.
+        """
+        if self._stat_interval_ms <= 0:
+            return True
+        last = self._last_beta_ms
+        if last is None or time_ms - last >= self._stat_interval_ms:
+            self._last_beta_ms = int(time_ms)
             return True
         return False
 
@@ -313,6 +449,7 @@ class PairSpreadCalculator:
         self._macro_count = 0
         self._beta_macro = 0.0
         self._last_stat_ms = None
+        self._last_beta_ms = None
 
     def _update_beta(self, value1: float, value2: float) -> None:
         """Обновляет бету согласно выбранному режиму (см. ``BETA_MODES``).
@@ -400,7 +537,11 @@ class PairSpreadCalculator:
 
         value1 = float(self._leg1.value_in_rub(Decimal(repr(stats1.microprice))))
         value2 = float(self._leg2.value_in_rub(Decimal(repr(stats2.microprice))))
-        sampled = self._stat_due(book.time_ms)
+        gate = self._stat_gate(book.time_ms, stats1, stats2)
+        self._freeze_reason = gate
+        if gate is not None:
+            self._frozen_ticks += 1
+        sampled = gate is None and self._stat_due(book.time_ms)
         if self._pending[0] and self._pending[1]:
             self._pending = [False, False]
             if sampled:
@@ -421,6 +562,10 @@ class PairSpreadCalculator:
             else:
                 sigma = math.sqrt(max(variance, MIN_VARIANCE))
                 zscore = (spread_rub - mean) / sigma
+        if gate is not None and self._ewma.count > 0:
+            # v2.7: на аукционе спред считается «неопределённым» — иначе в лог,
+            # трейл и дашборд попадают |Z| вроде 12.98 из пре-маркета.
+            zscore = 0.0
 
         metrics = SpreadMetrics(
             time_ms=book.time_ms,
@@ -442,6 +587,8 @@ class PairSpreadCalculator:
             beta_macro=self._beta_macro,
             beta_drift=self.beta_drift,
             stat_sampled=sampled,
+            stat_frozen=gate is not None,
+            freeze_reason=gate,
         )
         self._last = metrics
         return metrics

@@ -62,6 +62,8 @@ class RiskSettings:
     trade_evening_session: bool = True
     flatten_on_shutdown: bool = True
     active_session_windows: str = "AllDay"
+    # v2.7: лимит однонаправленных позиций в кластере пар с общей Leg2 (0 — без лимита).
+    max_concurrent_same_direction: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -271,6 +273,7 @@ class AppConfig:
                 "maxDailyDrawdownRub": str(self.risk.max_daily_drawdown_rub),
                 "marginSafetyBufferPct": self.risk.margin_safety_buffer_pct,
                 "maxPositionLots": self.risk.max_position_lots,
+                "maxConcurrentSameDirection": self.risk.max_concurrent_same_direction,
             },
             "execution": {
                 "simulatedOrderLatencyMs": self.execution.simulated_order_latency_ms,
@@ -376,6 +379,9 @@ class AppConfig:
                 trade_evening_session=bool(risk_raw.get("tradeEveningSession", True)),
                 flatten_on_shutdown=bool(risk_raw.get("flattenOnShutdown", True)),
                 active_session_windows=str(risk_raw.get("activeSessionWindows", "AllDay")),
+                max_concurrent_same_direction=int(
+                    risk_raw.get("maxConcurrentSameDirection", 0)
+                ),
             ),
             execution=ExecutionSettings(
                 topology=ExecutionTopology(str(execution_raw.get("topology", "SingleLegLeadLag"))),

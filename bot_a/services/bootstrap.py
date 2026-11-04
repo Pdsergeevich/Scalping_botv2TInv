@@ -90,6 +90,29 @@ def _trim_last_days(candles: Sequence[Candle], days: int) -> list[Candle]:
     ]
 
 
+def _warn_if_beta_not_estimated(
+    log: logging.Logger, preset: PairPreset, engine: Any, state: Dict[str, Any]
+) -> None:
+    """Диагностика: прогреву не хватило согласованных снимков для оценки беты (v2.6.7).
+
+    Без оценки спред считается по статической бете (``1.0``), поэтому ``mu``/``sigma``
+    уезжают на величину самой ноги, а live-поток потом ловит «ступеньку» спреда.
+    """
+    need = max(int(engine.params.beta_min_samples), 2)
+    observed = int(state.get("betaObservations", 0))
+    if observed >= need:
+        return
+    log.warning(
+        "Прогрев не оценил бету %s/%s: наблюдений %d из %d, используется статическая "
+        "бета %.4f — mu/sigma спреда недостоверны",
+        preset.leg1.ticker,
+        preset.leg2.ticker,
+        observed,
+        need,
+        float(state.get("betaSlow", 0.0)),
+    )
+
+
 def _history_window(days: int, end_ms: Optional[int] = None) -> tuple[int, int]:
     """Календарное окно под ``days`` торговых дней (с запасом на выходные)."""
     finish = int(end_ms if end_ms is not None else now_ms())

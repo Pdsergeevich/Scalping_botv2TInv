@@ -48,9 +48,10 @@ def test_monday_readiness_reports_next_open_and_warnings():
     assert "отката 2 шагов" in checks["Калибровка ratchet"].detail
     assert checks["Окна входа (v2.3)"].ok is True
     assert "PrimeHoursOnly" in checks["Окна входа (v2.3)"].detail
-    assert checks["Тариф брокера"].ok is False and checks["Тариф брокера"].warning is True
+    assert checks["Тариф брокера"].ok is True  # v2.7: по умолчанию Premium
     assert checks["Пресеты и betaMode"].ok is True
-    assert "отключены: CNYRUBF_CRZ6" in checks["Пресеты и betaMode"].detail
+    assert "активных 3: IRAO_SBER, MTLR_SBER, VTBR_SBER" in checks["Пресеты и betaMode"].detail
+    assert "AFKS_SBER" in checks["Пресеты и betaMode"].detail  # v2.8: отключена
     assert ready.ok is True  # предупреждения не блокируют
 
 
@@ -83,11 +84,18 @@ def test_disabled_spz6_is_excluded_from_portfolio():
     assert "SPZ6_SRZ6" not in config.trading_preset_names()
     assert config.preset("SPZ6_SRZ6").enabled is False
     assert set(config.trading_preset_names()) == {
-        "AFKS_SBER",
         "IRAO_SBER",
         "MTLR_SBER",
         "VTBR_SBER",
     }
+
+
+def test_disabled_afks_is_excluded_from_portfolio():
+    """v2.8: на 5 днях реальных L2 `AFKS_SBER` давала −21…−26 RUB при любой версии."""
+    config = _config()
+    assert "AFKS_SBER" in config.preset_names()
+    assert "AFKS_SBER" not in config.trading_preset_names()
+    assert config.preset("AFKS_SBER").enabled is False
 
 
 def test_disabled_preset_excluded_from_trading_set():

@@ -1,0 +1,50 @@
+{
+ "period": "6m",
+ "runs": [
+  {
+   "pair": "AFKS_SBER",
+   "lots": 1,
+   "trades_total": 1,
+   "net_total": -2.41355,
+   "days_total": 1,
+   "notional_per_lot": 829.7
+  },
+  {
+   "pair": "IRAO_SBER",
+   "lots": 1,
+   "trades_total": 0,
+   "net_total": 0,
+   "days_total": 0,
+   "notional_per_lot": 269.25
+  },
+  {
+   "pair": "MTLR_SBER",
+   "lots": 1,
+   "trades_total": 1,
+   "net_total": 0.1671575,
+   "days_total": 1,
+   "notional_per_lot": 44.98
+  },
+  {
+   "pair": "VTBR_SBER",
+   "lots": 1,
+   "trades_total": 1,
+   "net_total": -0.04287125,
+   "days_total": 1,
+   "notional_per_lot": 55.89
+  }
+ ],
+ "portfolio": {
+  "days": 2,
+  "net": -2.2893,
+  "sharpe": -16.49,
+  "dd": 2.2893,
+  "greenPct": 0.0,
+  "pf": 0.06804919962323237,
+  "trades": 3
+ },
+ "daily": {
+  "2026-10-29": -2.2463925,
+  "2026-11-02": -0.04287125
+ }
+}

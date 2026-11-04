@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import asyncio
-import gzip
 import heapq
 import logging
+import zlib
 from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
@@ -34,6 +34,80 @@ def _merge_key(event: MarketEvent) -> Tuple[int, int]:
     return event.time_ms, 0 if event.is_book else 1
 
 
+_GZIP_MAGIC = b"\x1f\x8b\x08"
+_DECOMPRESS_BLOCK = 1 << 16
+
+
+def _deflate_start(raw: bytes, pos: int) -> Tuple[int, bool]:
+    """Позиция начала deflate-потока внутри gzip-члена (и цел ли заголовок)."""
+    if pos + 10 > len(raw) or raw[pos : pos + 3] != _GZIP_MAGIC:
+        return len(raw), False
+    flags = raw[pos + 3]
+    cursor = pos + 10
+    if flags & 0x04:  # FEXTRA
+        if cursor + 2 > len(raw):
+            return len(raw), False
+        cursor += 2 + (raw[cursor] | (raw[cursor + 1] << 8))
+    for mask in (0x08, 0x10):  # FNAME / FCOMMENT
+        if flags & mask:
+            end = raw.find(b"\x00", cursor)
+            if end < 0:
+                return len(raw), False
+            cursor = end + 1
+    if flags & 0x02:  # FHCRC
+        cursor += 2
+    if cursor > len(raw):
+        return len(raw), False
+    return cursor, True
+
+
+def _iter_gzip_lines(path: Path) -> Iterator[str]:
+    """Строки JSONL из gzip-файла, устойчиво к оборванным и склеенным членам (v2.8).
+
+    Живая запись, убитая на середине (`Ctrl+C`/kill процесса), оставляет gzip-член
+    с оборванным хвостом, а следующий запуск дописывает НОВЫЙ член в тот же файл.
+    ``gzip.open`` теряет ВСЁ после оборванного члена (10-30: читалось 2236 событий
+    из ~14 тыс.). Поэтому распаковываем deflate-потоки напрямую (``-15``), не
+    проверяя CRC/ISIZE: оборванный хвост не отменяет уже распакованные строки.
+    """
+    raw = path.read_bytes()
+    total = len(raw)
+    pos = raw.find(_GZIP_MAGIC)
+    pending = b""
+    while 0 <= pos < total:
+        start, header_ok = _deflate_start(raw, pos)
+        if not header_ok:
+            break
+        engine = zlib.decompressobj(-zlib.MAX_WBITS)
+        cursor = start
+        while cursor < total:
+            block = raw[cursor : cursor + _DECOMPRESS_BLOCK]
+            block_start = cursor
+            try:
+                chunk = engine.decompress(block)
+            except zlib.error:
+                break
+            end = block_start + len(block) - len(engine.unconsumed_tail)
+            if engine.eof:
+                end -= len(engine.unused_data)
+            cursor = end
+            if chunk:
+                pending += chunk
+                if b"\n" in pending:
+                    *ready, pending = pending.split(b"\n")
+                    for line in ready:
+                        yield line.decode("utf-8", "replace")
+            if engine.eof:
+                break
+        # Обрыв члена не даёт точной позиции конца — ищем следующий gzip-заголовок
+        # от текущего места; ложные срабатывания отсеет разбор JSON.
+        pending = b""
+        nxt = raw.find(_GZIP_MAGIC, max(cursor, pos + 4))
+        if nxt <= pos:
+            break
+        pos = nxt
+
+
 class JsonlRecordingSource:
     """Реплей из ``*.jsonl.gz`` (файл или каталог)."""
 
@@ -55,15 +129,18 @@ class JsonlRecordingSource:
         return JsonlRecordingSource([target])
 
     def _iter_file(self, path: Path) -> Iterator[MarketEvent]:
-        opener = gzip.open if path.suffix == ".gz" else open
-        with opener(path, "rt", encoding="utf-8") as handle:  # type: ignore[operator]
-            for line in handle:
-                try:
-                    event = event_from_json(line)
-                except ValueError:
-                    continue
-                if event is not None:
-                    yield event
+        if path.suffix == ".gz":
+            lines: Iterator[str] = _iter_gzip_lines(path)
+        else:
+            with open(path, "rt", encoding="utf-8", errors="replace") as handle:
+                lines = iter(handle.readlines())
+        for line in lines:
+            try:
+                event = event_from_json(line)
+            except ValueError:
+                continue
+            if event is not None:
+                yield event
 
     async def events(self, start_ms: int, end_ms: int) -> AsyncIterator[MarketEvent]:
         generators = [self._iter_file(path) for path in self._paths]

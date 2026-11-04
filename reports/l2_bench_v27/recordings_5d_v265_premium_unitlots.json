@@ -1,0 +1,355 @@
+{
+ "variant": "v265",
+ "tariff": "Premium",
+ "days": [
+  "2026-10-28",
+  "2026-10-29",
+  "2026-10-30",
+  "2026-11-01",
+  "2026-11-02"
+ ],
+ "pairs": [
+  "VTBR_SBER",
+  "MTLR_SBER",
+  "AFKS_SBER",
+  "IRAO_SBER"
+ ],
+ "runs": [
+  {
+   "pair": "VTBR_SBER",
+   "days": [
+    {
+     "date": "2026-10-28",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 37510
+    },
+    {
+     "date": "2026-10-29",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 28024
+    },
+    {
+     "date": "2026-10-30",
+     "net": 0.0,
+     "trades": 0,
+     "error": "error: Error -3 while decompressing data: invalid block type"
+    },
+    {
+     "date": "2026-11-01",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 8862
+    },
+    {
+     "date": "2026-11-02",
+     "net": 0.0,
+     "trades": 0,
+     "error": "EOFError: Compressed file ended before the end-of-stream marker was reached"
+    }
+   ],
+   "trades": []
+  },
+  {
+   "pair": "MTLR_SBER",
+   "days": [
+    {
+     "date": "2026-10-28",
+     "net": 0.3672775,
+     "gross": 0.39,
+     "fees": 0.0227225,
+     "trades": 1,
+     "events": 37516
+    },
+    {
+     "date": "2026-10-29",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 27984
+    },
+    {
+     "date": "2026-10-30",
+     "net": 0.0,
+     "trades": 0,
+     "error": "error: Error -3 while decompressing data: invalid block type"
+    },
+    {
+     "date": "2026-11-01",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 8874
+    },
+    {
+     "date": "2026-11-02",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 35936
+    }
+   ],
+   "trades": [
+    {
+     "open_ms": 1793178302176,
+     "close_ms": 1793178948583,
+     "side": "SELL",
+     "net": 0.3672775,
+     "gross": 0.39,
+     "fees": 0.0227225,
+     "reason": "TakeProfit",
+     "day": "2026-10-28"
+    }
+   ]
+  },
+  {
+   "pair": "AFKS_SBER",
+   "days": [
+    {
+     "date": "2026-10-28",
+     "net": -7.704225,
+     "gross": -7.3,
+     "fees": 0.404225,
+     "trades": 1,
+     "events": 37526
+    },
+    {
+     "date": "2026-10-29",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 28010
+    },
+    {
+     "date": "2026-10-30",
+     "net": 0.0,
+     "trades": 0,
+     "error": "error: Error -3 while decompressing data: invalid block type"
+    },
+    {
+     "date": "2026-11-01",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 8880
+    },
+    {
+     "date": "2026-11-02",
+     "net": -3.41525,
+     "gross": -3.0,
+     "fees": 0.41525,
+     "trades": 1,
+     "events": 35948
+    }
+   ],
+   "trades": [
+    {
+     "open_ms": 1793172269646,
+     "close_ms": 1793174070114,
+     "side": "SELL",
+     "net": -7.704225,
+     "gross": -7.3,
+     "fees": 0.404225,
+     "reason": "HardStop",
+     "day": "2026-10-28"
+    },
+    {
+     "open_ms": 1793608525620,
+     "close_ms": 1793610357578,
+     "side": "BUY",
+     "net": -3.41525,
+     "gross": -3.0,
+     "fees": 0.41525,
+     "reason": "TimeStop",
+     "day": "2026-11-02"
+    }
+   ]
+  },
+  {
+   "pair": "IRAO_SBER",
+   "days": [
+    {
+     "date": "2026-10-28",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 37540
+    },
+    {
+     "date": "2026-10-29",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 28012
+    },
+    {
+     "date": "2026-10-30",
+     "net": 0.0,
+     "trades": 0,
+     "error": "error: Error -3 while decompressing data: invalid block type"
+    },
+    {
+     "date": "2026-11-01",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 8866
+    },
+    {
+     "date": "2026-11-02",
+     "net": -2.43885,
+     "gross": -2.3,
+     "fees": 0.13885,
+     "trades": 1,
+     "events": 36010
+    }
+   ],
+   "trades": [
+    {
+     "open_ms": 1793607661842,
+     "close_ms": 1793609492750,
+     "side": "BUY",
+     "net": -2.43885,
+     "gross": -2.3,
+     "fees": 0.13885,
+     "reason": "TimeStop",
+     "day": "2026-11-02"
+    }
+   ]
+  }
+ ],
+ "portfolios": [
+  {
+   "cluster": 0,
+   "trades": 4,
+   "tradesPerDay": 0.8,
+   "net": -13.191,
+   "profitFactor": 0.027,
+   "maxDrawdown": 13.191,
+   "sharpe": -1.81,
+   "clusterSkips": 0,
+   "perPair": {
+    "VTBR_SBER": {
+     "trades": 0,
+     "net": 0,
+     "dropped": 0
+    },
+    "MTLR_SBER": {
+     "trades": 1,
+     "net": 0.3673,
+     "dropped": 0
+    },
+    "AFKS_SBER": {
+     "trades": 2,
+     "net": -11.1195,
+     "dropped": 0
+    },
+    "IRAO_SBER": {
+     "trades": 1,
+     "net": -2.4388,
+     "dropped": 0
+    }
+   },
+   "daily": {
+    "2026-10-28": -7.3369,
+    "2026-10-29": 0.0,
+    "2026-10-30": 0.0,
+    "2026-11-01": 0.0,
+    "2026-11-02": -5.8541
+   }
+  },
+  {
+   "cluster": 1,
+   "trades": 3,
+   "tradesPerDay": 0.6,
+   "net": -9.7758,
+   "profitFactor": 0.036,
+   "maxDrawdown": 9.7758,
+   "sharpe": -1.53,
+   "clusterSkips": 1,
+   "perPair": {
+    "VTBR_SBER": {
+     "trades": 0,
+     "net": 0,
+     "dropped": 0
+    },
+    "MTLR_SBER": {
+     "trades": 1,
+     "net": 0.3673,
+     "dropped": 0
+    },
+    "AFKS_SBER": {
+     "trades": 1,
+     "net": -7.7042,
+     "dropped": 1
+    },
+    "IRAO_SBER": {
+     "trades": 1,
+     "net": -2.4388,
+     "dropped": 0
+    }
+   },
+   "daily": {
+    "2026-10-28": -7.3369,
+    "2026-10-29": 0.0,
+    "2026-10-30": 0.0,
+    "2026-11-01": 0.0,
+    "2026-11-02": -2.4388
+   }
+  },
+  {
+   "cluster": 2,
+   "trades": 4,
+   "tradesPerDay": 0.8,
+   "net": -13.191,
+   "profitFactor": 0.027,
+   "maxDrawdown": 13.191,
+   "sharpe": -1.81,
+   "clusterSkips": 0,
+   "perPair": {
+    "VTBR_SBER": {
+     "trades": 0,
+     "net": 0,
+     "dropped": 0
+    },
+    "MTLR_SBER": {
+     "trades": 1,
+     "net": 0.3673,
+     "dropped": 0
+    },
+    "AFKS_SBER": {
+     "trades": 2,
+     "net": -11.1195,
+     "dropped": 0
+    },
+    "IRAO_SBER": {
+     "trades": 1,
+     "net": -2.4388,
+     "dropped": 0
+    }
+   },
+   "daily": {
+    "2026-10-28": -7.3369,
+    "2026-10-29": 0.0,
+    "2026-10-30": 0.0,
+    "2026-11-01": 0.0,
+    "2026-11-02": -5.8541
+   }
+  }
+ ]
+}

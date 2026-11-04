@@ -14,7 +14,7 @@ from collections import deque
 from dataclasses import dataclass, replace
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Deque, Dict, Optional
+from typing import Any, Deque, Dict, List, Optional, Tuple
 
 from bot_a.economics.fees import TinkoffFeeCalculator
 from bot_a.engine.ledger import PortfolioLedger
@@ -140,6 +140,52 @@ class StrategyParams:
     # --- v2.5: подтверждение сигнала двумя подряд статистическими замерами ---
     use_entry_persistence: bool = False
     entry_confirm_samples: int = 2
+    # --- v2.7: заморозка статистики на пре-маркете и в клиринговых аукционах ---
+    # Тики до этого времени (MSK) НЕ двигают EWMA(mu, sigma), бету и регим-буфер:
+    # иначе 40 минут аукциона 09:20–10:00 отравляют базу и живой Z расходится с ISS.
+    # Пустая строка/ноль — поведение прежних версий (гейт выключен).
+    stat_freeze_until_msk: str = ""
+    # Клиринговые аукционы: статистику не двигаем (формат "13:58-14:05,18:40-19:05").
+    stat_freeze_windows: str = ""
+    # Санитарный порог: спред в стакане шире этого (bps) = аукцион/дыра в книге.
+    max_valid_spread_bps: float = 0.0
+    # --- v2.7: потолок цели тейка (ABS TP не может требовать нереального хода цены) ---
+    tp_max_sigma_multiple: float = 0.0
+    tp_max_notional_fraction: float = 0.0
+    # --- v2.7: адаптивный ценовой стоп по волатильности ---
+    use_volatility_adaptive_stop: bool = False
+    stop_sigma_grace_seconds: int = 45
+    stop_volatility_ratio: float = 3.0
+    # --- v2.8: стоп считается от σ и НЕ сжимается потолком тейка ---
+    # Порог = max(stopSigmaMultiple·σ_Leg1, ratio·raw_deviation, min_steps).
+    # 0 — поведение v2.7 (стоп от цели).
+    stop_sigma_multiple: float = 0.0
+    # --- v2.9: потолок тейка нужен только для пар с β < 1 ---
+    # AFKS (β = 0.377) требовал +10 % хода цены; для VTBR/MTLR/IRAO (β ≥ 1)
+    # тот же потолок резал прибыльные цели вдвое. 0 — потолок для всех.
+    tp_cap_beta_threshold: float = 0.0
+    # --- v2.9: выход из «мёртвого» спреда ---
+    use_stagnation_exit: bool = False
+    stagnation_after_seconds: int = 0
+    stagnation_mfe_fee_multiple: float = 1.0
+    stagnation_loss_fee_multiple: float = 1.5
+    stagnation_min_z_reversion: float = 0.25
+    #: Доля MAE (0..1), при которой позиция считается «у худшего уровня» — там работает
+    #: стоп, а не тайм-выход. 0 — без проверки (поведение из ТЗ v2.9).
+    stagnation_max_mae_fraction: float = 0.0
+    # --- v2.10: анти-нож по импульсу Leg1 (ловля падающего слейва) ---
+    # Вход блокируется, если Leg1 в последнюю минуту ускоряется ПРОТИВ сделки,
+    # пройдя не меньше antiKnifeMinSteps шагов цены (IRAO 02.11 11:22: 14.8 шагов/мин
+    # при ускорении 1.92 — единственная убыточная сделка портфеля).
+    use_anti_knife_filter: bool = False
+    anti_knife_window_seconds: int = 60
+    anti_knife_baseline_seconds: int = 300
+    anti_knife_min_steps: int = 5
+    anti_knife_accel_multiple: float = 1.5
+    #: Сколько секунд после срабатывания не входить в ту же сторону: нож не должен
+    #: «отпускать» фильтр ровно на дне (IRAO 02.11: вход сместился на 11:23:51 и всё
+    #: равно дал −14.31 RUB). 0 — без паузы.
+    anti_knife_cooldown_seconds: int = 0
 
     def with_overrides(self, **overrides: Any) -> "StrategyParams":
         return replace(self, **overrides)
@@ -214,6 +260,28 @@ class StrategyParams:
             "statSampleIntervalSeconds": self.stat_sample_interval_seconds,
             "useEntryPersistence": self.use_entry_persistence,
             "entryConfirmSamples": self.entry_confirm_samples,
+            "statFreezeUntilMsk": self.stat_freeze_until_msk,
+            "statFreezeWindows": self.stat_freeze_windows,
+            "maxValidSpreadBps": self.max_valid_spread_bps,
+            "tpMaxSigmaMultiple": self.tp_max_sigma_multiple,
+            "tpMaxNotionalFraction": self.tp_max_notional_fraction,
+            "useVolatilityAdaptiveStop": self.use_volatility_adaptive_stop,
+            "stopSigmaMultiple": self.stop_sigma_multiple,
+            "tpCapBetaThreshold": self.tp_cap_beta_threshold,
+            "useStagnationExit": self.use_stagnation_exit,
+            "stagnationAfterSeconds": self.stagnation_after_seconds,
+            "stagnationMfeFeeMultiple": self.stagnation_mfe_fee_multiple,
+            "stagnationLossFeeMultiple": self.stagnation_loss_fee_multiple,
+            "stagnationMinZReversion": self.stagnation_min_z_reversion,
+            "stagnationMaxMaeFraction": self.stagnation_max_mae_fraction,
+            "useAntiKnifeFilter": self.use_anti_knife_filter,
+            "antiKnifeWindowSeconds": self.anti_knife_window_seconds,
+            "antiKnifeBaselineSeconds": self.anti_knife_baseline_seconds,
+            "antiKnifeMinSteps": self.anti_knife_min_steps,
+            "antiKnifeAccelMultiple": self.anti_knife_accel_multiple,
+            "antiKnifeCooldownSeconds": self.anti_knife_cooldown_seconds,
+            "stopSigmaGraceSeconds": self.stop_sigma_grace_seconds,
+            "stopVolatilityRatio": self.stop_volatility_ratio,
         }
 
     @staticmethod
@@ -330,6 +398,74 @@ class StrategyParams:
             entry_confirm_samples=max(
                 int(data.get("entryConfirmSamples", defaults.entry_confirm_samples)), 1
             ),
+            stat_freeze_until_msk=str(
+                data.get("statFreezeUntilMsk", defaults.stat_freeze_until_msk)
+            ),
+            stat_freeze_windows=str(
+                data.get("statFreezeWindows", defaults.stat_freeze_windows)
+            ),
+            max_valid_spread_bps=float(
+                data.get("maxValidSpreadBps", defaults.max_valid_spread_bps)
+            ),
+            tp_max_sigma_multiple=float(
+                data.get("tpMaxSigmaMultiple", defaults.tp_max_sigma_multiple)
+            ),
+            tp_max_notional_fraction=float(
+                data.get("tpMaxNotionalFraction", defaults.tp_max_notional_fraction)
+            ),
+            use_volatility_adaptive_stop=bool(
+                data.get(
+                    "useVolatilityAdaptiveStop", defaults.use_volatility_adaptive_stop
+                )
+            ),
+            stop_sigma_grace_seconds=int(
+                data.get("stopSigmaGraceSeconds", defaults.stop_sigma_grace_seconds)
+            ),
+            stop_volatility_ratio=float(
+                data.get("stopVolatilityRatio", defaults.stop_volatility_ratio)
+            ),
+            stop_sigma_multiple=float(
+                data.get("stopSigmaMultiple", defaults.stop_sigma_multiple)
+            ),
+            tp_cap_beta_threshold=float(
+                data.get("tpCapBetaThreshold", defaults.tp_cap_beta_threshold)
+            ),
+            use_stagnation_exit=bool(
+                data.get("useStagnationExit", defaults.use_stagnation_exit)
+            ),
+            stagnation_after_seconds=int(
+                data.get("stagnationAfterSeconds", defaults.stagnation_after_seconds)
+            ),
+            stagnation_mfe_fee_multiple=float(
+                data.get("stagnationMfeFeeMultiple", defaults.stagnation_mfe_fee_multiple)
+            ),
+            stagnation_loss_fee_multiple=float(
+                data.get("stagnationLossFeeMultiple", defaults.stagnation_loss_fee_multiple)
+            ),
+            stagnation_min_z_reversion=float(
+                data.get("stagnationMinZReversion", defaults.stagnation_min_z_reversion)
+            ),
+            stagnation_max_mae_fraction=float(
+                data.get("stagnationMaxMaeFraction", defaults.stagnation_max_mae_fraction)
+            ),
+            use_anti_knife_filter=bool(
+                data.get("useAntiKnifeFilter", defaults.use_anti_knife_filter)
+            ),
+            anti_knife_window_seconds=int(
+                data.get("antiKnifeWindowSeconds", defaults.anti_knife_window_seconds)
+            ),
+            anti_knife_baseline_seconds=int(
+                data.get("antiKnifeBaselineSeconds", defaults.anti_knife_baseline_seconds)
+            ),
+            anti_knife_min_steps=int(
+                data.get("antiKnifeMinSteps", defaults.anti_knife_min_steps)
+            ),
+            anti_knife_accel_multiple=float(
+                data.get("antiKnifeAccelMultiple", defaults.anti_knife_accel_multiple)
+            ),
+            anti_knife_cooldown_seconds=int(
+                data.get("antiKnifeCooldownSeconds", defaults.anti_knife_cooldown_seconds)
+            ),
         )
 
 
@@ -383,10 +519,17 @@ class PairScalpingStateMachine:
             macro_beta_window=params.macro_beta_window,
             macro_beta_min_samples=params.macro_beta_min_samples,
             stat_sample_interval_seconds=params.stat_sample_interval_seconds,
+            stat_freeze_until_msk=params.stat_freeze_until_msk,
+            stat_freeze_windows=params.stat_freeze_windows,
+            max_valid_spread_bps=params.max_valid_spread_bps,
         )
         self._state = FsmState.WARMUP
         self._state_since_ms = clock.now_ms()
         self._last_metrics: Optional[SpreadMetrics] = None
+        # v2.10: история микропрайса Leg1 для анти-нож фильтра (последние ~10 минут).
+        self._leg1_ticks: Deque[Tuple[int, Decimal]] = deque(maxlen=20_000)
+        #: До какого момента (мс) вход в данную сторону заблокирован анти-нож фильтром.
+        self._knife_block_until: Dict[Side, int] = {}
         self._position: Optional[OpenPosition] = None
         self._exit_reason: ExitReason = ExitReason.TAKE_PROFIT
         self._trade_seq = 0
@@ -428,6 +571,8 @@ class PairScalpingStateMachine:
             "betaDriftSkips": 0,
             "volFilterSkips": 0,
             "persistenceSkips": 0,
+            "statFrozenSkips": 0,
+            "antiKnifeSkips": 0,
             "ratchetExits": 0,
             "entries": 0,
             "rejects": 0,
@@ -598,10 +743,18 @@ class PairScalpingStateMachine:
 
     # ------------------------------------------------------------------ метрики
     async def _on_metrics(self, metrics: SpreadMetrics) -> None:
+        self._remember_leg1_price(metrics)
         if self._state is FsmState.WARMUP:
             if metrics.is_warm:
                 self._transition(FsmState.IDLE, f"прогрев завершён: {metrics.tick_count} тиков")
             return
+        if metrics.stat_frozen:
+            # v2.7: пре-маркет / клиринг / широкий стакан — статистика не движется,
+            # Z не определён. Новые входы запрещены, но управление открытой позицией
+            # продолжается (стопы и выходы должны работать всегда).
+            self._counters["statFrozenSkips"] += 1
+            if self._state is FsmState.IDLE:
+                return
         if self._state is FsmState.IDLE:
             await self._maybe_enter(metrics)
         elif self._state is FsmState.QUOTING_ENTRY_LEG1:
@@ -612,6 +765,82 @@ class PairScalpingStateMachine:
             await self._manage_exit_quote(metrics)
 
     # ------------------------------------------------------------------ v2.2: фильтры входа
+    def _remember_leg1_price(self, metrics: SpreadMetrics) -> None:
+        """v2.10: копит микропрайс Leg1 с таймстемпами (окно анти-нож фильтра)."""
+        if not self._params.use_anti_knife_filter or metrics.micro_leg1 <= 0:
+            return
+        keep_ms = (max(self._params.anti_knife_baseline_seconds, 60) + 60) * 1000
+        self._leg1_ticks.append((int(metrics.time_ms), metrics.micro_leg1))
+        cutoff = int(metrics.time_ms) - keep_ms
+        while self._leg1_ticks and self._leg1_ticks[0][0] < cutoff:
+            self._leg1_ticks.popleft()
+
+    def _leg1_price_at(self, time_ms: int) -> Optional[Decimal]:
+        """Последняя цена Leg1 не позже ``time_ms`` (``None``, если истории не хватает)."""
+        found: Optional[Decimal] = None
+        for stamp, price in reversed(self._leg1_ticks):
+            if stamp <= time_ms:
+                found = price
+                break
+        return found
+
+    def _anti_knife_reason(self, side: Side, now_ms: int) -> Optional[str]:
+        """v2.10: не входим в ускоряющееся движение Leg1 против сделки.
+
+        Единственная убыточная сделка портфеля (`IRAO_SBER` 02.11 11:22:41 `BUY`,
+        `−15.91 RUB`) отличалась от пяти прибыльных не направлением ведущей ноги, а
+        **скоростью падения самой Leg1**: 14.8 шага цены за последнюю минуту при
+        ускорении 1.92 (у прибыльных: 1.5–11.5 шагов и ускорение 0.82–1.15).
+
+        Вход блокируется, если оба условия верны:
+
+        * Leg1 прошла против сделки не меньше ``antiKnifeMinSteps`` шагов цены за
+          ``antiKnifeWindowSeconds`` (по умолчанию 60 с);
+        * скорость этого движения не меньше ``antiKnifeAccelMultiple`` (1.5) от
+          средней скорости против сделки за ``antiKnifeBaselineSeconds`` (300 с) —
+          то есть движение ускоряется, а не выдыхается.
+        """
+        params = self._params
+        if not params.use_anti_knife_filter or not self._leg1_ticks:
+            return None
+        cooldown_ms = max(int(params.anti_knife_cooldown_seconds), 0) * 1000
+        blocked_until = self._knife_block_until.get(side, 0)
+        if cooldown_ms > 0 and now_ms < blocked_until:
+            return (
+                f"пауза после ножа ещё {(blocked_until - now_ms) / 1000:.0f} с "
+                f"(всего {params.anti_knife_cooldown_seconds} с)"
+            )
+        window_ms = max(int(params.anti_knife_window_seconds), 1) * 1000
+        base_ms = max(int(params.anti_knife_baseline_seconds), 1) * 1000
+        now_price = self._leg1_price_at(now_ms)
+        win_price = self._leg1_price_at(now_ms - window_ms)
+        base_price = self._leg1_price_at(now_ms - base_ms)
+        if now_price is None or win_price is None or base_price is None:
+            return None
+        step = self._leg1.min_price_increment
+        if step <= 0:
+            return None
+        # «Против сделки» = цена идёт вниз перед покупкой и вверх перед продажей.
+        sign = Decimal(1) if side is Side.BUY else Decimal(-1)
+        adverse_now = -(now_price - win_price) * sign / step
+        adverse_base = -(now_price - base_price) * sign / step
+        if adverse_now < Decimal(max(int(params.anti_knife_min_steps), 1)):
+            return None
+        window_min = window_ms / 60_000.0
+        base_min = base_ms / 60_000.0
+        rate_now = float(adverse_now) / window_min
+        rate_base = float(adverse_base) / base_min
+        accel = math.inf if rate_base <= 1e-9 else rate_now / rate_base
+        if accel < params.anti_knife_accel_multiple:
+            return None
+        if cooldown_ms > 0:
+            self._knife_block_until[side] = now_ms + cooldown_ms
+        return (
+            f"Leg1 против сделки {float(adverse_now):.1f} шагов за "
+            f"{window_ms / 1000:.0f} с при ускорении {accel:.2f} "
+            f"(порог {params.anti_knife_min_steps} шагов / {params.anti_knife_accel_multiple})"
+        )
+
     def _update_z_peak(self, z: float, allow_arm: bool = True) -> None:
         """Отслеживает локальный пик |Z| и разворот направления (инфлексию).
 
@@ -652,6 +881,8 @@ class PairScalpingStateMachine:
         if not self._params.use_regime_filter:
             return
         if not getattr(metrics, "stat_sampled", True):
+            return
+        if getattr(metrics, "stat_frozen", False):
             return
         self._regime_v1.append(float(metrics.micro_leg1) * float(self._leg1.rub_per_price_unit))
         self._regime_v2.append(float(metrics.micro_leg2) * float(self._leg2.rub_per_price_unit))
@@ -756,6 +987,10 @@ class PairScalpingStateMachine:
 
     def set_bootstrap(self, value: bool) -> None:
         self._bootstrap = bool(value)
+        # v2.8: прогрев историческими свечами ISS не должен попадать под гейт
+        # пре-маркета — иначе при запуске до 10:00:15 MSK база вообще не считается
+        # (свечи последних 5 часов лежат в «замороженном» окне).
+        self._calc.set_stat_gate_bypass(self._bootstrap)
 
     def spread_state(self) -> Dict[str, Any]:
         """Снимок статистики спреда (прогрев, mu/sigma/беты) для логов и проверок."""
@@ -773,6 +1008,8 @@ class PairScalpingStateMachine:
             ),
             "betaSlow": self._calc.beta,
             "betaMacro": self._calc.beta_macro,
+            "betaObservations": self._calc.beta_observations,
+            "macroSamples": self._calc.macro_samples,
             "betaDriftPct": (drift * 100.0) if drift is not None else None,
             "regimeSamples": len(self._regime_v1),
             "regimeCapacity": self._regime_v1.maxlen,
@@ -952,6 +1189,18 @@ class PairScalpingStateMachine:
             return
         self._counters["signals"] += 1
         side = Side.BUY if long_signal else Side.SELL
+        knife_reason = self._anti_knife_reason(side, int(metrics.time_ms))
+        if knife_reason is not None:
+            # v2.10: не покупаем слейв, который валится быстрее, чем «догоняет» лида.
+            self._counters["antiKnifeSkips"] += 1
+            self._log_throttled(
+                "anti-knife",
+                logging.INFO,
+                "Анти-нож: вход %s Leg1 заблокирован — %s",
+                side.value,
+                knife_reason,
+            )
+            return
         quantity = self._guard.clamp_quantity(params.quantity_lots)
         if quantity < int(params.quantity_lots):
             # v2.6.3: предохранитель режет персональный размер пары — это надо видеть,
@@ -1141,15 +1390,18 @@ class PairScalpingStateMachine:
             await self._emergency_flatten(ExitReason.HARD_STOP, stop_reason)
             return
         if hold_seconds >= params.max_hold_seconds:
-            if stop_reason is not None:
-                await self._emergency_flatten(
-                    ExitReason.HARD_STOP,
-                    f"удержание {hold_seconds:.1f} c: {stop_reason}",
-                )
-            else:
-                await self._start_timed_exit(ExitReason.TIME_STOP, metrics)
+            # v2.8: исчерпание времени — это НЕ стоп. Рынком закрываем только если
+            # убыток уже за порогом стопа; иначе выходим пассивно (maker TimeStop).
+            # Раньше при |Z| >= Z_stop 30-минутный выход шёл как HardStop и попадал
+            # в дневной предохранитель (VTBR 02.11: +3.11 RUB закрыт «HardStop по времени»).
+            await self._start_timed_exit(ExitReason.TIME_STOP, metrics)
             return
         if await self._manage_breakeven_ratchet(position, metrics, z_frozen, unrealized):
+            return
+        stagnation = self._stagnation_reason(position, metrics, z_frozen, hold_seconds)
+        if stagnation is not None:
+            self._log.info("Мёртвый спред: %s", stagnation)
+            await self._start_timed_exit(ExitReason.STAGNATION, metrics)
             return
         await self._maybe_decay_tp(position)
         if self._topology is ExecutionTopology.SINGLE_LEG_LEAD_LAG and params.use_profit_lock:
@@ -1225,24 +1477,40 @@ class PairScalpingStateMachine:
         Оценка по ``|z_frozen|`` для одиночной ноги некорректна: если Leg2 продолжает
         движение в нашу сторону, а Leg1 стоит, ``|Z|`` растёт, хотя убытка нет.
         Поэтому стоп срабатывает только когда:
-        * просадка Leg1 превысила ``target × single_leg_stop_to_target_ratio``
-          (не меньше ``single_leg_stop_min_steps`` шагов цены), либо
+        * просадка Leg1 превысила порог ``_stop_threshold_rub`` (σ-стоп v2.8 либо
+          ``цель × single_leg_stop_to_target_ratio`` в старом режиме), либо
         * импульс ведущей ноги развернулся (``z_frozen`` ушёл за ``lead_failure_z``
           против позиции) при убытке Leg1 и удержании не меньше ``lead_failure_seconds``.
         """
         params = self._params
         leg1_gross = self._leg1_unrealized_gross(position, metrics)
-        target_rub = position.tp_target_rub
-        if target_rub <= 0:
-            target_rub = self._target_tp_rub(position, self._clock.now_ms())
-        step_rub = self._step_value_rub(position)
-        ratio = Decimal(str(params.single_leg_stop_to_target_ratio))
-        stop_rub = max(target_rub * ratio, step_rub * Decimal(max(params.single_leg_stop_min_steps, 1)))
+        # v2.8: стоп больше не привязан к (возможно урезанной) цели тейка.
+        stop_rub, stop_source = self._stop_threshold_rub(position, metrics)
+        # v2.8: при σ-стопе расширение волатильности уже учтено в самом пороге
+        # (σ = max(σ_entry, σ_current)), второй множитель только раздувал бы стоп.
+        expansion = (
+            self._stop_volatility_expansion(position, metrics)
+            if params.use_volatility_adaptive_stop and params.stop_sigma_multiple <= 0
+            else 1.0
+        )
+        if expansion > 1.0:
+            stop_rub = stop_rub * Decimal(str(round(expansion, 4)))
         if leg1_gross <= -stop_rub:
-            return (
-                f"MAE Leg1 {leg1_gross} RUB <= -{stop_rub} RUB "
-                f"(цель {target_rub} RUB × {params.single_leg_stop_to_target_ratio})"
-            )
+            if params.use_volatility_adaptive_stop and self._within_stop_grace(
+                position, leg1_gross, stop_rub
+            ):
+                self._log_throttled(
+                    "stop-grace",
+                    logging.INFO,
+                    "Стоп в зоне допуска (σ выросла ×%.2f, удержание %.0f c): MAE %s RUB",
+                    expansion,
+                    (self._clock.now_ms() - position.opened_ms) / 1000.0,
+                    leg1_gross,
+                )
+            else:
+                return (
+                    f"MAE Leg1 {leg1_gross} RUB <= -{stop_rub} RUB ({stop_source})"
+                )
         adverse_z = z_frozen * position.side_leg1.sign
         if (
             leg1_gross < ZERO
@@ -1254,6 +1522,159 @@ class PairScalpingStateMachine:
                 f"{hold_seconds:.0f} c"
             )
         return None
+
+    def _raw_leg1_deviation_rub(self, position: OpenPosition) -> Decimal:
+        """v2.8: НЕурезанная 1:1 реверсия Leg1 на всю позицию (в рублях).
+
+        ``|S_entry − mu_entry| / β × Q`` — тот ход Leg1, который полностью закрывает
+        девиацию спреда на объёме ``Q`` лотов.
+        """
+        beta = position.frozen_beta if position.frozen_beta > 1e-9 else 1.0
+        lots = max(position.leg1_filled_qty, 1)
+        return dec(abs(position.entry_spread - position.frozen_mu) / beta * lots)
+
+    def _stop_threshold_rub(
+        self, position: OpenPosition, metrics: Optional[SpreadMetrics] = None
+    ) -> Tuple[Decimal, str]:
+        """v2.8: порог ценового стопа, НЕ зависящий от потолка тейка.
+
+        ``v2.7`` считал стоп как ``singleLegStopToTargetRatio × tp_target_rub``, а цель
+        урезалась потолком — на ``AFKS_SBER`` стоп сжался с 248 RUB до 10.56 RUB и
+        позиция выбивалась шумом за 60 секунд. Теперь порог — максимум из:
+
+        * ``stopSigmaMultiple × σ_Leg1, позиции`` (σ = ``max(σ_entry, σ_current) / β × Q``);
+        * ``singleLegStopToTargetRatio × raw_leg1_dev`` (неурезанная реверсия);
+        * ``singleLegStopMinSteps × стоимость шага``.
+        """
+        params = self._params
+        min_steps = self._step_value_rub(position) * Decimal(
+            max(params.single_leg_stop_min_steps, 1)
+        )
+        ratio = Decimal(str(params.single_leg_stop_to_target_ratio))
+        if params.stop_sigma_multiple <= 0:
+            target_rub = position.tp_target_rub
+            if target_rub <= 0:
+                target_rub = self._target_tp_rub(position, self._clock.now_ms())
+            stop_rub = max(target_rub * ratio, min_steps)
+            return stop_rub, (
+                f"цель {target_rub:.2f} RUB × {params.single_leg_stop_to_target_ratio}"
+            )
+
+        beta = position.frozen_beta if position.frozen_beta > 1e-9 else 1.0
+        lots = max(position.leg1_filled_qty, 1)
+        sigma_lot = float(position.frozen_sigma) / beta
+        if metrics is not None:
+            sigma_lot = max(sigma_lot, float(metrics.sigma_rub) / beta)
+        sigma_pos = dec(sigma_lot * lots)
+        raw_dev = self._raw_leg1_deviation_rub(position)
+        options: List[Tuple[Decimal, str]] = [
+            (
+                Decimal(str(params.stop_sigma_multiple)) * sigma_pos,
+                f"σ_leg1 {sigma_pos:.2f} RUB × {params.stop_sigma_multiple}",
+            ),
+            (
+                raw_dev * ratio,
+                f"реверсия {raw_dev:.2f} RUB × {params.single_leg_stop_to_target_ratio}",
+            ),
+            (min_steps, f"шаги {params.single_leg_stop_min_steps}"),
+        ]
+        best = max(options, key=lambda item: item[0])
+        return best[0], best[1]
+
+    def _stagnation_reason(
+        self,
+        position: OpenPosition,
+        metrics: SpreadMetrics,
+        z_frozen: float,
+        hold_seconds: float,
+    ) -> Optional[str]:
+        """v2.9: «мёртвый» спред — реверсия не началась, дальше только платим комиссию.
+
+        Реальная сделка `IRAO_SBER` 02.11 (`BUY 11:22:41 → 11:53:11`, `−15.91 RUB`):
+        12 минут спред стоял, MFE не дошёл даже до комиссии круга, `|Z|` не сдвинулся
+        к `Z_exit` — и только потом сработал тайм-стоп на 30-й минуте.
+
+        Выход ставится, если ОДНОВРЕМЕННО:
+
+        * удержание ≥ ``stagnationAfterSeconds`` (по умолчанию 12 минут);
+        * ``MFE ≤ stagnationMfeFeeMultiple × fee`` — цель ни разу не приблизилась;
+        * ``unrealized ≤ −stagnationLossFeeMultiple × fee`` — сделка в минусе;
+        * ``|Z|`` вернулся к нулю меньше чем на ``stagnationMinZReversion`` от входа.
+
+        ``stagnationMaxMaeFraction`` (v2.9, по умолчанию 0 = выключено) — не выходим,
+        если позиция стоит у своего худшего уровня: там решение принимает стоп, а не
+        тайм-выход. Без этой проверки на реальных L2 02.11 выход срабатывал ровно на
+        максимуме просадки `IRAO_SBER` (`−15.91 → −22.71 RUB`).
+        """
+        params = self._params
+        if not params.use_stagnation_exit or params.stagnation_after_seconds <= 0:
+            return None
+        if hold_seconds < params.stagnation_after_seconds:
+            return None
+        fee = position.round_trip_fee_rub
+        if fee <= 0:
+            return None
+        if position.max_favorable_gross_rub > fee * dec(params.stagnation_mfe_fee_multiple):
+            return None
+        unrealized = self._unrealized_gross(position, metrics)
+        if unrealized > -fee * dec(params.stagnation_loss_fee_multiple):
+            return None
+        if (
+            params.stagnation_max_mae_fraction > 0
+            and position.min_adverse_gross_rub < ZERO
+            and unrealized <= position.min_adverse_gross_rub
+            * dec(params.stagnation_max_mae_fraction)
+        ):
+            return None
+        entry_z = self._entry_z(position)
+        if entry_z <= 1e-9:
+            return None
+        reverted = (entry_z - abs(z_frozen)) / entry_z
+        if reverted >= params.stagnation_min_z_reversion:
+            return None
+        return (
+            f"удержание {hold_seconds / 60.0:.0f} мин: MFE {position.max_favorable_gross_rub:.2f} RUB "
+            f"< fee {fee:.2f}, PnL {unrealized:.2f} RUB, |Z| {abs(z_frozen):.2f} "
+            f"(реверсия {reverted:.0%} < {params.stagnation_min_z_reversion:.0%})"
+        )
+
+    def _entry_z(self, position: OpenPosition) -> float:
+        """Z-score на входе, посчитанный по замороженным mu/sigma."""
+        if position.frozen_sigma <= 1e-9:
+            return 0.0
+        return abs((position.entry_spread - position.frozen_mu) / position.frozen_sigma)
+
+    def _stop_volatility_expansion(self, position: OpenPosition, metrics: SpreadMetrics) -> float:
+        """v2.7: во сколько раз σ выросла с момента входа (1.0 — не выросла).
+
+        ``VTBR`` 02.11: вход при σ = 0.31, к стопу σ = 0.65 → расширение ≈ 2.1.
+        Стоп, посчитанный по входной σ, выбивал позицию на шуме.
+        """
+        entry_sigma = position.frozen_sigma
+        if entry_sigma <= 1e-9:
+            return 1.0
+        current = float(metrics.sigma_rub)
+        if current <= entry_sigma:
+            return 1.0
+        return current / entry_sigma
+
+    def _within_stop_grace(
+        self, position: OpenPosition, leg1_gross: Decimal, stop_rub: Decimal
+    ) -> bool:
+        """v2.7: короткая пауза перед стопом, пока убыток не превысил жёсткий потолок.
+
+        Даём позиции ``stop_sigma_grace_seconds`` секунд после входа пересидеть
+        расширение волатильности. Жёсткий потолок — ``stop_volatility_ratio`` стопов:
+        если убыток больше, закрываем немедленно и без паузы.
+        """
+        params = self._params
+        grace_ms = max(int(params.stop_sigma_grace_seconds), 0) * 1000
+        if grace_ms <= 0:
+            return False
+        hard_limit = -stop_rub * Decimal(str(max(params.stop_volatility_ratio, 1.0)))
+        if leg1_gross <= hard_limit:
+            return False
+        return (self._clock.now_ms() - position.opened_ms) < grace_ms
 
     def _stop_reason(
         self,
@@ -1333,6 +1754,42 @@ class PairScalpingStateMachine:
             float(abs(price - position.leg1_entry_price) / self._leg1.min_price_increment),
         )
 
+    def _tp_cap_rub(self, position: OpenPosition) -> Decimal:
+        """v2.7: потолок цели тейка — реальный внутридневной ход, а не «+10 %».
+
+        ``AFKS_SBER`` при β = 0.377 и ``tpDeviationFraction = 4.0`` просил +10 % хода
+        цены (тейк 9.125 при входе 8.296) и гарантированно доживал до тайм-стопа.
+        Ограничиваем цель двумя физическими величинами:
+
+        * ``tpMaxSigmaMultiple × σ_Leg1 позиции`` — цель не дальше 2.2 текущих сигм;
+        * ``tpMaxNotionalFraction × номинал позиции`` — не больше 0.45 % номинала.
+
+        v2.9: при β ≥ ``tp_cap_beta_threshold`` потолок не применяется — проблема
+        «+10 %» возникает только при β < 1, когда деление девиации на бету УМНОЖАЕТ
+        цель. Для VTBR (β ≈ 5.1) и MTLR (β ≈ 7.6) тот же потолок резал прибыльные
+        тейки вдвое (реальные L2: VTBR +14.18 → +7.88, MTLR +22.04 → +11.23 RUB).
+        """
+        params = self._params
+        beta = abs(position.frozen_beta) if position.frozen_beta else 1.0
+        if params.tp_cap_beta_threshold > 0 and beta >= params.tp_cap_beta_threshold:
+            return ZERO
+        remaining = max(position.leg1_filled_qty - position.leg1_closed_qty, 1)
+        notional = position.leg1_entry_price * self._leg1.rub_per_price_unit * Decimal(remaining)
+        caps: List[Decimal] = []
+        if notional > 0:
+            caps.append(notional * dec(params.tp_max_notional_fraction))
+        sigma_leg1 = self._sigma_leg1_rub_of(position)
+        if sigma_leg1 > 0:
+            caps.append(sigma_leg1 * Decimal(remaining) * dec(params.tp_max_sigma_multiple))
+        if not caps:
+            return ZERO
+        return min(caps)
+
+    def _sigma_leg1_rub_of(self, position: OpenPosition) -> Decimal:
+        """σ Leg1 на момент входа (в рублях одного лота) — без обращения к live-метрикам."""
+        beta = position.frozen_beta if position.frozen_beta > 1e-9 else 1.0
+        return dec(position.frozen_sigma / beta)
+
     def _target_tp_rub(self, position: OpenPosition, now_ms: int) -> Decimal:
         """Цель тейка в рублях Leg1 (v2.3: положительная выпуклость).
 
@@ -1342,6 +1799,9 @@ class PairScalpingStateMachine:
         «спред-рублях», и без пересчёта цель уезжала в β раз дальше по цене, чем
         тот ход Leg1, который действительно закрывает спред (для VTBR/SBER β ≈ 5.1,
         для пар с крупным лотом — ещё сильнее).
+
+        v2.7: результат ограничен сверху ``_tp_cap_rub`` — иначе при β < 1 деление
+        на бету УМНОЖАЕТ цель (AFKS просил +10 % хода цены).
         """
         params = self._params
         fee = position.round_trip_fee_rub
@@ -1351,13 +1811,16 @@ class PairScalpingStateMachine:
         position_lots = max(position.leg1_filled_qty, 1)
         deviation_rub = dec(
             abs(position.entry_spread - position.frozen_mu)
-            * params.tp_deviation_fraction
             / beta
             * position_lots
+            * params.tp_deviation_fraction
         )
         fee_floor = fee * params.tp_min_fee_multiple
         profit_floor = fee * params.min_net_profit_multiplier
         target = max(fee_floor, profit_floor, deviation_rub)
+        cap = self._tp_cap_rub(position)
+        if cap > 0:
+            target = min(target, max(cap, fee_floor if fee_floor > 0 else cap))
         if target <= 0:
             target = fee
         if not params.use_tp_decay or fee <= 0 or params.max_hold_seconds <= 0:
@@ -1576,12 +2039,23 @@ class PairScalpingStateMachine:
             return
         params = self._params
         z_frozen = self._z_for_decision(position, metrics)
+        # v2.8: на пассивном выходе рынком «добиваем» только убыточную позицию.
+        # Прибыльная сделка дожидается мейкерского лимита (VTBR 02.11: +3.11 RUB
+        # закрывались рынком как HardStop из-за |Z| >= Z_stop). И если выход уже
+        # идёт по тайм-стопу, рынок сохраняет причину выхода, а не пишет HardStop
+        # в дневной предохранитель.
         if abs(z_frozen) >= params.z_stop:
-            await self._emergency_flatten(
-                ExitReason.HARD_STOP,
-                f"Z снова ушёл против позиции: {z_frozen:.2f}",
-            )
-            return
+            if self._unrealized_gross(position, metrics) > ZERO:
+                pass
+            elif self._exit_reason is ExitReason.HARD_STOP:
+                await self._emergency_flatten(
+                    ExitReason.HARD_STOP,
+                    f"Z снова ушёл против позиции: {z_frozen:.2f}",
+                )
+                return
+            else:
+                await self._market_exit_leg1(f"Z снова ушёл против позиции: {z_frozen:.2f}")
+                return
         side = position.side_leg1.opposite()
         desired = metrics.best_bid_leg1 if side is Side.BUY else metrics.best_ask_leg1
         if desired > 0 and order.price is not None:
@@ -1986,17 +2460,31 @@ class PairScalpingStateMachine:
                 await self._start_timed_exit(ExitReason.SCRATCH, self._last_metrics)
                 return
             if now - position.opened_ms >= params.max_hold_seconds * 1000:
-                z_frozen = (
-                    self._z_for_decision(position, self._last_metrics)
-                    if self._last_metrics is not None
-                    else 0.0
-                )
-                if abs(z_frozen) >= params.z_stop:
+                metrics = self._last_metrics
+                # v2.8: рынком на тайм-ауте закрываем только одиночную ногу, ушедшую
+                # за порог стопа. Всё остальное — пассивный maker TimeStop, иначе
+                # прибыльные сделки попадали в дневной предохранитель HardStop.
+                if (
+                    metrics is not None
+                    and self._topology is ExecutionTopology.SINGLE_LEG_LEAD_LAG
+                    and params.use_single_leg_price_stop
+                ):
+                    stop_rub, _ = self._stop_threshold_rub(position, metrics)
+                    if self._leg1_unrealized_gross(position, metrics) <= -stop_rub:
+                        await self._emergency_flatten(
+                            ExitReason.HARD_STOP,
+                            f"тайм-аут {params.max_hold_seconds} c при убытке за стопом",
+                        )
+                        return
+                elif metrics is not None and abs(
+                    self._z_for_decision(position, metrics)
+                ) >= params.z_stop:
                     await self._emergency_flatten(
-                        ExitReason.HARD_STOP, "истекло время удержания при |Z| >= Z_stop"
+                        ExitReason.HARD_STOP,
+                        f"тайм-аут {params.max_hold_seconds} c при |Z| >= Z_stop",
                     )
-                else:
-                    await self._start_timed_exit(ExitReason.TIME_STOP, self._last_metrics)
+                    return
+                await self._start_timed_exit(ExitReason.TIME_STOP, metrics)
             return
         if self._state is FsmState.HEDGING_ENTRY_LEG2:
             if now - position.hedge_started_ms >= params.hedge_timeout_ms:

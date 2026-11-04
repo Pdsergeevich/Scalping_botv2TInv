@@ -1,0 +1,226 @@
+{
+ "variant": "v28",
+ "tariff": "Premium",
+ "stopSigma": 3.0,
+ "stopRatio": 0.0,
+ "tpDev": {
+  "AFKS_SBER": 0.85
+ },
+ "days": [
+  "2026-11-02"
+ ],
+ "pairs": [
+  "VTBR_SBER",
+  "MTLR_SBER",
+  "AFKS_SBER",
+  "IRAO_SBER"
+ ],
+ "runs": [
+  {
+   "pair": "VTBR_SBER",
+   "days": [
+    {
+     "date": "2026-11-02",
+     "net": 3.11018125,
+     "gross": 4.675,
+     "fees": 1.56481875,
+     "trades": 1,
+     "events": 56198
+    }
+   ],
+   "trades": [
+    {
+     "open_ms": 1793604399257,
+     "close_ms": 1793606229940,
+     "side": "SELL",
+     "net": 3.11018125,
+     "gross": 4.675,
+     "fees": 1.56481875,
+     "reason": "TimeStop",
+     "day": "2026-11-02"
+    }
+   ]
+  },
+  {
+   "pair": "MTLR_SBER",
+   "days": [
+    {
+     "date": "2026-11-02",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 56188
+    }
+   ],
+   "trades": []
+  },
+  {
+   "pair": "AFKS_SBER",
+   "days": [
+    {
+     "date": "2026-11-02",
+     "net": -11.03105,
+     "gross": -10.2,
+     "fees": 0.83105,
+     "trades": 1,
+     "events": 56182
+    }
+   ],
+   "trades": [
+    {
+     "open_ms": 1793608515782,
+     "close_ms": 1793610346183,
+     "side": "BUY",
+     "net": -11.03105,
+     "gross": -10.2,
+     "fees": 0.83105,
+     "reason": "TimeStop",
+     "day": "2026-11-02"
+    }
+   ]
+  },
+  {
+   "pair": "IRAO_SBER",
+   "days": [
+    {
+     "date": "2026-11-02",
+     "net": -12.6386,
+     "gross": -10.4,
+     "fees": 2.2386,
+     "trades": 2,
+     "events": 56188
+    }
+   ],
+   "trades": [
+    {
+     "open_ms": 1793603403986,
+     "close_ms": 1793605217403,
+     "side": "SELL",
+     "net": 3.2709,
+     "gross": 4.4,
+     "fees": 1.1291,
+     "reason": "TimeStop",
+     "day": "2026-11-02"
+    },
+    {
+     "open_ms": 1793607761494,
+     "close_ms": 1793609591621,
+     "side": "BUY",
+     "net": -15.9095,
+     "gross": -14.8,
+     "fees": 1.1095,
+     "reason": "TimeStop",
+     "day": "2026-11-02"
+    }
+   ]
+  }
+ ],
+ "portfolios": [
+  {
+   "cluster": 0,
+   "trades": 4,
+   "tradesPerDay": 4.0,
+   "net": -20.5595,
+   "profitFactor": 0.237,
+   "maxDrawdown": 20.5595,
+   "sharpe": 0.0,
+   "clusterSkips": 0,
+   "perPair": {
+    "VTBR_SBER": {
+     "trades": 1,
+     "net": 3.1102,
+     "dropped": 0
+    },
+    "MTLR_SBER": {
+     "trades": 0,
+     "net": 0,
+     "dropped": 0
+    },
+    "AFKS_SBER": {
+     "trades": 1,
+     "net": -11.0311,
+     "dropped": 0
+    },
+    "IRAO_SBER": {
+     "trades": 2,
+     "net": -12.6386,
+     "dropped": 0
+    }
+   },
+   "daily": {
+    "2026-11-02": -20.5595
+   }
+  },
+  {
+   "cluster": 1,
+   "trades": 2,
+   "tradesPerDay": 2.0,
+   "net": -12.6386,
+   "profitFactor": 0.206,
+   "maxDrawdown": 12.6386,
+   "sharpe": 0.0,
+   "clusterSkips": 2,
+   "perPair": {
+    "VTBR_SBER": {
+     "trades": 0,
+     "net": 0,
+     "dropped": 1
+    },
+    "MTLR_SBER": {
+     "trades": 0,
+     "net": 0,
+     "dropped": 0
+    },
+    "AFKS_SBER": {
+     "trades": 0,
+     "net": 0,
+     "dropped": 1
+    },
+    "IRAO_SBER": {
+     "trades": 2,
+     "net": -12.6386,
+     "dropped": 0
+    }
+   },
+   "daily": {
+    "2026-11-02": -12.6386
+   }
+  },
+  {
+   "cluster": 2,
+   "trades": 4,
+   "tradesPerDay": 4.0,
+   "net": -20.5595,
+   "profitFactor": 0.237,
+   "maxDrawdown": 20.5595,
+   "sharpe": 0.0,
+   "clusterSkips": 0,
+   "perPair": {
+    "VTBR_SBER": {
+     "trades": 1,
+     "net": 3.1102,
+     "dropped": 0
+    },
+    "MTLR_SBER": {
+     "trades": 0,
+     "net": 0,
+     "dropped": 0
+    },
+    "AFKS_SBER": {
+     "trades": 1,
+     "net": -11.0311,
+     "dropped": 0
+    },
+    "IRAO_SBER": {
+     "trades": 2,
+     "net": -12.6386,
+     "dropped": 0
+    }
+   },
+   "daily": {
+    "2026-11-02": -20.5595
+   }
+  }
+ ]
+}

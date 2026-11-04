@@ -33,6 +33,7 @@ from bot_a.engine.factory import create_engine, create_guard
 from bot_a.engine.ledger import PortfolioLedger
 from bot_a.execution.simulated_gateway import SimulatedOrderExecutionGateway
 from bot_a.models.domain import MarketEvent
+from bot_a.risk.cluster import ClusterRiskCoordinator
 from bot_a.services.l2_sync import PairBookSyncer
 from bot_a.services.live_dashboard import LiveWatchService, _DayTracker, _f
 from bot_a.utils.quotation import dec
@@ -67,10 +68,23 @@ class PairRuntime:
     last_seen_trade_id: int = 0
     recorder: Any = None
     recorded_books: int = 0
+    cluster_skips: int = 0
 
     @property
     def name(self) -> str:
         return self.preset.name
+
+    @property
+    def leg2_ticker(self) -> str:
+        return self.preset.leg2.ticker
+
+    @property
+    def direction(self) -> Optional[str]:
+        """Сторона, которую пара держит сейчас (``None`` — вне позиции/котировки)."""
+        position = getattr(self.engine, "position", None)
+        if position is None:
+            return None
+        return position.side_leg1.value.upper()
 
 
 class _MultiState:
@@ -142,8 +156,15 @@ class MultiPresetRunner:
         self._throttle_seconds = THROTTLE_MIN_SECONDS
         self._throttle_until = 0.0
         self._last_rate_limit = 0.0
+        self._cluster_log: Dict[str, float] = {}
         # v2.6.6: авто-запись синхронизированных стаканов в recordings/.
         self._record_l2 = bool(record_l2)
+        # v2.7: не больше N однонаправленных позиций в кластере с общей Leg2.
+        self._cluster = ClusterRiskCoordinator(
+            max_same_direction=int(
+                getattr(config.risk, "max_concurrent_same_direction", 0) or 0
+            )
+        )
 
     # ------------------------------------------------------------------ сборка
     async def _build_runtime(self, preset: PairPreset) -> Optional[PairRuntime]:
@@ -367,6 +388,9 @@ class MultiPresetRunner:
             fetched_at[leg] = time.monotonic() * 1000.0
         decision = runtime.syncer.check(fresh, fetched_at, failed)
         if decision.ok:
+            if not self._cluster_ready(runtime):
+                await runtime.engine.on_clock()
+                return
             for leg in (1, 2):
                 await runtime.engine.on_order_book(leg, fresh[leg])
                 runtime.snapshots += 1
@@ -376,6 +400,45 @@ class MultiPresetRunner:
                 "%s: рассинхрон стаканов (%d): %s", runtime.name, runtime.syncer.skew_skips, decision.reason
             )
         await runtime.engine.on_clock()
+
+    def _cluster_ready(self, runtime: PairRuntime) -> bool:
+        """v2.7: проверяет кластерный лимит и обновляет реестр позиций.
+
+        Пока пара вне позиции, координатор её не держит. Как только ядро открыло
+        позицию (или котирует вход) — регистрируем направление; при закрытии снимаем.
+        Если лимит уже выбран, данная пара не получает новые стаканы: её ядро не
+        увидит сигнал и не откроет коррелированную позицию.
+        """
+        coordinator = self._cluster
+        current = runtime.direction
+        if current is None:
+            if runtime.name in coordinator.active_pairs():
+                coordinator.release(runtime.name)
+            return True
+        if runtime.name not in coordinator.active_pairs():
+            # Пара только что вошла: проверить лимит до регистрации.
+            if not coordinator.check(runtime.name, runtime.leg2_ticker, current):
+                runtime.cluster_skips = coordinator.skips
+                self._log_throttled_cluster(runtime, current)
+                return False
+            coordinator.register(runtime.name, runtime.leg2_ticker, current)
+        return True
+
+    def _log_throttled_cluster(self, runtime: PairRuntime, direction: str) -> None:
+        now = time.monotonic()
+        key = f"cluster:{runtime.name}:{direction}"
+        last = self._cluster_log.get(key, 0.0)
+        if now - last < 30.0:
+            return
+        self._cluster_log[key] = now
+        self._log.info(
+            "%s: вход %s заблокирован кластером (лимит %d по %s), всего отсечек %d",
+            runtime.name,
+            direction,
+            self._cluster.max_same_direction,
+            runtime.leg2_ticker,
+            self._cluster.skips,
+        )
 
     def _record_books(self, runtime: PairRuntime, fresh: Dict[int, Any]) -> None:
         """v2.6.6: пишем в recordings только пары стаканов, прошедшие синхронизацию.
@@ -498,6 +561,8 @@ class MultiPresetRunner:
             "restErrors": runtime.rest_errors,
             "rateLimited": runtime.rate_limited,
             "skewSkips": runtime.syncer.skew_skips,
+            "statFrozenSkips": snapshot.get("counters", {}).get("statFrozenSkips", 0),
+            "clusterSkips": runtime.cluster_skips,
             "recordedBooks": runtime.recorded_books,
             "recordPath": str(runtime.recorder.file_path) if runtime.recorder else None,
             "day": runtime.day.payload(float(params.z_entry)),

@@ -102,6 +102,8 @@ class ExitReason(str, Enum):
     SHUTDOWN = "Shutdown"
     SCRATCH = "Scratch"
     BREAKEVEN = "Breakeven"
+    #: v2.9: выход из «мёртвого» спреда — реверсия не началась за 12–15 минут.
+    STAGNATION = "StagnationExit"
 
 
 @dataclass(frozen=True, slots=True)
@@ -307,6 +309,9 @@ class SpreadMetrics:
     beta_macro: float = 0.0
     beta_drift: Optional[float] = None
     stat_sampled: bool = True
+    # v2.7: тик попал в пре-маркет / клиринг / широкий стакан — статистика заморожена.
+    stat_frozen: bool = False
+    freeze_reason: Optional[str] = None
 
     @property
     def sigma_rub(self) -> float:

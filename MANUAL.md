@@ -131,7 +131,7 @@ py -3 -m bot_a --mode backtest --source recordings --preset VTBR_SBER `
 
 | Флаг | Смысл | Типичное значение |
 |---|---|---|
-| `--preset` | пара: `VTBR_SBER`, `MTLR_SBER`, `AFKS_SBER`, `IRAO_SBER`, `SPZ6_SRZ6` или `ALL_ACTIVE` | `ALL_ACTIVE` |
+| `--preset` | пара: `VTBR_SBER`, `MTLR_SBER`, `IRAO_SBER` (активные) либо `AFKS_SBER`, `SPZ6_SRZ6` (в конфиге есть, но `enabled: false`) или `ALL_ACTIVE` | `ALL_ACTIVE` |
 | `--port` | порт дашборда | `8099` |
 | `--duration` | сколько секунд работать | `3600` = 1 час |
 | `--record-interval-ms` | частота опроса биржи, мс | `400` |

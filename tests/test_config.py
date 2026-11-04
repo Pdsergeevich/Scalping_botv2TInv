@@ -36,12 +36,14 @@ def test_load_repository_config():
     assert cy.leg1.rub_per_price_unit == Decimal("1000")
     assert cy.leg1.position_margin_rub(1) == Decimal("983.48")
     assert set(config.trading_preset_names()) == {
-        "AFKS_SBER",
         "IRAO_SBER",
         "MTLR_SBER",
         "VTBR_SBER",
     }
+    # v2.8: AFKS_SBER выключена — на реальных L2-записях она убыточна.
+    assert config.preset("AFKS_SBER").enabled is False
     assert config.disabled_preset_names() == [
+        "AFKS_SBER",
         "CNYRUBF_CRZ6",
         "IMOEXF_MMZ6",
         "SBERP_SBER",
@@ -49,7 +51,9 @@ def test_load_repository_config():
         "SVZ6_GDZ6",
         "T_SBER",
     ]
-    assert config.fees.tariff is Tariff.TRADER
+    # v2.7: тариф по умолчанию Premium — live/watch не должны случайно
+    # работать на Trader-комиссиях.
+    assert config.fees.tariff is Tariff.PREMIUM
     assert config.execution.topology is ExecutionTopology.SINGLE_LEG_LEAD_LAG
     assert config.strategy.z_entry == 2.8
     assert config.strategy.ewma_window == 2400
@@ -65,6 +69,25 @@ def test_load_repository_config():
     assert config.preset("T_SBER").beta_mode == "slow_ratio"
     assert config.strategy.min_net_profit_multiplier == Decimal("1.35")
     assert config.strategy.tp_deviation_fraction == 0.85
+    # v2.7: заморозка статистики на аукционах и потолок цели тейка.
+    assert config.strategy.stat_freeze_until_msk == "10:00:15"
+    assert config.strategy.max_valid_spread_bps == 50.0
+    # v2.9: потолок тейка поднят и включается только для пар с β < 0.8
+    # (AFKS требовал +10 %; VTBR/MTLR теряли половину прибыли).
+    assert config.strategy.tp_max_notional_fraction == 0.015
+    assert config.strategy.tp_max_sigma_multiple == 4.5
+    assert config.strategy.tp_cap_beta_threshold == 0.8
+    assert config.strategy.use_volatility_adaptive_stop is True
+    # v2.9: два однонаправленных входа на общую ногу вместо одного.
+    assert config.risk.max_concurrent_same_direction == 2
+    # v2.9: выход из «мёртвого» спреда через 13 минут.
+    assert config.strategy.use_stagnation_exit is True
+    assert config.strategy.stagnation_after_seconds == 780
+    # v2.10: анти-нож по импульсу Leg1 (IRAO 02.11 11:22:41 BUY).
+    assert config.strategy.use_anti_knife_filter is True
+    assert config.strategy.anti_knife_min_steps == 10
+    assert config.strategy.anti_knife_accel_multiple == 1.5
+    assert config.strategy.anti_knife_cooldown_seconds == 600
     assert config.strategy.time_stop_quote_seconds == 30
     # v2.2: хук пика Z, сжатие тейка, режимный фильтр
     assert config.strategy.use_z_peak_hook is True
@@ -76,7 +99,9 @@ def test_load_repository_config():
     assert config.strategy.use_breakeven_ratchet is False
     assert config.strategy.tp_min_fee_multiple == Decimal("2.5")
     assert config.strategy.use_single_leg_price_stop is True
-    assert config.strategy.single_leg_stop_to_target_ratio == 1.5
+    # v2.7: стоп шире цели (2.2 вместо 1.5) + 45 с подтверждения — иначе рост σ
+    # выбивает позицию за секунды до возврата спреда (кейс VTBR 02.11).
+    assert config.strategy.single_leg_stop_to_target_ratio == 2.2
     assert config.strategy.single_leg_stop_min_steps == 4
     assert config.strategy.lead_failure_z == 0.5
     assert config.strategy.lead_failure_seconds == 60
@@ -123,7 +148,9 @@ def test_overrides_do_not_mutate_source():
         active_preset="SPZ6_SRZ6",
         max_daily_drawdown_rub=Decimal("5000"),
     )
-    assert config.fees.tariff is Tariff.TRADER
+    # v2.7: тариф по умолчанию Premium — live/watch не должны случайно
+    # работать на Trader-комиссиях.
+    assert config.fees.tariff is Tariff.PREMIUM
     assert updated.fees.tariff is Tariff.PREMIUM
     assert updated.execution.topology is ExecutionTopology.DUAL_LEG_HEDGED
     assert updated.strategy.z_entry == 2.5

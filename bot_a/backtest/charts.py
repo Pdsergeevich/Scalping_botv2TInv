@@ -52,6 +52,8 @@ EXIT_COLORS = {
     ExitReason.BREAKEVEN.value: "#4fa3ff",
     ExitReason.EMERGENCY.value: "#c678dd",
     ExitReason.SHUTDOWN.value: "#8b949e",
+    #: v2.9: выход из «мёртвого» спреда.
+    ExitReason.STAGNATION.value: "#d19a66",
 }
 
 PRIME_WINDOWS = ((time(10, 5), time(12, 30)), (time(15, 30), time(18, 35)))

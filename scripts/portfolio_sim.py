@@ -199,6 +199,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     parser.add_argument("--pairs", nargs="*", default=None, help="только эти активные пресеты")
     parser.add_argument("--period", default="6m", choices=sorted(PERIODS))
+    parser.add_argument("--from", dest="date_from", default="", help="?????? ??????? (YYYY-MM-DD)")
+    parser.add_argument("--to", dest="date_to", default="", help="????? ??????? (YYYY-MM-DD)")
     parser.add_argument("--tariff", default="Premium")
     parser.add_argument("--notional", type=float, default=0.0, help="целевой номинал на пару, RUB")
     parser.add_argument(
@@ -240,6 +242,10 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     presets = _load_presets(names)
     start, end = PERIODS[args.period]
+    if args.date_from:
+        start = args.date_from
+    if args.date_to:
+        end = args.date_to
     specs: List[Dict[str, Any]] = []
     for raw in args.specs:
         parts = raw.split(":")
