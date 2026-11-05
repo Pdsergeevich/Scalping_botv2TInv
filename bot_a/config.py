@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
 from bot_a.economics.fees import Tariff
+from bot_a.engine.breakout_fsm import BreakoutParams
 from bot_a.engine.fsm import StrategyParams
 from bot_a.models.domain import ExecutionTopology, InstrumentMetadata
 from bot_a.utils.quotation import dec
@@ -145,6 +146,9 @@ class AppConfig:
     strategy: StrategyParams = field(default_factory=StrategyParams)
     presets: Dict[str, PairPreset] = field(default_factory=dict)
     active_preset: str = ""
+    strategy_mode: str = "pairs"
+    breakout_presets: Dict[str, BreakoutParams] = field(default_factory=dict)
+    active_breakout: str = ""
     source_path: Optional[str] = None
     base_dir: str = "."
 
@@ -162,6 +166,24 @@ class AppConfig:
 
     def preset_names(self) -> list[str]:
         return sorted(self.presets.keys())
+
+    def is_breakout(self) -> bool:
+        return str(self.strategy_mode).lower() == "breakout"
+
+    def breakout(self, name: Optional[str] = None) -> BreakoutParams:
+        """Параметры пробойной стратегии v3.0 для инструмента ``name``."""
+        key = name or self.active_breakout
+        if not key:
+            if not self.breakout_presets:
+                return BreakoutParams()
+            key = next(iter(self.breakout_presets))
+        if self.breakout_presets and key not in self.breakout_presets:
+            available = ", ".join(sorted(self.breakout_presets))
+            raise KeyError(f"Пробойный пресет '{key}' не найден. Доступны: {available}")
+        return self.breakout_presets.get(key, BreakoutParams())
+
+    def breakout_names(self) -> list[str]:
+        return sorted(self.breakout_presets.keys())
 
     def trading_preset_names(self) -> list[str]:
         """Пары, разрешённые к реальной торговле (``enabled = true``)."""
@@ -355,6 +377,13 @@ class AppConfig:
         if not active_raw and presets:
             active_raw = next(iter(presets.keys()))
 
+        breakout_presets: Dict[str, BreakoutParams] = {}
+        for name, preset_raw in (raw.get("breakoutPresets", {}) or {}).items():
+            breakout_presets[str(name).upper()] = BreakoutParams.from_mapping(preset_raw or {})
+        active_breakout = str(raw.get("activeBreakout", "") or "").upper()
+        if not active_breakout and breakout_presets:
+            active_breakout = next(iter(breakout_presets))
+
         return AppConfig(
             t_invest=TInvestSettings(
                 token=str(t_invest_raw.get("token", "") or ""),
@@ -419,6 +448,9 @@ class AppConfig:
             ),
             presets=presets,
             active_preset=active_raw,
+            strategy_mode=str(raw.get("strategyMode", "pairs") or "pairs").lower(),
+            breakout_presets=breakout_presets,
+            active_breakout=active_breakout,
             source_path=source_path,
             base_dir=base_dir,
         )

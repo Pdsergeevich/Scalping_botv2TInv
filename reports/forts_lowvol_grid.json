@@ -1,0 +1,11 @@
+{
+  "donchian_bars": [30],
+  "initial_stop_atr_multiple": [1.2],
+  "trail_atr_multiple": [2.5, 3.0],
+  "trail_trigger_atr": [2.0],
+  "breakeven_trigger_atr": [2.5],
+  "breakeven_lock_atr": [0.6, 1.0],
+  "volume_multiple": [1.5],
+  "max_squeeze_ratio": [1.6, 0.0],
+  "min_atr_to_fee_ratio": [1.2, 1.5, 2.0, 2.5]
+}

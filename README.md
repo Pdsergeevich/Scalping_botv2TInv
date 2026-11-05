@@ -1,4 +1,4 @@
-﻿# Bot A — парный скальпинг и статистический арбитраж на MOEX (T-Invest API v2)
+# Bot A — парный скальпинг и статистический арбитраж на MOEX (T-Invest API v2)
 
 > **Управление простыми словами**: как запустить и остановить, где смотреть графики,
 > что означают флаги — [MANUAL.md](./MANUAL.md).
@@ -83,6 +83,12 @@ py -3 -m bot_a --mode backtest --source recordings `
 # 6) Бумажная торговля на живом потоке, затем реальная
 py -3 -m bot_a --mode paper --preset CNYRUBF_CRZ6 --duration 3600
 py -3 -m bot_a --mode live  --preset CNYRUBF_CRZ6 --yes
+
+# 7) Стратегия v3.0 — пробой сжатия волатильности на FORTS (см. §14)
+py -3 -m bot_a --mode backtest --strategy breakout --ticker CNYRUBF --bar-minutes 15 `
+    --from 2026-04-25 --to 2026-11-05
+py -3 -m bot_a --mode watch  --strategy breakout --ticker CNYRUBF --bar-minutes 15
+py -3 -m bot_a --mode paper  --strategy breakout --ticker CNYRUBF --bar-minutes 15
 ```
 
 Остановка — `Ctrl+C`: сигнал перехватывается, бот снимает все активные заявки и (по умолчанию)
@@ -722,7 +728,7 @@ py -3 -m bot_a --mode optimize --preset IMOEXF_MMZ6 --days 14
 py -3 -m pytest -q
 ```
 
-248 тестов покрывают: преобразования `Quotation`/шаг цены/экономику фьючерсов, прогрессивные тарифы,
+274 теста покрывают: преобразования `Quotation`/шаг цены/экономику фьючерсов, прогрессивные тарифы,
 OBI/микропрайс/EWMA, стационарную бету (`slow_ratio` + заморозка), расписание и kill-switch,
 латентность и логику филлов симулятора, полный круг сделки в FSM (single/dual leg, edge-guard,
 profit-lock, ghost-reversion/скретч, мейкерский тайм-стоп), фильтры v2.2 (хук пика Z с порогами
@@ -732,7 +738,7 @@ profit-lock, ghost-reversion/скретч, мейкерский тайм-сто�
 транспорте), запись → реплей, grid-search и загрузку конфигурации, заморозку статистики на
 аукционах и потолок тейка (v2.7), независимый от тейка σ-стоп и чтение оборванных L2-записей
 (v2.8), потолок тейка только для β < 0.8 и выход из «мёртвого» спреда (v2.9), анти-нож фильтр
-по импульсу Leg1 (v2.10), починка оценки беты, пересев EWMA и абсолютный потолок тейка (v2.11), медленный нож и гейт зрелости σ (v2.12).
+по импульсу Leg1 (v2.10), починка оценки беты, пересев EWMA и абсолютный потолок тейка (v2.11), медленный нож и гейт зрелости σ (v2.12), пробой сжатия волатильности v3.0 на FORTS (индикаторы Donchian/ATR/EMA/squeeze, вход с объёмом и закрытием в диапазоне, стоп/трейл/breakeven/срез неудачного пробоя/кулдаун, сайзинг от ГО, комиссия Premium, метрики портфеля, paper-воркер).
 
 ---
 
@@ -749,3 +755,58 @@ profit-lock, ghost-reversion/скретч, мейкерский тайм-сто�
 * Sandbox-счета T-Invest не поддерживаются.
 * Проект не является инвестиционной рекомендацией. Торговля на срочном рынке с плечом может
   привести к полной потере средств.
+
+
+---
+
+## 14. Стратегия v3.0: пробой сжатия волатильности на FORTS (`--strategy breakout`)
+
+Второе торговое ядро. Парный возврат к среднему (v2.x) на реальных L2 дал 3 сделки за 7 дней —
+комиссия `0.05 %` круга сопоставима с амплитудой возврата. v3.0 ставит на **асимметрию**:
+маленький стоп и неограниченный трендовый выход на ликвидных фьючерсах FORTS.
+
+### 14.1. Состав
+
+| Компонент | Файл | Назначение |
+| --- | --- | --- |
+| Ядро ФСМ | `bot_a/engine/breakout_fsm.py` | Donchian(N), ATR Уайлдера, EMA20/90, squeeze `W/(ATR·√N)`, объёмный всплеск, вход по пробою, стоп/трейл/breakeven/срез |
+| Бэктестер | `bot_a/backtest/breakout_backtest.py` | комиссия Premium по номиналу, проскальзывание 1 шаг, сайзинг от риска и ГО, PF/Payoff/WinRate/MaxDD/годовая |
+| Данные | `scripts/download_forts_history.py` | 6 месяцев 1-мин свечей FORTS через MOEX ISS (дневной кэш) |
+| Сетки | `scripts/breakout_scan.py` | параметрическая сетка, `--bar-minutes 1/5/15/60`, OOS/IS/Full, JSON-артефакт |
+| Портфель | `scripts/breakout_portfolio.py` | один набор параметров на несколько инструментов, общая кривая эквити |
+| Живой режим | `bot_a/services/breakout_worker.py`, `bot_a/services/iss_quotes.py` | стакан → бары → ФСМ → исполнение (paper/watch), T-Invest REST или MOEX ISS без токена |
+| Тесты | `tests/test_v30_breakout.py` | 26 тестов |
+
+### 14.2. Ключевые параметры (`breakoutPresets` в `appsettings.json`)
+
+```
+donchianBars, atrBars, maxSqueezeRatio, maxRelativeSqueeze,
+volumeMultiple, closeInRange, minAtrToFeeRatio,
+maxEntryExtensionAtr,          # анти-«догон»: не входить, если бар ушёл > X ATR от канала
+initialStopAtrMultiple, minStopSteps,
+failedBreakoutMinutes, failedBreakoutProfitAtr,
+breakevenTriggerAtr, breakevenLockAtr,   # lock 0 = только комиссия (поведение спеки)
+trailTriggerAtr, trailAtrMultiple, takeProfitAtr,
+maxConsecutiveStops, cooldownMinutes, slippageSteps,
+sessionWindows, tradeUntil
+```
+
+### 14.3. Результат 6-месячного исследования (25.04–05.11.2026)
+
+Полный отчёт — **[reports/forts_momentum_breakout_v3_0.md](reports/forts_momentum_breakout_v3_0.md)**.
+Кратко: капитал 50 000 ₽, тариф Premium, риск 1.5 % на сделку.
+
+* 1-мин бары, 108 комбинаций × 8 инструментов: устойчивого плюса нет, портфель **−3 019 ₽**;
+  на минутном таймфрейме комиссия составляет **20–35 % риска на сделку** и «выедает» инструмент
+  (гейт `ATR/Fee ≥ 2.5` вообще не пропускает CNYRUBF осенью).
+* 15-мин бары, 32 комбинации: `CNYRUBF` **+2 360 ₽** (PF 1.69, 18 сделок, DD 4.9 %),
+  `GLDRUBF` +709 ₽ (PF 1.05); `IMOEXF/MMZ6/SRZ6/SVZ6` минусовые, `CRZ6` знак меняется между OOS и IS.
+* Единый набор параметров на портфеле из 4 инструментов: **−1 565 ₽** за 6 месяцев (PF 0.82).
+* Поэтому в `appsettings.json` помечены как рекомендуемые только `CNYRUBF` и `GLDRUBF` (15 мин);
+  `strategyMode` по умолчанию остаётся `pairs` — парное ядро v2.12 не затронуто.
+
+### 14.4. Ограничения v3.0
+
+* OBI-фильтр в барном бэктесте не проверяется (нет стакана) — работает только в paper/live.
+* Вход моделируется по `close` бара пробоя; лимитный вход на уровне канала — следующий шаг.
+* Результаты на 18–41 сделке статистически хрупкие; перед реальными деньгами нужен paper-прогон.

@@ -1,0 +1,98 @@
+[
+  {
+    "ticker": "CNYRUBF",
+    "price": 12.22,
+    "notional": 12220.0,
+    "margin": 978.97,
+    "contracts": 38,
+    "feeRoundTrip": 6.11,
+    "atr15Rub": 12.84,
+    "feeToAtr": 0.476,
+    "feeToRiskPct": 31.7,
+    "riskRub": 732.0
+  },
+  {
+    "ticker": "CRZ6",
+    "price": 12.392,
+    "notional": 12392.0,
+    "margin": 1129.87,
+    "contracts": 35,
+    "feeRoundTrip": 6.2,
+    "atr15Rub": 11.73,
+    "feeToAtr": 0.528,
+    "feeToRiskPct": 35.2,
+    "riskRub": 616.0
+  },
+  {
+    "ticker": "SRZ6",
+    "price": 29770.0,
+    "notional": 29770.0,
+    "margin": 5382.43,
+    "contracts": 5,
+    "feeRoundTrip": 14.88,
+    "atr15Rub": 90.9,
+    "feeToAtr": 0.164,
+    "feeToRiskPct": 10.9,
+    "riskRub": 682.0
+  },
+  {
+    "ticker": "IMOEXF",
+    "price": 2459.0,
+    "notional": 24590.0,
+    "margin": 2449.36,
+    "contracts": 11,
+    "feeRoundTrip": 12.29,
+    "atr15Rub": 41.95,
+    "feeToAtr": 0.293,
+    "feeToRiskPct": 19.5,
+    "riskRub": 692.0
+  },
+  {
+    "ticker": "MMZ6",
+    "price": 2462.3,
+    "notional": 24623.0,
+    "margin": 2760.1,
+    "contracts": 14,
+    "feeRoundTrip": 12.31,
+    "atr15Rub": 27.15,
+    "feeToAtr": 0.454,
+    "feeToRiskPct": 30.2,
+    "riskRub": 570.0
+  },
+  {
+    "ticker": "GLDRUBF",
+    "price": 10822.5,
+    "notional": 10822.5,
+    "margin": 1269.3,
+    "contracts": 29,
+    "feeRoundTrip": 5.41,
+    "atr15Rub": 16.82,
+    "feeToAtr": 0.322,
+    "feeToRiskPct": 21.5,
+    "riskRub": 732.0
+  },
+  {
+    "ticker": "GDZ6",
+    "price": 4146.7,
+    "notional": 338660.57,
+    "margin": 30879.24,
+    "contracts": 0,
+    "feeRoundTrip": 169.33,
+    "atr15Rub": 611.93,
+    "feeToAtr": 0.277,
+    "feeToRiskPct": 18.4,
+    "riskRub": 0.0
+  },
+  {
+    "ticker": "SVZ6",
+    "price": 52.97,
+    "notional": 43260.55,
+    "margin": 7051.54,
+    "contracts": 3,
+    "feeRoundTrip": 21.63,
+    "atr15Rub": 158.93,
+    "feeToAtr": 0.136,
+    "feeToRiskPct": 9.1,
+    "riskRub": 715.0
+  }
+]

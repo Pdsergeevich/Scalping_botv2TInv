@@ -22,7 +22,6 @@ from bot_a.utils.time_provider import MSK, ms_to_msk
 @dataclass(frozen=True, slots=True)
 class Candle:
     """Минутная (или иная) свеча в нормализованном виде."""
-
     time_ms: int
     open: Decimal
     high: Decimal
@@ -50,6 +49,44 @@ class Candle:
             close=dec(data["close"]),
             volume=int(data.get("volume", 0) or 0),
         )
+
+
+def resample_candles(candles: Sequence[Candle], minutes: int) -> List[Candle]:
+    """Склеивает 1-минутные свечи в бары по ``minutes`` минут (OHLC + сумма объёма).
+
+    Нужно для v3.0: на минутном таймфрейме комиссия T-Invest съедает 20–35 % риска,
+    на 15-минутном — 9–20 %, поэтому стратегия проверяется на нескольких таймфреймах.
+    """
+    if minutes <= 1 or not candles:
+        return list(candles)
+    width = int(minutes) * 60_000
+    result: List[Candle] = []
+    bucket: Optional[int] = None
+    open_ = high = low = close = None
+    volume = 0
+    for candle in candles:
+        key = (candle.time_ms // width) * width
+        if bucket is None or key != bucket:
+            if bucket is not None and open_ is not None:
+                result.append(
+                    Candle(time_ms=bucket, open=open_, high=high, low=low, close=close, volume=volume)
+                )
+            bucket = key
+            open_ = candle.open
+            high = candle.high
+            low = candle.low
+            close = candle.close
+            volume = int(candle.volume)
+            continue
+        high = max(high, candle.high)
+        low = min(low, candle.low)
+        close = candle.close
+        volume += int(candle.volume)
+    if bucket is not None and open_ is not None:
+        result.append(
+            Candle(time_ms=bucket, open=open_, high=high, low=low, close=close, volume=volume)
+        )
+    return result
 
 
 class CandleSource(Protocol):
