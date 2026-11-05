@@ -32,6 +32,9 @@ DEFAULT_TICKERS = (
     "SRZ6",
     "SVZ6",
     "GDZ6",
+    "NGX6",
+    "NGZ6",
+    "MXZ6",
 )
 DEFAULT_FROM = "2026-04-25"
 DEFAULT_TO = "2026-11-05"
