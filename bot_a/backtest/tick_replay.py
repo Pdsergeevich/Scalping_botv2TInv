@@ -238,6 +238,7 @@ class TickReplayBacktester:
         params: Optional[StrategyParams] = None,
         topology: Optional[ExecutionTopology] = None,
         logger: Optional[logging.Logger] = None,
+        warmup_days: Optional[int] = None,
     ) -> None:
         self._config = config
         self._preset = preset
@@ -245,6 +246,8 @@ class TickReplayBacktester:
         self._params = params or config.strategy
         self._topology = topology or config.execution.topology
         self._log = logger or logging.getLogger(LOGGER_NAME)
+        #: v2.12: `0` — холодный старт L2 (без прогрева ISS), `None` — из конфига.
+        self._warmup_days = warmup_days
 
     async def run(
         self,
@@ -275,7 +278,11 @@ class TickReplayBacktester:
             window.start_ms or None,
             self._log,
             trace,
-            warmup_days=int(self._config.execution.bootstrap_warmup_days),
+            warmup_days=(
+                int(self._config.execution.bootstrap_warmup_days)
+                if self._warmup_days is None
+                else max(int(self._warmup_days), 0)
+            ),
         )
         if outcome.events_processed == 0:
             raise RuntimeError("В выбранном диапазоне нет записанных событий")

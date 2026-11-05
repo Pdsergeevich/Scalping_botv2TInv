@@ -1,0 +1,168 @@
+{
+ "variant": "v210",
+ "tariff": "Premium",
+ "stopSigma": 3.5,
+ "stopRatio": null,
+ "stagnationSeconds": null,
+ "maxHoldSeconds": null,
+ "stagnationMae": null,
+ "tpSigma": null,
+ "tpNotional": null,
+ "tpCapBeta": null,
+ "tpDev": {},
+ "days": [
+  "2026-11-05"
+ ],
+ "pairs": [
+  "VTBR_SBER",
+  "MTLR_SBER",
+  "IRAO_SBER"
+ ],
+ "runs": [
+  {
+   "pair": "VTBR_SBER",
+   "days": [
+    {
+     "date": "2026-11-05",
+     "net": -9.7681375,
+     "gross": -8.25,
+     "fees": 1.5181375,
+     "trades": 1,
+     "events": 56569
+    }
+   ],
+   "trades": [
+    {
+     "open_ms": 1793866047143,
+     "close_ms": 1793866964657,
+     "side": "SELL",
+     "net": -9.7681375,
+     "gross": -8.25,
+     "fees": 1.5181375,
+     "reason": "StagnationExit",
+     "day": "2026-11-05"
+    }
+   ]
+  },
+  {
+   "pair": "MTLR_SBER",
+   "days": [
+    {
+     "date": "2026-11-05",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 56583
+    }
+   ],
+   "trades": []
+  },
+  {
+   "pair": "IRAO_SBER",
+   "days": [
+    {
+     "date": "2026-11-05",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 56583
+    }
+   ],
+   "trades": []
+  }
+ ],
+ "portfolios": [
+  {
+   "cluster": 0,
+   "trades": 1,
+   "tradesPerDay": 1.0,
+   "net": -9.7681,
+   "profitFactor": 0.0,
+   "maxDrawdown": 9.7681,
+   "sharpe": 0.0,
+   "clusterSkips": 0,
+   "perPair": {
+    "VTBR_SBER": {
+     "trades": 1,
+     "net": -9.7681,
+     "dropped": 0
+    },
+    "MTLR_SBER": {
+     "trades": 0,
+     "net": 0,
+     "dropped": 0
+    },
+    "IRAO_SBER": {
+     "trades": 0,
+     "net": 0,
+     "dropped": 0
+    }
+   },
+   "daily": {
+    "2026-11-05": -9.7681
+   }
+  },
+  {
+   "cluster": 1,
+   "trades": 1,
+   "tradesPerDay": 1.0,
+   "net": -9.7681,
+   "profitFactor": 0.0,
+   "maxDrawdown": 9.7681,
+   "sharpe": 0.0,
+   "clusterSkips": 0,
+   "perPair": {
+    "VTBR_SBER": {
+     "trades": 1,
+     "net": -9.7681,
+     "dropped": 0
+    },
+    "MTLR_SBER": {
+     "trades": 0,
+     "net": 0,
+     "dropped": 0
+    },
+    "IRAO_SBER": {
+     "trades": 0,
+     "net": 0,
+     "dropped": 0
+    }
+   },
+   "daily": {
+    "2026-11-05": -9.7681
+   }
+  },
+  {
+   "cluster": 2,
+   "trades": 1,
+   "tradesPerDay": 1.0,
+   "net": -9.7681,
+   "profitFactor": 0.0,
+   "maxDrawdown": 9.7681,
+   "sharpe": 0.0,
+   "clusterSkips": 0,
+   "perPair": {
+    "VTBR_SBER": {
+     "trades": 1,
+     "net": -9.7681,
+     "dropped": 0
+    },
+    "MTLR_SBER": {
+     "trades": 0,
+     "net": 0,
+     "dropped": 0
+    },
+    "IRAO_SBER": {
+     "trades": 0,
+     "net": 0,
+     "dropped": 0
+    }
+   },
+   "daily": {
+    "2026-11-05": -9.7681
+   }
+  }
+ ]
+}

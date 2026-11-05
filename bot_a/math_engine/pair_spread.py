@@ -7,9 +7,10 @@
 from __future__ import annotations
 
 import math
+from collections import deque
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Dict, List, Optional, Tuple
+from typing import Deque, Dict, List, Optional, Tuple
 
 from bot_a.models.domain import InstrumentMetadata, OrderBookSnapshot, SpreadMetrics
 
@@ -212,6 +213,13 @@ class PairSpreadCalculator:
         "_freeze_reason",
         "_frozen_ticks",
         "_gate_bypass",
+        "_beta_estimated",
+        "_beta_reseeds",
+        "_beta_jump_threshold",
+        "_spread_history",
+        "_min_samples_after_reseed",
+        "_post_reseed_samples",
+        "_reseed_immature",
     )
 
     def __init__(
@@ -232,6 +240,7 @@ class PairSpreadCalculator:
         stat_freeze_until_msk: str = "",
         stat_freeze_windows: str = "",
         max_valid_spread_bps: float = 0.0,
+        min_samples_after_beta_reseed: int = 0,
     ) -> None:
         self._leg1 = leg1
         self._leg2 = leg2
@@ -283,6 +292,19 @@ class PairSpreadCalculator:
         self._freeze_reason: Optional[str] = None
         self._frozen_ticks = 0
         self._gate_bypass = False
+        # v2.11: признак «бета оценена» и история сырых стоимостей ног для пересева.
+        self._beta_estimated = False
+        self._beta_reseeds = 0
+        self._beta_jump_threshold = 0.20
+        self._spread_history: Deque[Tuple[float, float]] = deque(
+            maxlen=max(int(ewma_window), 2)
+        )
+        # v2.12: после пересева на короткой истории σ ещё «незрелая» — входы запрещены,
+        # пока не наберётся ``min_samples_after_beta_reseed`` новых сэмплов.
+        # Это лечит вход `VTBR` 05.11 в 10:10 на σ = 0.110 ₽ (созрела до 0.318 ₽ к 11:07).
+        self._min_samples_after_reseed = max(int(min_samples_after_beta_reseed), 0)
+        self._post_reseed_samples = 0
+        self._reseed_immature = False
 
     def set_stat_gate_bypass(self, value: bool) -> None:
         """v2.8: отключить гейт пре-маркета (только для прогрева историей)."""
@@ -295,6 +317,37 @@ class PairSpreadCalculator:
     @property
     def static_beta(self) -> float:
         return self._beta_static
+
+    @property
+    def beta_estimated(self) -> bool:
+        """v2.11: бета реально оценена (а не взята из статического конфига).
+
+        Для режимов, где оценка не предусмотрена (`static`/`same_underlying`),
+        всегда ``True`` — торговать можно.
+        """
+        if self._beta_mode not in ("slow_ratio", "dynamic"):
+            return True
+        return self._beta_estimated
+
+    @property
+    def beta_reseeds(self) -> int:
+        """Сколько раз EWMA пересевалась после скачка беты (v2.11)."""
+        return self._beta_reseeds
+
+    @property
+    def stats_mature(self) -> bool:
+        """v2.12: достаточно ли статистики после пересева беты, чтобы торговать.
+
+        `True`, если пересева не было, история была длинной (прогрев из ISS-кэша) или
+        после короткого пересева уже набралось ``min_samples_after_beta_reseed``
+        сэмплов. Иначе σ ещё не отражает реальную волатильность пары.
+        """
+        return not self._reseed_immature
+
+    @property
+    def post_reseed_samples(self) -> int:
+        """Сколько сэмплов набрано после последнего «незрелого» пересева (v2.12)."""
+        return self._post_reseed_samples
 
     @property
     def beta_mode(self) -> str:
@@ -442,6 +495,11 @@ class PairSpreadCalculator:
         self._pending = [False, False]
         self._beta_frozen = False
         self._beta_observations = 0
+        self._beta_estimated = False
+        self._beta_reseeds = 0
+        self._post_reseed_samples = 0
+        self._reseed_immature = False
+        self._spread_history.clear()
         self._mean_v1 = 0.0
         self._mean_v2 = 0.0
         self._macro_v1 = 0.0
@@ -509,11 +567,59 @@ class PairSpreadCalculator:
             self._beta_macro = self._macro_v2 / self._macro_v1
 
     def _set_beta(self, beta: float) -> None:
+        """Фиксирует оценённую бету и пересевает EWMA при структурном скачке (v2.11).
+
+        До v2.11 бета «догоняла» реальность посреди сессии: спред менялся в разы,
+        а `mu` оставалась на старом уровне и ползла к новому часами (окно 2400
+        сэмплов). Тогда `sigma` раздувалась до 95 RUB, `|Z|` доходил до 34, а тейк
+        уезжал на 9733 шага. Теперь при первой оценке или скачке беты больше
+        ``_beta_jump_threshold`` (20 %) история сырых стоимостей ног пересчитывается
+        с новой бетой — `mu`/`variance` сразу оказываются в правильном масштабе.
+        """
         if beta < self._beta_min:
             beta = self._beta_min
         elif beta > self._beta_max:
             beta = self._beta_max
+        previous = self._beta
         self._beta = beta
+        if self._beta_mode != "slow_ratio":
+            self._beta_estimated = True
+            return
+        first_estimate = not self._beta_estimated
+        jumped = (
+            abs(previous) > 1e-9
+            and abs(beta - previous) / abs(previous) > self._beta_jump_threshold
+        )
+        self._beta_estimated = True
+        if first_estimate or jumped:
+            self._reseed_ewma(beta)
+
+    def _reseed_ewma(self, beta: float) -> bool:
+        """Пересчитывает `mu`/`variance` по истории сырых стоимостей ног (v2.11).
+
+        Счётчик наблюдений сохраняется: пересев — это не «забыть прогрев», а
+        пересчёт тех же наблюдений в новом масштабе беты.
+
+        v2.12: после ЛЮБОГО пересева статистика помечается «незрелой» — σ считается
+        заново и в первые минуты занижена (05.11: `0.110 ₽` против `0.318 ₽` через час,
+        вход в 10:10 на незрелой σ дал `−3.72 ₽`). Входы блокируются, пока не наберётся
+        ``min_samples_after_beta_reseed`` новых сэмплов. При прогреве из ISS-кэша
+        (2400 сэмплов) пересев случается внутри прогрева, и зрелость восстанавливается
+        до открытия сессии — торговая логика не страдает.
+        """
+        history = list(self._spread_history)
+        if not history:
+            return False
+        observed = self._ewma.count
+        self._ewma.reset()
+        for value1, value2 in history:
+            self._ewma.update(value2 - beta * value1)
+        self._ewma.count = max(self._ewma.count, observed)
+        self._beta_reseeds += 1
+        if self._min_samples_after_reseed > 0:
+            self._reseed_immature = True
+            self._post_reseed_samples = 0
+        return True
 
     def on_book(self, leg_index: int, book: OrderBookSnapshot) -> Optional[SpreadMetrics]:
         """Обновляет ногу ``leg_index`` (0 — Leg 1, 1 — Leg 2).
@@ -542,11 +648,23 @@ class PairSpreadCalculator:
         if gate is not None:
             self._frozen_ticks += 1
         sampled = gate is None and self._stat_due(book.time_ms)
-        if self._pending[0] and self._pending[1]:
+        aligned = self._pending[0] and self._pending[1]
+        if sampled and aligned:
+            # v2.11: пара потребляется ТОЛЬКО статистическим сэмплом. До патча
+            # `pending` сбрасывался на любом событии с обеими ногами, поэтому при
+            # синхронных парах событий (прогрев ISS, `VTBR_SBER`) сэмпл всегда попадал
+            # на событие одной ноги и бета не обновлялась почти никогда:
+            # 1 наблюдение из 41 940 тиков → бета оставалась статической (1.0).
             self._pending = [False, False]
-            if sampled:
-                self._update_beta(value1, value2)
-                self._update_macro_beta(value1, value2)
+            self._update_beta(value1, value2)
+            self._update_macro_beta(value1, value2)
+            # Текущий сэмпл добавляем ПОСЛЕ оценки беты: если она только что
+            # пересеяла EWMA, история пересчитана без него и ниже он учтётся ровно раз.
+            self._spread_history.append((value1, value2))
+            if self._reseed_immature:
+                self._post_reseed_samples += 1
+                if self._post_reseed_samples >= self._min_samples_after_reseed:
+                    self._reseed_immature = False
         spread_rub = value2 - self._beta * value1
         if sampled:
             mean, variance, zscore, is_warm = self._ewma.update(spread_rub)

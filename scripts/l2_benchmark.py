@@ -38,6 +38,7 @@ DEFAULT_DAYS = (
     "2026-11-01",
     "2026-11-02",
     "2026-11-03",
+    "2026-11-05",
 )
 DEFAULT_PAIRS = ("VTBR_SBER", "MTLR_SBER", "AFKS_SBER", "IRAO_SBER")
 #: Значения v2.6.5 (до патча v2.7) — для честного «до/после» на одной и той же записи.
@@ -71,8 +72,10 @@ V28_OVERRIDES: Dict[str, Any] = {
 }
 #: v2.8 + снятый потолок тейка для пар с β ≥ 0.8 (VTBR, MTLR, IRAO).
 V28_UNCAPPED_OVERRIDES: Dict[str, Any] = {
-    "tp_max_sigma_multiple": 4.5,
-    "tp_max_notional_fraction": 0.015,
+    "tp_max_sigma_multiple": 0.0,
+    "tp_max_notional_fraction": 0.0,
+    "tp_tight_sigma_multiple": 0.0,
+    "tp_tight_notional_fraction": 0.0,
     "tp_cap_beta_threshold": 0.8,
     "use_stagnation_exit": False,
     "use_anti_knife_filter": False,
@@ -93,15 +96,53 @@ V29_RAW_OVERRIDES: Dict[str, Any] = {
     **V29_OVERRIDES,
     "stagnation_max_mae_fraction": 0.0,
 }
-#: v2.10 = v2.9 + анти-нож фильтр по импульсу Leg1.
+#: v2.10 = v2.9 + анти-нож. Потолки тейка выключены полностью (так было в v2.9/v2.10 для
+#: β ≥ 0.8), дневной лимит — только от комиссии (старое правило).
 V210_OVERRIDES: Dict[str, Any] = {
     **V29_OVERRIDES,
+    "tp_max_sigma_multiple": 0.0,
+    "tp_max_notional_fraction": 0.0,
+    "tp_tight_sigma_multiple": 0.0,
+    "tp_tight_notional_fraction": 0.0,
+    "daily_stop_sigma_multiple": 0.0,
     "use_anti_knife_filter": True,
     "anti_knife_window_seconds": 60,
     "anti_knife_baseline_seconds": 300,
     "anti_knife_min_steps": 10,
     "anti_knife_accel_multiple": 1.5,
     "anti_knife_cooldown_seconds": 600,
+}
+#: v2.11 = v2.10 + абсолютный потолок тейка (4.5σ / 1.2 % номинала), узкие потолки для
+#: β < 0.8 и σ-пол дневного лимита. Оценка беты и пересев EWMA включены в самом калькуляторе.
+#: v2.12-механики здесь явно выключены, иначе они «протекают» из `appsettings.json`.
+V211_OVERRIDES: Dict[str, Any] = {
+    **V210_OVERRIDES,
+    "tp_max_sigma_multiple": 4.5,
+    "tp_max_notional_fraction": 0.012,
+    "tp_tight_sigma_multiple": 2.2,
+    "tp_tight_notional_fraction": 0.0045,
+    "daily_stop_sigma_multiple": 1.5,
+    "anti_knife_bleed_min_steps": 0,
+    "min_samples_after_beta_reseed": 0,
+}
+#: v2.12 = v2.11 + медленный нож (3 мин в шагах/σ) + гейт зрелости σ после пересева беты.
+V212_OVERRIDES: Dict[str, Any] = {
+    **V211_OVERRIDES,
+    "anti_knife_bleed_seconds": 180,
+    "anti_knife_bleed_min_steps": 16,
+    "anti_knife_bleed_sigma_multiple": 1.2,
+    "anti_knife_bleed_max_lead_share": 0.15,
+    "min_samples_after_beta_reseed": 240,
+}
+#: v2.12 без гейта зрелости σ — чтобы отделить вклад «медленного ножа».
+V212_NO_RESEED_GATE: Dict[str, Any] = {
+    **V212_OVERRIDES,
+    "min_samples_after_beta_reseed": 0,
+}
+#: v2.12 без «медленного ножа» — только гейт зрелости σ.
+V212_NO_BLEED: Dict[str, Any] = {
+    **V212_OVERRIDES,
+    "anti_knife_bleed_min_steps": 0,
 }
 VARIANT_OVERRIDES: Dict[str, Dict[str, Any]] = {
     "v265": V265_OVERRIDES,
@@ -111,6 +152,10 @@ VARIANT_OVERRIDES: Dict[str, Dict[str, Any]] = {
     "v29": V29_OVERRIDES,
     "v29raw": V29_RAW_OVERRIDES,
     "v210": V210_OVERRIDES,
+    "v211": V211_OVERRIDES,
+    "v212": V212_OVERRIDES,
+    "v212nb": V212_NO_BLEED,
+    "v212ng": V212_NO_RESEED_GATE,
 }
 
 
@@ -151,8 +196,13 @@ def _run_pair(
     recordings_dir: Path,
     unit_lots: bool = False,
     extra: Optional[Dict[str, Any]] = None,
+    warmup_days: Optional[int] = None,
 ) -> Dict[str, Any]:
-    """Прогоняет все дни одной пары, возвращает сделки и дневные итоги."""
+    """Прогоняет все дни одной пары, возвращает сделки и дневные итоги.
+
+    ``warmup_days`` (v2.12): ``0`` — холодный старт L2 без прогрева ISS, ``None`` — как в
+    конфиге (5 дней). Живой запуск всегда прогревается, поэтому `None` — «как live».
+    """
     cfg, preset, params = _params_for(config, preset_name, variant, unit_lots, extra)
     day_rows: List[Dict[str, Any]] = []
     trades: List[Dict[str, Any]] = []
@@ -162,7 +212,9 @@ def _run_pair(
             day_rows.append({"date": day, "net": 0.0, "trades": 0, "missing": True})
             continue
         source = JsonlRecordingSource.from_path(path)
-        backtester = TickReplayBacktester(cfg, preset, source, params=params)
+        backtester = TickReplayBacktester(
+            cfg, preset, source, params=params, warmup_days=warmup_days
+        )
         try:
             result = asyncio.run(backtester.run(write_report=False))
         except Exception as exc:  # noqa: BLE001 — нет событий/битый файл
@@ -178,6 +230,7 @@ def _run_pair(
                 "fees": float(result.totals.fees_rub),
                 "trades": int(result.totals.trades),
                 "events": int(result.events_processed),
+                "counters": dict(result.counters),
             }
         )
         for trade in result.trades:
@@ -191,6 +244,11 @@ def _run_pair(
                     "fees": float(trade.fees_rub),
                     "reason": trade.exit_reason.value,
                     "day": day,
+                    "entry_z": float(trade.entry_z),
+                    "exit_z": float(trade.exit_z),
+                    "mfe": float(trade.mfe_rub),
+                    "mae": float(trade.mae_rub),
+                    "quantity": int(trade.quantity),
                 }
             )
     return {"pair": preset_name, "days": day_rows, "trades": trades}
@@ -301,6 +359,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="переопределить antiKnifeWindowSeconds (0 — из варианта)",
     )
     parser.add_argument(
+        "--warmup-days",
+        dest="warmup_days",
+        type=int,
+        default=-1,
+        help="дней прогрева ISS перед каждой L2-записью (-1 — как в конфиге, 0 — холодный старт)",
+    )
+    parser.add_argument(
         "--max-hold",
         dest="max_hold",
         type=int,
@@ -313,6 +378,34 @@ def main(argv: Optional[List[str]] = None) -> int:
         type=int,
         default=0,
         help="переопределить stagnationAfterSeconds (0 — из варианта)",
+    )
+    parser.add_argument(
+        "--knife-bleed-steps",
+        dest="knife_bleed_steps",
+        type=int,
+        default=-1,
+        help="antiKnifeBleedMinSteps (0 — выключить медленный нож)",
+    )
+    parser.add_argument(
+        "--knife-bleed-sigma",
+        dest="knife_bleed_sigma",
+        type=float,
+        default=-1.0,
+        help="antiKnifeBleedSigmaMultiple",
+    )
+    parser.add_argument(
+        "--knife-bleed-lead",
+        dest="knife_bleed_lead",
+        type=float,
+        default=-1.0,
+        help="antiKnifeBleedMaxLeadShare",
+    )
+    parser.add_argument(
+        "--reseed-min-samples",
+        dest="reseed_min_samples",
+        type=int,
+        default=-1,
+        help="minSamplesAfterBetaReseed (0 — выключить гейт зрелости σ)",
     )
     parser.add_argument(
         "--tp-sigma",
@@ -409,6 +502,14 @@ def main(argv: Optional[List[str]] = None) -> int:
             extra["anti_knife_cooldown_seconds"] = int(args.knife_cooldown)
         if args.knife_window > 0:
             extra["anti_knife_window_seconds"] = int(args.knife_window)
+        if args.knife_bleed_steps >= 0:
+            extra["anti_knife_bleed_min_steps"] = int(args.knife_bleed_steps)
+        if args.knife_bleed_sigma >= 0:
+            extra["anti_knife_bleed_sigma_multiple"] = float(args.knife_bleed_sigma)
+        if args.knife_bleed_lead >= 0:
+            extra["anti_knife_bleed_max_lead_share"] = float(args.knife_bleed_lead)
+        if args.reseed_min_samples >= 0:
+            extra["min_samples_after_beta_reseed"] = int(args.reseed_min_samples)
         if args.stagnation_seconds > 0:
             extra["stagnation_after_seconds"] = int(args.stagnation_seconds)
             extra["use_stagnation_exit"] = True
@@ -438,6 +539,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             recordings_dir,
             args.unit_lots,
             extra or None,
+            None if args.warmup_days < 0 else args.warmup_days,
         )
         runs.append(run)
         net = sum(row.get("net", 0.0) for row in run["days"])
@@ -466,6 +568,11 @@ def main(argv: Optional[List[str]] = None) -> int:
             "stopSigma": args.stop_sigma,
             "stopRatio": args.stop_ratio,
             "stagnationSeconds": args.stagnation_seconds or None,
+            "warmupDays": None if args.warmup_days < 0 else args.warmup_days,
+            "knifeBleedSteps": args.knife_bleed_steps if args.knife_bleed_steps >= 0 else None,
+            "reseedMinSamples": (
+                args.reseed_min_samples if args.reseed_min_samples >= 0 else None
+            ),
             "maxHoldSeconds": args.max_hold or None,
             "stagnationMae": args.stagnation_mae if args.stagnation_mae >= 0 else None,
             "tpSigma": args.tp_sigma if args.tp_sigma >= 0 else None,

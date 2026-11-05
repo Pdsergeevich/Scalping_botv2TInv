@@ -1,0 +1,289 @@
+{
+ "variant": "v210",
+ "tariff": "Premium",
+ "stopSigma": 3.5,
+ "stopRatio": null,
+ "stagnationSeconds": null,
+ "maxHoldSeconds": null,
+ "stagnationMae": null,
+ "tpSigma": null,
+ "tpNotional": null,
+ "tpCapBeta": null,
+ "tpDev": {},
+ "days": [
+  "2026-10-28",
+  "2026-10-29",
+  "2026-10-30",
+  "2026-11-01",
+  "2026-11-02",
+  "2026-11-03",
+  "2026-11-05"
+ ],
+ "pairs": [
+  "VTBR_SBER",
+  "MTLR_SBER"
+ ],
+ "runs": [
+  {
+   "pair": "VTBR_SBER",
+   "days": [
+    {
+     "date": "2026-10-28",
+     "net": 0.0490875,
+     "gross": 1.65,
+     "fees": 1.6009125,
+     "trades": 1,
+     "events": 37510
+    },
+    {
+     "date": "2026-10-29",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 28024
+    },
+    {
+     "date": "2026-10-30",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 53209
+    },
+    {
+     "date": "2026-11-01",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 8862
+    },
+    {
+     "date": "2026-11-02",
+     "net": -19.42084375,
+     "gross": -17.875,
+     "fees": 1.54584375,
+     "trades": 1,
+     "events": 56198
+    },
+    {
+     "date": "2026-11-03",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 39864
+    },
+    {
+     "date": "2026-11-05",
+     "net": -3.723775,
+     "gross": -2.2,
+     "fees": 1.523775,
+     "trades": 1,
+     "events": 57682
+    }
+   ],
+   "trades": [
+    {
+     "open_ms": 1793193029467,
+     "close_ms": 1793194765435,
+     "side": "BUY",
+     "net": 0.0490875,
+     "gross": 1.65,
+     "fees": 1.6009125,
+     "reason": "TakeProfit",
+     "day": "2026-10-28"
+    },
+    {
+     "open_ms": 1793608641107,
+     "close_ms": 1793609511563,
+     "side": "BUY",
+     "net": -19.42084375,
+     "gross": -17.875,
+     "fees": 1.54584375,
+     "reason": "StagnationExit",
+     "day": "2026-11-02"
+    },
+    {
+     "open_ms": 1793862600799,
+     "close_ms": 1793863382484,
+     "side": "SELL",
+     "net": -3.723775,
+     "gross": -2.2,
+     "fees": 1.523775,
+     "reason": "StagnationExit",
+     "day": "2026-11-05"
+    }
+   ]
+  },
+  {
+   "pair": "MTLR_SBER",
+   "days": [
+    {
+     "date": "2026-10-28",
+     "net": 14.2347,
+     "gross": 15.6,
+     "fees": 1.3653,
+     "trades": 1,
+     "events": 37516
+    },
+    {
+     "date": "2026-10-29",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 27984
+    },
+    {
+     "date": "2026-10-30",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 52745
+    },
+    {
+     "date": "2026-11-01",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 8874
+    },
+    {
+     "date": "2026-11-02",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 56188
+    },
+    {
+     "date": "2026-11-03",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 39826
+    },
+    {
+     "date": "2026-11-05",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 57690
+    }
+   ],
+   "trades": [
+    {
+     "open_ms": 1793178302176,
+     "close_ms": 1793178891892,
+     "side": "SELL",
+     "net": 14.2347,
+     "gross": 15.6,
+     "fees": 1.3653,
+     "reason": "TakeProfit",
+     "day": "2026-10-28"
+    }
+   ]
+  }
+ ],
+ "portfolios": [
+  {
+   "cluster": 0,
+   "trades": 4,
+   "tradesPerDay": 0.57,
+   "net": -8.8608,
+   "profitFactor": 0.617,
+   "maxDrawdown": 23.1446,
+   "sharpe": -0.37,
+   "clusterSkips": 0,
+   "perPair": {
+    "VTBR_SBER": {
+     "trades": 3,
+     "net": -23.0955,
+     "dropped": 0
+    },
+    "MTLR_SBER": {
+     "trades": 1,
+     "net": 14.2347,
+     "dropped": 0
+    }
+   },
+   "daily": {
+    "2026-10-28": 14.2838,
+    "2026-10-29": 0.0,
+    "2026-10-30": 0.0,
+    "2026-11-01": 0.0,
+    "2026-11-02": -19.4208,
+    "2026-11-03": 0.0,
+    "2026-11-05": -3.7238
+   }
+  },
+  {
+   "cluster": 1,
+   "trades": 4,
+   "tradesPerDay": 0.57,
+   "net": -8.8608,
+   "profitFactor": 0.617,
+   "maxDrawdown": 23.1446,
+   "sharpe": -0.37,
+   "clusterSkips": 0,
+   "perPair": {
+    "VTBR_SBER": {
+     "trades": 3,
+     "net": -23.0955,
+     "dropped": 0
+    },
+    "MTLR_SBER": {
+     "trades": 1,
+     "net": 14.2347,
+     "dropped": 0
+    }
+   },
+   "daily": {
+    "2026-10-28": 14.2838,
+    "2026-10-29": 0.0,
+    "2026-10-30": 0.0,
+    "2026-11-01": 0.0,
+    "2026-11-02": -19.4208,
+    "2026-11-03": 0.0,
+    "2026-11-05": -3.7238
+   }
+  },
+  {
+   "cluster": 2,
+   "trades": 4,
+   "tradesPerDay": 0.57,
+   "net": -8.8608,
+   "profitFactor": 0.617,
+   "maxDrawdown": 23.1446,
+   "sharpe": -0.37,
+   "clusterSkips": 0,
+   "perPair": {
+    "VTBR_SBER": {
+     "trades": 3,
+     "net": -23.0955,
+     "dropped": 0
+    },
+    "MTLR_SBER": {
+     "trades": 1,
+     "net": 14.2347,
+     "dropped": 0
+    }
+   },
+   "daily": {
+    "2026-10-28": 14.2838,
+    "2026-10-29": 0.0,
+    "2026-10-30": 0.0,
+    "2026-11-01": 0.0,
+    "2026-11-02": -19.4208,
+    "2026-11-03": 0.0,
+    "2026-11-05": -3.7238
+   }
+  }
+ ]
+}

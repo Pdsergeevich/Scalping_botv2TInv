@@ -27,8 +27,10 @@ def _capped_position(tmp_path, beta: float, **overrides):
 
     async def scenario():
         base = {
-            "tp_max_sigma_multiple": 2.2,
-            "tp_max_notional_fraction": 0.0045,
+            "tp_max_sigma_multiple": 4.5,
+            "tp_max_notional_fraction": 0.012,
+            "tp_tight_sigma_multiple": 2.2,
+            "tp_tight_notional_fraction": 0.0045,
             "tp_cap_beta_threshold": 0.8,
         }
         base.update(overrides)
@@ -49,10 +51,23 @@ def _capped_position(tmp_path, beta: float, **overrides):
 
 
 def test_tp_cap_skipped_for_beta_above_threshold(tmp_path):
-    """β ≥ 0.8 (VTBR, MTLR, IRAO) — потолок тейка не применяется (v2.9)."""
-    target, cap = _capped_position(tmp_path, 5.1)
-    assert cap == Decimal("0"), "для β ≥ 0.8 потолок не должен считаться"
-    assert target > 0
+    """β ≥ 0.8 — действует только абсолютный предохранитель (v2.11), без узких потолков."""
+    target, cap = _capped_position(
+        tmp_path,
+        5.1,
+        tp_tight_sigma_multiple=0.0,
+        tp_tight_notional_fraction=0.0,
+    )
+    assert cap > 0, "абсолютный предохранитель обязан работать для любой пары"
+    assert target <= cap
+
+
+def test_tp_tight_cap_only_for_low_beta(tmp_path):
+    """Узкие потолки (2.2σ / 0.45 % номинала) включаются только при β < 0.8."""
+    loose = _capped_position(tmp_path / "hi", 5.1)
+    tight = _capped_position(tmp_path / "lo", 0.377)
+    assert tight[1] < loose[1], (tight[1], loose[1])
+    assert tight[0] <= tight[1]
 
 
 def test_tp_cap_applied_for_low_beta(tmp_path):

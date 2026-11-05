@@ -74,9 +74,14 @@ def test_load_repository_config():
     assert config.strategy.max_valid_spread_bps == 50.0
     # v2.9: потолок тейка поднят и включается только для пар с β < 0.8
     # (AFKS требовал +10 %; VTBR/MTLR теряли половину прибыли).
-    assert config.strategy.tp_max_notional_fraction == 0.015
+    assert config.strategy.tp_max_notional_fraction == 0.012
     assert config.strategy.tp_max_sigma_multiple == 4.5
     assert config.strategy.tp_cap_beta_threshold == 0.8
+    # v2.11: узкие потолки только для β < 0.8; абсолютный предохранитель — для всех.
+    assert config.strategy.tp_tight_notional_fraction == 0.0045
+    assert config.strategy.tp_tight_sigma_multiple == 2.2
+    # v2.11: дневной лимит не меньше 1.5 σ_Leg1 позиции.
+    assert config.strategy.daily_stop_sigma_multiple == 1.5
     assert config.strategy.use_volatility_adaptive_stop is True
     # v2.9: два однонаправленных входа на общую ногу вместо одного.
     assert config.risk.max_concurrent_same_direction == 2

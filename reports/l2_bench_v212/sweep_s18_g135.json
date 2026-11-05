@@ -1,0 +1,128 @@
+{
+ "variant": "v212",
+ "tariff": "Premium",
+ "stopSigma": 3.5,
+ "stopRatio": null,
+ "stagnationSeconds": null,
+ "warmupDays": null,
+ "knifeBleedSteps": 18,
+ "reseedMinSamples": 0,
+ "maxHoldSeconds": null,
+ "stagnationMae": null,
+ "tpSigma": null,
+ "tpNotional": null,
+ "tpCapBeta": null,
+ "tpDev": {},
+ "days": [
+  "2026-11-02",
+  "2026-11-05"
+ ],
+ "pairs": [
+  "VTBR_SBER"
+ ],
+ "runs": [
+  {
+   "pair": "VTBR_SBER",
+   "days": [
+    {
+     "date": "2026-11-02",
+     "net": -19.42084375,
+     "gross": -17.875,
+     "fees": 1.54584375,
+     "trades": 1,
+     "events": 56198,
+     "counters": {
+      "signals": 9,
+      "edgeSkips": 0,
+      "guardSkips": 0,
+      "overextendedSkips": 0,
+      "hookSkips": 53,
+      "regimeSkips": 107,
+      "sessionSkips": 0,
+      "dailyStopSkips": 101,
+      "betaDriftSkips": 0,
+      "volFilterSkips": 0,
+      "persistenceSkips": 0,
+      "statFrozenSkips": 4919,
+      "antiKnifeSkips": 8,
+      "betaNotEstimatedSkips": 0,
+      "reseedWarmupSkips": 0,
+      "ratchetExits": 0,
+      "entries": 1,
+      "rejects": 0,
+      "trades": 1
+     }
+    },
+    {
+     "date": "2026-11-05",
+     "net": 0.0,
+     "gross": 0.0,
+     "fees": 0.0,
+     "trades": 0,
+     "events": 57682,
+     "counters": {
+      "signals": 554,
+      "edgeSkips": 0,
+      "guardSkips": 0,
+      "overextendedSkips": 175,
+      "hookSkips": 258,
+      "regimeSkips": 1720,
+      "sessionSkips": 38,
+      "dailyStopSkips": 0,
+      "betaDriftSkips": 0,
+      "volFilterSkips": 0,
+      "persistenceSkips": 0,
+      "statFrozenSkips": 8301,
+      "antiKnifeSkips": 515,
+      "betaNotEstimatedSkips": 0,
+      "reseedWarmupSkips": 0,
+      "ratchetExits": 0,
+      "entries": 1,
+      "rejects": 0,
+      "trades": 0
+     }
+    }
+   ],
+   "trades": [
+    {
+     "open_ms": 1793608641107,
+     "close_ms": 1793609511563,
+     "side": "BUY",
+     "net": -19.42084375,
+     "gross": -17.875,
+     "fees": 1.54584375,
+     "reason": "StagnationExit",
+     "day": "2026-11-02",
+     "entry_z": 2.972586746850118,
+     "exit_z": 3.002756649535471,
+     "mfe": 0.0,
+     "mae": -15.7270877850724,
+     "quantity": 55
+    }
+   ]
+  }
+ ],
+ "portfolios": [
+  {
+   "cluster": 0,
+   "trades": 1,
+   "tradesPerDay": 0.5,
+   "net": -19.4208,
+   "profitFactor": 0.0,
+   "maxDrawdown": 19.4208,
+   "sharpe": -1.41,
+   "clusterSkips": 0,
+   "perPair": {
+    "VTBR_SBER": {
+     "trades": 1,
+     "net": -19.4208,
+     "dropped": 0
+    }
+   },
+   "daily": {
+    "2026-11-02": -19.4208,
+    "2026-11-05": 0.0
+   }
+  }
+ ]
+}

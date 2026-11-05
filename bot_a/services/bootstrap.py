@@ -97,19 +97,23 @@ def _warn_if_beta_not_estimated(
 
     Без оценки спред считается по статической бете (``1.0``), поэтому ``mu``/``sigma``
     уезжают на величину самой ноги, а live-поток потом ловит «ступеньку» спреда.
+    v2.11: счётчик читается напрямую из калькулятора (а не из снимка ``spread_state``,
+    который к моменту проверки уже успевал подрасти) — раньше предупреждение не
+    срабатывало даже при 1 наблюдении из 41 940.
     """
     need = max(int(engine.params.beta_min_samples), 2)
-    observed = int(state.get("betaObservations", 0))
+    calc = getattr(engine, "_calc", None)
+    observed = int(getattr(calc, "beta_observations", state.get("betaObservations", 0)))
     if observed >= need:
         return
     log.warning(
         "Прогрев не оценил бету %s/%s: наблюдений %d из %d, используется статическая "
-        "бета %.4f — mu/sigma спреда недостоверны",
+        "бета %.4f — входы будут заблокированы до оценки (betaNotEstimatedSkips)",
         preset.leg1.ticker,
         preset.leg2.ticker,
         observed,
         need,
-        float(state.get("betaSlow", 0.0)),
+        float(getattr(calc, "beta", state.get("betaSlow", 0.0))),
     )
 
 
@@ -227,4 +231,5 @@ async def bootstrap_warmup(
         regime_samples=int(state["regimeSamples"]),
     )
     log.info(report.render())
+    _warn_if_beta_not_estimated(log, preset, engine, state)
     return report

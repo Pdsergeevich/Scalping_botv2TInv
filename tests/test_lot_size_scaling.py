@@ -56,13 +56,21 @@ def _engine_for(tmp_path, leg1, leg2, params):
     return config, clock, fee, gateway, engine, ledger
 
 
-async def _warm(engine, clock, gateway, price1: Decimal, price2: Decimal, step2: Decimal) -> None:
+async def _warm(
+    engine,
+    clock,
+    gateway,
+    price1: Decimal,
+    price2: Decimal,
+    step2: Decimal,
+    shock_steps: int = 40,
+) -> None:
     """Прогрев с колебанием спреда + шок Leg2, чтобы появились mu, sigma и бета."""
     for index in range(80):
         p2 = price2 if index % 2 == 0 else price2 + step2
         await _tick(engine, clock, gateway, price1, p2)
     for _ in range(3):
-        await _tick(engine, clock, gateway, price1, price2 + 40 * step2)
+        await _tick(engine, clock, gateway, price1, price2 + shock_steps * step2)
 
 
 def _position_from_metrics(
@@ -86,10 +94,13 @@ def _position_from_metrics(
     )
 
 
-def _measure(tmp_path, leg1, leg2, params, price1: Decimal, price2: Decimal, step2: Decimal):
+def _measure(
+    tmp_path, leg1, leg2, params, price1: Decimal, price2: Decimal, step2: Decimal,
+    shock_steps: int = 40,
+):
     async def scenario():
         config, clock, fee, gateway, engine, ledger = _engine_for(tmp_path, leg1, leg2, params)
-        await _warm(engine, clock, gateway, price1, price2, step2)
+        await _warm(engine, clock, gateway, price1, price2, step2, shock_steps)
         metrics = engine.metrics
         fee_rt = engine._current_round_trip_fee(1)  # noqa: SLF001
         position = _position_from_metrics(engine, fee_rt, metrics.best_bid_leg1)
@@ -166,7 +177,12 @@ def test_tp_target_is_in_leg1_rubles_not_spread_rubles(tmp_path):
     leg2 = make_spot("SBER", lot=1, price_step="0.01", uid="uid-SBER")
     params = _params(beta_mode="slow_ratio")
 
-    result = _measure(tmp_path, leg1, leg2, params, dec("50.00"), dec("300.00"), dec("0.01"))
+    # Шок 200 шагов: девиационная ветка цели должна доминировать над «полом комиссии»
+    # (после v2.11 EWMA пересевается, и mu корректна — на малом шоке цель упирается
+    # в 2.5 × комиссию, что делает проверку деления на бету бессмысленной).
+    result = _measure(
+        tmp_path, leg1, leg2, params, dec("50.00"), dec("300.00"), dec("0.01"), shock_steps=200
+    )
 
     beta = result["beta"]
     assert beta > 1.5, f"ожидалась бета порядка V2/V1, получено {beta}"

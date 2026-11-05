@@ -14,7 +14,14 @@ from bot_a.engine.fsm import StrategyParams
 from bot_a.engine.ledger import PortfolioLedger
 from bot_a.execution.simulated_gateway import SimulatedOrderExecutionGateway
 from bot_a.models.domain import ExecutionTopology, MarketEvent, OrderBookSnapshot
-from bot_a.utils.time_provider import SimulatedTimeProvider
+from bot_a.utils.time_provider import SimulatedTimeProvider, ms_to_msk
+
+
+def _day_start_ms(time_ms: int) -> int:
+    """Начало торгового дня (полночь MSK) для ``time_ms`` — в миллисекундах UTC."""
+    moment = ms_to_msk(int(time_ms))
+    midnight = moment.replace(hour=0, minute=0, second=0, microsecond=0)
+    return int(midnight.timestamp() * 1000)
 
 
 @dataclass(slots=True)
@@ -95,13 +102,18 @@ async def simulate_events(
         from bot_a.services.bootstrap import bootstrap_warmup
 
         anchor = first_event.time_ms if start_ms is None else start_ms
+        # v2.12: прогреваем строго ДО начала торгового дня записи. Иначе в окно попадают
+        # свечи самого дня, а кэш ISS текущего дня дописывается живой сессией — и один
+        # и тот же бэктест даёт разные цифры в течение дня (05.11: `VTBR` −3.72 → 0.00
+        # между двумя прогонами с интервалом в 3 минуты).
+        warmup_end_ms = _day_start_ms(anchor) - 1
         try:
             await bootstrap_warmup(
                 config,
                 preset,
                 engine,
                 days=int(warmup_days),
-                end_ms=anchor - 1,
+                end_ms=warmup_end_ms,
                 logger=log,
                 clock=clock,
             )

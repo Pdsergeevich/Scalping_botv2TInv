@@ -129,6 +129,8 @@ class StrategyParams:
     use_daily_stop_breaker: bool = True
     max_daily_hard_stops: int = 1
     max_daily_loss_fee_multiple: Decimal = Decimal("3.5")
+    #: v2.11: нижняя граница дневного лимита в единицах σ_Leg1 позиции.
+    daily_stop_sigma_multiple: float = 1.5
     use_macro_beta_drift_guard: bool = True
     macro_beta_window: int = 14400
     macro_beta_min_samples: int = 1800
@@ -173,6 +175,12 @@ class StrategyParams:
     #: Доля MAE (0..1), при которой позиция считается «у худшего уровня» — там работает
     #: стоп, а не тайм-выход. 0 — без проверки (поведение из ТЗ v2.9).
     stagnation_max_mae_fraction: float = 0.0
+    # --- v2.11: абсолютный предохранитель цели тейка (для ВСЕХ пар) ---
+    # Даже при верной бете цель не может требовать нереального хода цены: 9733 шага
+    # (–88 % цены) на VTBR 05.11 появились именно из-за отсутствия такого потолка.
+    #: Ужесточённые потолки для пар с бетой меньше ``tp_cap_beta_threshold``.
+    tp_tight_sigma_multiple: float = 0.0
+    tp_tight_notional_fraction: float = 0.0
     # --- v2.10: анти-нож по импульсу Leg1 (ловля падающего слейва) ---
     # Вход блокируется, если Leg1 в последнюю минуту ускоряется ПРОТИВ сделки,
     # пройдя не меньше antiKnifeMinSteps шагов цены (IRAO 02.11 11:22: 14.8 шагов/мин
@@ -186,6 +194,17 @@ class StrategyParams:
     #: «отпускать» фильтр ровно на дне (IRAO 02.11: вход сместился на 11:23:51 и всё
     #: равно дал −14.31 RUB). 0 — без паузы.
     anti_knife_cooldown_seconds: int = 0
+    # --- v2.12: медленный нож — 3-минутный устойчивый дрейф Leg1 против сделки ---
+    # `VTBR` 02.11 11:37 `BUY` (−19.42 RUB): 21 шаг = 1.47 σ за 3 минуты ровным темпом
+    # (~7 шагов/мин), поэтому «ускорение за 60 с» его не видело.
+    anti_knife_bleed_seconds: int = 180
+    anti_knife_bleed_min_steps: int = 0
+    anti_knife_bleed_sigma_multiple: float = 0.0
+    anti_knife_bleed_max_lead_share: float = 0.15
+    # --- v2.12: зрелость статистики после пересева беты ---
+    # 0 — выключено. 240 сэмплов = 20 минут по 5 с: столько нужно, чтобы σ после
+    # пересева на короткой истории отражала реальную волатильность.
+    min_samples_after_beta_reseed: int = 0
 
     def with_overrides(self, **overrides: Any) -> "StrategyParams":
         return replace(self, **overrides)
@@ -252,6 +271,7 @@ class StrategyParams:
             "useDailyStopBreaker": self.use_daily_stop_breaker,
             "maxDailyHardStops": self.max_daily_hard_stops,
             "maxDailyLossFeeMultiple": str(self.max_daily_loss_fee_multiple),
+            "dailyStopSigmaMultiple": self.daily_stop_sigma_multiple,
             "useMacroBetaDriftGuard": self.use_macro_beta_drift_guard,
             "macroBetaWindow": self.macro_beta_window,
             "maxBetaDrift": self.max_beta_drift,
@@ -274,12 +294,19 @@ class StrategyParams:
             "stagnationLossFeeMultiple": self.stagnation_loss_fee_multiple,
             "stagnationMinZReversion": self.stagnation_min_z_reversion,
             "stagnationMaxMaeFraction": self.stagnation_max_mae_fraction,
+            "tpTightSigmaMultiple": self.tp_tight_sigma_multiple,
+            "tpTightNotionalFraction": self.tp_tight_notional_fraction,
             "useAntiKnifeFilter": self.use_anti_knife_filter,
             "antiKnifeWindowSeconds": self.anti_knife_window_seconds,
             "antiKnifeBaselineSeconds": self.anti_knife_baseline_seconds,
             "antiKnifeMinSteps": self.anti_knife_min_steps,
             "antiKnifeAccelMultiple": self.anti_knife_accel_multiple,
             "antiKnifeCooldownSeconds": self.anti_knife_cooldown_seconds,
+            "antiKnifeBleedSeconds": self.anti_knife_bleed_seconds,
+            "antiKnifeBleedMinSteps": self.anti_knife_bleed_min_steps,
+            "antiKnifeBleedSigmaMultiple": self.anti_knife_bleed_sigma_multiple,
+            "antiKnifeBleedMaxLeadShare": self.anti_knife_bleed_max_lead_share,
+            "minSamplesAfterBetaReseed": self.min_samples_after_beta_reseed,
             "stopSigmaGraceSeconds": self.stop_sigma_grace_seconds,
             "stopVolatilityRatio": self.stop_volatility_ratio,
         }
@@ -377,6 +404,9 @@ class StrategyParams:
             max_daily_loss_fee_multiple=dec(
                 data.get("maxDailyLossFeeMultiple", defaults.max_daily_loss_fee_multiple)
             ),
+            daily_stop_sigma_multiple=float(
+                data.get("dailyStopSigmaMultiple", defaults.daily_stop_sigma_multiple)
+            ),
             use_macro_beta_drift_guard=bool(
                 data.get("useMacroBetaDriftGuard", defaults.use_macro_beta_drift_guard)
             ),
@@ -448,6 +478,12 @@ class StrategyParams:
             stagnation_max_mae_fraction=float(
                 data.get("stagnationMaxMaeFraction", defaults.stagnation_max_mae_fraction)
             ),
+            tp_tight_sigma_multiple=float(
+                data.get("tpTightSigmaMultiple", defaults.tp_tight_sigma_multiple)
+            ),
+            tp_tight_notional_fraction=float(
+                data.get("tpTightNotionalFraction", defaults.tp_tight_notional_fraction)
+            ),
             use_anti_knife_filter=bool(
                 data.get("useAntiKnifeFilter", defaults.use_anti_knife_filter)
             ),
@@ -465,6 +501,23 @@ class StrategyParams:
             ),
             anti_knife_cooldown_seconds=int(
                 data.get("antiKnifeCooldownSeconds", defaults.anti_knife_cooldown_seconds)
+            ),
+            anti_knife_bleed_seconds=int(
+                data.get("antiKnifeBleedSeconds", defaults.anti_knife_bleed_seconds)
+            ),
+            anti_knife_bleed_min_steps=int(
+                data.get("antiKnifeBleedMinSteps", defaults.anti_knife_bleed_min_steps)
+            ),
+            anti_knife_bleed_sigma_multiple=float(
+                data.get("antiKnifeBleedSigmaMultiple", defaults.anti_knife_bleed_sigma_multiple)
+            ),
+            anti_knife_bleed_max_lead_share=float(
+                data.get("antiKnifeBleedMaxLeadShare", defaults.anti_knife_bleed_max_lead_share)
+            ),
+            min_samples_after_beta_reseed=int(
+                data.get(
+                    "minSamplesAfterBetaReseed", defaults.min_samples_after_beta_reseed
+                )
             ),
         )
 
@@ -522,12 +575,15 @@ class PairScalpingStateMachine:
             stat_freeze_until_msk=params.stat_freeze_until_msk,
             stat_freeze_windows=params.stat_freeze_windows,
             max_valid_spread_bps=params.max_valid_spread_bps,
+            min_samples_after_beta_reseed=params.min_samples_after_beta_reseed,
         )
         self._state = FsmState.WARMUP
         self._state_since_ms = clock.now_ms()
         self._last_metrics: Optional[SpreadMetrics] = None
         # v2.10: история микропрайса Leg1 для анти-нож фильтра (последние ~10 минут).
         self._leg1_ticks: Deque[Tuple[int, Decimal]] = deque(maxlen=20_000)
+        #: v2.12: история Leg2 — нужна для `lead_share` при оценке «медленного ножа».
+        self._leg2_ticks: Deque[Tuple[int, Decimal]] = deque(maxlen=20_000)
         #: До какого момента (мс) вход в данную сторону заблокирован анти-нож фильтром.
         self._knife_block_until: Dict[Side, int] = {}
         self._position: Optional[OpenPosition] = None
@@ -573,6 +629,8 @@ class PairScalpingStateMachine:
             "persistenceSkips": 0,
             "statFrozenSkips": 0,
             "antiKnifeSkips": 0,
+            "betaNotEstimatedSkips": 0,
+            "reseedWarmupSkips": 0,
             "ratchetExits": 0,
             "entries": 0,
             "rejects": 0,
@@ -766,39 +824,63 @@ class PairScalpingStateMachine:
 
     # ------------------------------------------------------------------ v2.2: фильтры входа
     def _remember_leg1_price(self, metrics: SpreadMetrics) -> None:
-        """v2.10: копит микропрайс Leg1 с таймстемпами (окно анти-нож фильтра)."""
-        if not self._params.use_anti_knife_filter or metrics.micro_leg1 <= 0:
+        """v2.10: копит микропрайс Leg1 (и Leg2, v2.12) — окно анти-нож фильтра."""
+        if not self._params.use_anti_knife_filter:
             return
-        keep_ms = (max(self._params.anti_knife_baseline_seconds, 60) + 60) * 1000
+        if metrics.micro_leg1 <= 0 or metrics.micro_leg2 <= 0:
+            return
+        params = self._params
+        keep_ms = (
+            max(
+                params.anti_knife_baseline_seconds,
+                params.anti_knife_bleed_seconds,
+                60,
+            )
+            + 60
+        ) * 1000
         self._leg1_ticks.append((int(metrics.time_ms), metrics.micro_leg1))
+        self._leg2_ticks.append((int(metrics.time_ms), metrics.micro_leg2))
         cutoff = int(metrics.time_ms) - keep_ms
         while self._leg1_ticks and self._leg1_ticks[0][0] < cutoff:
             self._leg1_ticks.popleft()
+        while self._leg2_ticks and self._leg2_ticks[0][0] < cutoff:
+            self._leg2_ticks.popleft()
+
+    @staticmethod
+    def _price_at(ticks: "Deque[Tuple[int, Decimal]]", time_ms: int) -> Optional[Decimal]:
+        """Последняя цена в истории не позже ``time_ms`` (``None``, если истории мало)."""
+        for stamp, price in reversed(ticks):
+            if stamp <= time_ms:
+                return price
+        return None
 
     def _leg1_price_at(self, time_ms: int) -> Optional[Decimal]:
-        """Последняя цена Leg1 не позже ``time_ms`` (``None``, если истории не хватает)."""
-        found: Optional[Decimal] = None
-        for stamp, price in reversed(self._leg1_ticks):
-            if stamp <= time_ms:
-                found = price
-                break
-        return found
+        return self._price_at(self._leg1_ticks, time_ms)
 
     def _anti_knife_reason(self, side: Side, now_ms: int) -> Optional[str]:
-        """v2.10: не входим в ускоряющееся движение Leg1 против сделки.
+        """Анти-нож: два независимых признака входа «в падающий слейв».
 
-        Единственная убыточная сделка портфеля (`IRAO_SBER` 02.11 11:22:41 `BUY`,
-        `−15.91 RUB`) отличалась от пяти прибыльных не направлением ведущей ноги, а
-        **скоростью падения самой Leg1**: 14.8 шага цены за последнюю минуту при
-        ускорении 1.92 (у прибыльных: 1.5–11.5 шагов и ускорение 0.82–1.15).
+        **Быстрый нож (v2.10).** `IRAO_SBER` 02.11 11:22:41 `BUY` (`−15.91 RUB`) отличался
+        не направлением ведущей ноги, а **скоростью падения Leg1**: 14.8 шага цены за
+        последнюю минуту при ускорении 1.92 (у прибыльных: 1.5–11.5 шагов, ускорение
+        0.82–1.15). Условия: ``antiKnifeMinSteps`` шагов за ``antiKnifeWindowSeconds``
+        И ускорение ≥ ``antiKnifeAccelMultiple`` относительно
+        ``antiKnifeBaselineSeconds``.
 
-        Вход блокируется, если оба условия верны:
+        **Медленный нож (v2.12).** `VTBR_SBER` 02.11 11:37:21 `BUY` (`−19.42 RUB`, худшая
+        сделка окна) — 21 шаг = **1.47 σ** ровным темпом ~7 шагов/мин за 3 минуты, то есть
+        без ускорения в последней минуте; быстрый фильтр его пропускал. Условия
+        (``antiKnifeBleedMinSteps`` > 0):
 
-        * Leg1 прошла против сделки не меньше ``antiKnifeMinSteps`` шагов цены за
-          ``antiKnifeWindowSeconds`` (по умолчанию 60 с);
-        * скорость этого движения не меньше ``antiKnifeAccelMultiple`` (1.5) от
-          средней скорости против сделки за ``antiKnifeBaselineSeconds`` (300 с) —
-          то есть движение ускоряется, а не выдыхается.
+        * Leg1 прошла против сделки ≥ ``antiKnifeBleedMinSteps`` шагов за
+          ``antiKnifeBleedSeconds`` (180 с);
+        * это ≥ ``antiKnifeBleedSigmaMultiple`` σ_Leg1 позиции;
+        * ``lead_share`` за то же окно ≤ ``antiKnifeBleedMaxLeadShare`` — ведущая нога
+          **не** двигала спред (Leg1 «кровит» сама либо обе ноги валятся вместе).
+
+        Третье условие — то, что спасает `MTLR` 28.10 (`+14.23 RUB`): там за 3 минуты в
+        сторону сделки прошли **обе** ноги (`lead_share = +0.18`), это настоящий лид-лаг,
+        а не идиосинкразическое падение спутника.
         """
         params = self._params
         if not params.use_anti_knife_filter or not self._leg1_ticks:
@@ -810,6 +892,18 @@ class PairScalpingStateMachine:
                 f"пауза после ножа ещё {(blocked_until - now_ms) / 1000:.0f} с "
                 f"(всего {params.anti_knife_cooldown_seconds} с)"
             )
+        reason = self._fast_knife_reason(side, now_ms) or self._bleed_knife_reason(
+            side, now_ms
+        )
+        if reason is None:
+            return None
+        if cooldown_ms > 0:
+            self._knife_block_until[side] = now_ms + cooldown_ms
+        return reason
+
+    def _fast_knife_reason(self, side: Side, now_ms: int) -> Optional[str]:
+        """v2.10: ускоряющееся движение Leg1 против сделки за последнюю минуту."""
+        params = self._params
         window_ms = max(int(params.anti_knife_window_seconds), 1) * 1000
         base_ms = max(int(params.anti_knife_baseline_seconds), 1) * 1000
         now_price = self._leg1_price_at(now_ms)
@@ -833,12 +927,61 @@ class PairScalpingStateMachine:
         accel = math.inf if rate_base <= 1e-9 else rate_now / rate_base
         if accel < params.anti_knife_accel_multiple:
             return None
-        if cooldown_ms > 0:
-            self._knife_block_until[side] = now_ms + cooldown_ms
         return (
             f"Leg1 против сделки {float(adverse_now):.1f} шагов за "
             f"{window_ms / 1000:.0f} с при ускорении {accel:.2f} "
             f"(порог {params.anti_knife_min_steps} шагов / {params.anti_knife_accel_multiple})"
+        )
+
+    def _bleed_knife_reason(self, side: Side, now_ms: int) -> Optional[str]:
+        """v2.12: устойчивый дрейф Leg1 против сделки за ``antiKnifeBleedSeconds``."""
+        params = self._params
+        if params.anti_knife_bleed_min_steps <= 0:
+            return None
+        bleed_ms = max(int(params.anti_knife_bleed_seconds), 1) * 1000
+        now_price = self._leg1_price_at(now_ms)
+        past_price = self._leg1_price_at(now_ms - bleed_ms)
+        now_price2 = self._price_at(self._leg2_ticks, now_ms)
+        past_price2 = self._price_at(self._leg2_ticks, now_ms - bleed_ms)
+        if now_price is None or past_price is None:
+            return None
+        if now_price2 is None or past_price2 is None:
+            return None
+        step = self._leg1.min_price_increment
+        if step <= 0:
+            return None
+        sign = Decimal(1) if side is Side.BUY else Decimal(-1)
+        price_move = (now_price - past_price) * sign
+        adverse_steps = -price_move / step
+        if adverse_steps < Decimal(params.anti_knife_bleed_min_steps):
+            return None
+        metrics = self._last_metrics
+        sigma_leg1_rub = 0.0
+        beta = 1.0
+        if metrics is not None:
+            beta = float(metrics.beta) if abs(metrics.beta) > 1e-9 else 1.0
+            sigma_leg1_rub = float(metrics.sigma_rub) / beta
+        if sigma_leg1_rub <= 1e-9:
+            return None
+        adverse_rub = float(-price_move * self._leg1.rub_per_price_unit)
+        sigma_multiple = adverse_rub / sigma_leg1_rub
+        if sigma_multiple < params.anti_knife_bleed_sigma_multiple:
+            return None
+        # Вклад ног в рост спреда S = V2 − β·V1 за окно кровотечения.
+        leg1_part = -beta * float((now_price - past_price) * self._leg1.rub_per_price_unit)
+        leg2_part = float(
+            (now_price2 - past_price2) * self._leg2.rub_per_price_unit
+        )
+        total = abs(leg2_part) + abs(leg1_part)
+        lead_share = leg2_part / total if total > 1e-9 else 0.0
+        if lead_share > params.anti_knife_bleed_max_lead_share:
+            return None
+        return (
+            f"Leg1 против сделки {float(adverse_steps):.1f} шагов = "
+            f"{sigma_multiple:.2f} σ за {bleed_ms / 1000:.0f} с "
+            f"(lead_share {lead_share:+.2f} ≤ {params.anti_knife_bleed_max_lead_share}; "
+            f"порог {params.anti_knife_bleed_min_steps} шагов / "
+            f"{params.anti_knife_bleed_sigma_multiple} σ)"
         )
 
     def _update_z_peak(self, z: float, allow_arm: bool = True) -> None:
@@ -1009,6 +1152,8 @@ class PairScalpingStateMachine:
             "betaSlow": self._calc.beta,
             "betaMacro": self._calc.beta_macro,
             "betaObservations": self._calc.beta_observations,
+            "betaEstimated": self._calc.beta_estimated,
+            "betaReseeds": self._calc.beta_reseeds,
             "macroSamples": self._calc.macro_samples,
             "betaDriftPct": (drift * 100.0) if drift is not None else None,
             "regimeSamples": len(self._regime_v1),
@@ -1019,6 +1164,19 @@ class PairScalpingStateMachine:
     def daily_locked_reason(self) -> Optional[str]:
         return self._daily_locked_reason
 
+    def _pair_label(self) -> str:
+        """v2.11: метка пары для логов (`VTBR/SBER`) — иначе в `ALL_ACTIVE` не понять,
+        чья это строка."""
+        return f"{self._leg1.ticker}/{self._leg2.ticker}"
+
+    @property
+    def pair_label(self) -> str:
+        return self._pair_label()
+
+    @property
+    def beta_estimated(self) -> bool:
+        """v2.11: бета реально оценена (гейт входов `betaNotEstimatedSkips`)."""
+        return self._calc.beta_estimated
     @property
     def daily_net_rub(self) -> Decimal:
         return self._daily_net_rub
@@ -1041,8 +1199,16 @@ class PairScalpingStateMachine:
             self._topology,
         )
 
-    def _register_daily_outcome(self, reason: ExitReason, net: Decimal, closed_ms: int) -> None:
-        """Обновляет дневную статистику пары и при необходимости ставит блокировку."""
+    def _register_daily_outcome(
+        self, reason: ExitReason, net: Decimal, closed_ms: int, sigma_leg1_pos: Decimal = ZERO
+    ) -> None:
+        """Обновляет дневную статистику пары и при необходимости ставит блокировку.
+
+        v2.11: порог дневного убытка — ``max(mult × fee, 1.5 × σ_Leg1,позиции)``. Раньше
+        на 55 лотах лимит `3.5 × fee = 5.32 RUB` был меньше нормального стопа по σ
+        (10–20 RUB), и одна честная сделка закрывала паре день (05.11: `VTBR` встал в
+        11:23 и не торговал 8 часов).
+        """
         params = self._params
         self._roll_daily(closed_ms)
         self._daily_net_rub += net
@@ -1057,14 +1223,19 @@ class PairScalpingStateMachine:
             limit = -dec(params.max_daily_loss_fee_multiple) * self._current_round_trip_fee(
                 params.quantity_lots
             )
+            sigma_floor = -sigma_leg1_pos * dec(params.daily_stop_sigma_multiple)
+            if sigma_floor < limit:
+                limit = sigma_floor
             if limit < ZERO and self._daily_net_rub <= limit:
                 self._daily_locked_reason = (
                     f"дневной убыток {self._daily_net_rub} RUB <= {limit} RUB "
-                    f"({params.max_daily_loss_fee_multiple} x комиссия круга)"
+                    f"({params.max_daily_loss_fee_multiple} x комиссия круга либо "
+                    f"{params.daily_stop_sigma_multiple} x σ_Leg1={sigma_leg1_pos} RUB)"
                 )
         if self._daily_locked_reason is not None:
             self._log.info(
-                "Дневной предохранитель пары сработал: %s (net за день %s RUB)",
+                "%s: дневной предохранитель сработал: %s (net за день %s RUB)",
+                self._pair_label(),
                 self._daily_locked_reason,
                 self._daily_net_rub,
             )
@@ -1076,6 +1247,33 @@ class PairScalpingStateMachine:
             # v2.4.1: во время прогрева только наполняем статистику, торговля запрещена.
             self._update_z_peak(metrics.zscore)
             self._update_regime(metrics)
+            return
+        if not self._calc.beta_estimated:
+            # v2.11: без оценённой беты спред измерен в чужом масштабе — 05.11 это дало
+            # `mu` = 235 RUB при реальном спреде 1 RUB, |Z| = 34 и тейк на 9733 шага.
+            self._counters["betaNotEstimatedSkips"] += 1
+            self._log_throttled(
+                "beta-not-estimated",
+                logging.WARNING,
+                "%s: бета не оценена (%d/%d наблюдений) — входы запрещены, "
+                "спред и Z недостоверны",
+                self._pair_label(),
+                self._calc.beta_observations,
+                params.beta_min_samples,
+            )
+            return
+        if not self._calc.stats_mature:
+            # v2.12: бета только что оценена на короткой истории — σ ещё незрелая
+            # (05.11: 0.110 ₽ в 10:10 против 0.318 ₽ в 11:07), входы запрещены.
+            self._counters["reseedWarmupSkips"] += 1
+            self._log_throttled(
+                "reseed-warmup",
+                logging.WARNING,
+                "%s: σ незрелая после пересева беты (%d/%d сэмплов) — входы запрещены",
+                self._pair_label(),
+                self._calc.post_reseed_samples,
+                params.min_samples_after_beta_reseed,
+            )
             return
         zscore = metrics.zscore
         long_signal = zscore >= params.z_entry and metrics.obi_leg1 > -params.obi_entry_guard
@@ -1123,7 +1321,8 @@ class PairScalpingStateMachine:
             self._log_throttled(
                 "daily-stop",
                 logging.INFO,
-                "Дневной предохранитель: %s — входы по паре заблокированы до конца дня",
+                "%s: дневной предохранитель — %s: входы по паре заблокированы до конца дня",
+                self._pair_label(),
                 self._daily_locked_reason,
             )
             return
@@ -1196,7 +1395,8 @@ class PairScalpingStateMachine:
             self._log_throttled(
                 "anti-knife",
                 logging.INFO,
-                "Анти-нож: вход %s Leg1 заблокирован — %s",
+                "%s: анти-нож — вход %s Leg1 заблокирован: %s",
+                self._pair_label(),
                 side.value,
                 knife_reason,
             )
@@ -1400,7 +1600,7 @@ class PairScalpingStateMachine:
             return
         stagnation = self._stagnation_reason(position, metrics, z_frozen, hold_seconds)
         if stagnation is not None:
-            self._log.info("Мёртвый спред: %s", stagnation)
+            self._log.info("%s: мёртвый спред — %s", self._pair_label(), stagnation)
             await self._start_timed_exit(ExitReason.STAGNATION, metrics)
             return
         await self._maybe_decay_tp(position)
@@ -1748,7 +1948,8 @@ class PairScalpingStateMachine:
         position.tp_target_rub = target_rub
         position.tags["tpTargetRub"] = str(target_rub)
         self._log.info(
-            "Мейкерский тейк-профит Leg1 @ %s (цель %s RUB, %.0f шагов)",
+            "%s: мейкерский тейк-профит Leg1 @ %s (цель %s RUB, %.0f шагов)",
+            self._pair_label(),
             price,
             target_rub,
             float(abs(price - position.leg1_entry_price) / self._leg1.min_price_increment),
@@ -1768,19 +1969,30 @@ class PairScalpingStateMachine:
         «+10 %» возникает только при β < 1, когда деление девиации на бету УМНОЖАЕТ
         цель. Для VTBR (β ≈ 5.1) и MTLR (β ≈ 7.6) тот же потолок резал прибыльные
         тейки вдвое (реальные L2: VTBR +14.18 → +7.88, MTLR +22.04 → +11.23 RUB).
+
+        v2.11: абсолютный предохранитель вернулся для ВСЕХ пар
+        (``tpMaxSigmaMultiple`` / ``tpMaxNotionalFraction``) — иначе при испорченной
+        базе (`mu` на 235 RUB при реальном спреде 1 RUB) цель уезжала на 9733 шага.
+        Для пар с β < ``tp_cap_beta_threshold`` дополнительно действуют узкие
+        ``tpTightSigmaMultiple`` / ``tpTightNotionalFraction``.
         """
         params = self._params
-        beta = abs(position.frozen_beta) if position.frozen_beta else 1.0
-        if params.tp_cap_beta_threshold > 0 and beta >= params.tp_cap_beta_threshold:
-            return ZERO
         remaining = max(position.leg1_filled_qty - position.leg1_closed_qty, 1)
         notional = position.leg1_entry_price * self._leg1.rub_per_price_unit * Decimal(remaining)
+        sigma_leg1 = self._sigma_leg1_rub_of(position) * Decimal(remaining)
+        beta = abs(position.frozen_beta) if position.frozen_beta else 1.0
+        tight = params.tp_cap_beta_threshold > 0 and beta < params.tp_cap_beta_threshold
+
         caps: List[Decimal] = []
-        if notional > 0:
+        if notional > 0 and params.tp_max_notional_fraction > 0:
             caps.append(notional * dec(params.tp_max_notional_fraction))
-        sigma_leg1 = self._sigma_leg1_rub_of(position)
-        if sigma_leg1 > 0:
-            caps.append(sigma_leg1 * Decimal(remaining) * dec(params.tp_max_sigma_multiple))
+        if sigma_leg1 > 0 and params.tp_max_sigma_multiple > 0:
+            caps.append(sigma_leg1 * dec(params.tp_max_sigma_multiple))
+        if tight:
+            if notional > 0 and params.tp_tight_notional_fraction > 0:
+                caps.append(notional * dec(params.tp_tight_notional_fraction))
+            if sigma_leg1 > 0 and params.tp_tight_sigma_multiple > 0:
+                caps.append(sigma_leg1 * dec(params.tp_tight_sigma_multiple))
         if not caps:
             return ZERO
         return min(caps)
@@ -2264,7 +2476,13 @@ class PairScalpingStateMachine:
             return
         position.tags["exitMarketSent"] = True
         self._register_order(ROLE_EXIT_LEG1_MARKET, ack.order_id)
-        self._log.info("Рыночный выход Leg1: %s %d (%s)", side.value, remaining, reason)
+        self._log.info(
+            "%s: рыночный выход Leg1: %s %d (%s)",
+            self._pair_label(),
+            side.value,
+            remaining,
+            reason,
+        )
 
     async def _on_leg1_exit_fill(self, position: OpenPosition, event: ExecutionEvent) -> None:
         role = self._role_by_order.get(event.order_id)
@@ -2343,7 +2561,9 @@ class PairScalpingStateMachine:
             if order_id is not None:
                 await self._gateway.cancel_order(order_id)
             self._release_role(role)
-        self._log.warning("Аварийное закрытие (%s): %s", reason.value, detail)
+        self._log.warning(
+            "%s: аварийное закрытие (%s): %s", self._pair_label(), reason.value, detail
+        )
 
         remaining_leg1 = position.leg1_filled_qty - position.leg1_closed_qty
         remaining_leg2 = position.leg2_filled_qty - position.leg2_closed_qty
@@ -2420,7 +2640,10 @@ class PairScalpingStateMachine:
         )
         self._ledger.register(trade)
         self._guard.register_trade_pnl(net, closed_ms)
-        self._register_daily_outcome(reason, net, closed_ms)
+        sigma_leg1_pos = self._sigma_leg1_rub_of(position) * Decimal(
+            max(position.leg1_filled_qty, 1)
+        )
+        self._register_daily_outcome(reason, net, closed_ms, sigma_leg1_pos)
         self._counters["trades"] += 1
         self._log.info(
             "Сделка #%d закрыта: %s | %s %d | gross=%s RUB | fees=%s RUB | net=%s RUB | удержание %.1f c",
