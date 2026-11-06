@@ -39,6 +39,9 @@ from bot_a.services.front_contracts import deduplicate, underlying_family  # noq
 from multiregime_scan import available_continuous, v32_params, with_engines  # noqa: E402
 
 PERPETUALS = ("CNYRUBF", "GLDRUBF", "USDRUBF", "EURRUBF", "IMOEXF", "GAZPF")
+# v4.4: индексные прокси США/иностранные — широкий реальный спред, в универсум по
+# умолчанию не входят (включаются флагом `--allow-foreign`).
+FOREIGN_INDEX = ("NASD_CONT", "SPYF_CONT")
 ENGINES = ("A", "B", "C", "ABC")
 # Две половины OOS: и обе должны быть в плюсе — иначе прибыль держится на одном
 # всплеске (это и есть главный признак подгонки, обнаруженный в отчёте §3).
@@ -65,6 +68,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--risk", type=float, default=1.0)
     parser.add_argument("--min-trades", type=int, default=3)
     parser.add_argument("--no-dedup", action="store_true", help="не сводить базовые активы к одному инструменту")
+    parser.add_argument("--allow-foreign", action="store_true",
+                        help="разрешить NASD_CONT/SPYF_CONT (по умолчанию исключены)")
     parser.add_argument("--walk-forward-latest", action="store_true",
                         help="роллинг-отбор на последнюю дату (v4.2): корзина для live/paper")
     parser.add_argument("--update-config", action="store_true",
@@ -80,6 +85,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     cont = available_continuous()
     tickers = [t for t in PERPETUALS if any((ROOT / "data_cache").glob(f"iss_forts_{t}_*.json"))]
     tickers += sorted(cont.values())
+    if not args.allow_foreign:
+        tickers = [t for t in tickers if t not in FOREIGN_INDEX]
     print(f"инструментов: {len(tickers)}", flush=True)
 
     base = v32_params(args.bars, True)
@@ -205,6 +212,8 @@ def _walk_forward_latest(args) -> int:
     cont = available_continuous()
     tickers = [t for t in PERPETUALS if any((ROOT / "data_cache").glob(f"iss_forts_{t}_*.json"))]
     tickers += sorted(cont.values())
+    if not getattr(args, "allow_foreign", False):
+        tickers = [t for t in tickers if t not in FOREIGN_INDEX]
     tickers = sorted(set(tickers))
     candles = {ticker: load_candles(ticker, "2026-04-25", "2026-11-05", args.bars) for ticker in tickers}
     metas = {ticker: load_meta(ticker) for ticker in tickers}

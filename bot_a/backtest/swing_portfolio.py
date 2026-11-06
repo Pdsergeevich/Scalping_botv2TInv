@@ -24,6 +24,7 @@ from bot_a.backtest.breakout_backtest import BreakoutResult, BreakoutTrade
 from bot_a.backtest.candles import Candle
 from bot_a.economics.fees import Tariff, TinkoffFeeCalculator
 from bot_a.engine.multiregime_fsm import regime_machine
+from bot_a.backtest import rolls as roll_map
 from bot_a.engine.breakout_fsm import (
     Bar,
     BreakoutEvent,
@@ -68,6 +69,11 @@ class SwingAccountSettings:
     # и общий лимит открытых позиций отдельно от лимита «под риском».
     free_slot_on_breakeven: bool = False
     max_total_open_positions: int = 8
+    # v4.4: доля бюджета ГО на одну позицию. Тяжёлые контракты (`USDRUBF` ГО 12 316 ₽,
+    # `EURRUBF` ~13 500 ₽) съедали 50–70 % лимита и «морили голодом» лёгкие пары
+    # (`GAZR`, `BRM`, `PLZLM`, `CNY`). 0 = без ограничения (по умолчанию выключено,
+    # включается в `WalkForwardSettings`/`swingPortfolio` конфига).
+    max_position_margin_pct: float = 0.0
 
 
 @dataclass(slots=True)
@@ -83,6 +89,7 @@ class AccountPosition:
     entry_fee: Decimal
     atr_points: float
     stop_points: float
+    adj: float = 0.0  # v4.4: сдвиг back-adjustment серии (сырая цена = price − adj)
     virtual: bool = False  # «виртуальная» сделка при паузе: считается, но не торгуется
 
 
@@ -254,6 +261,9 @@ class SwingAccountBacktester:
         free_cash = max(min(util_cap, equity) - margin_used, 0.0)
         by_margin = int(free_cash // margin_per_contract) if margin_per_contract > 0 else by_risk
         quantity = max(min(by_risk, by_margin), 0)
+        if settings.max_position_margin_pct > 0 and margin_per_contract > 0:
+            per_position = util_cap * float(settings.max_position_margin_pct) / 100.0
+            quantity = min(quantity, int(per_position // margin_per_contract))
         if settings.max_contracts_per_trade > 0:
             quantity = min(quantity, settings.max_contracts_per_trade)
         return quantity
@@ -288,6 +298,12 @@ class SwingAccountBacktester:
         losing_streak: Dict[str, int] = {ticker: 0 for ticker in machines}
         peak_equity = float(settings.capital_rub)
 
+        # v4.4: барьеры переключения контракта — сделка не пересекает ролл.
+        barriers: Dict[str, set] = {
+            ticker: roll_map.boundary_ms(ticker, candles)
+            for ticker, candles in data.items()
+            if ticker in machines
+        }
         timeline: List[Tuple[int, int, str, Candle]] = []
         for index, (ticker, candles) in enumerate(sorted(data.items())):
             if ticker not in machines:
@@ -315,7 +331,12 @@ class SwingAccountBacktester:
                 current_day = day
                 self._fees.roll_day(day)
 
-            for event in machine.on_bar(bar):
+            events = list(machine.on_bar(bar))
+            if candle.time_ms in barriers.get(ticker, ()) and machine.position is not None:
+                forced = machine.force_close(bar, BreakoutExitReason.ROLL, price=bar.open)
+                if forced is not None:
+                    events.append(forced)
+            for event in events:
                 if event.kind == "entry":
                     if paused.get(ticker):
                         # Сторож на паузе: сделку не исполняем, но ведём «виртуально»,
@@ -351,8 +372,10 @@ class SwingAccountBacktester:
                     position = self._size_entry(meta, machine, event, equity, margin_used, result)
                     if position is None:
                         continue
+                    position.adj = float(candle.adj or 0.0)
                     entry_fee = self._fees.register_notional(
-                        self._notional(meta, event.price, position.quantity), meta.ticker
+                        self._notional(meta, event.price - Decimal(str(position.adj)), position.quantity),
+                        meta.ticker,
                     )
                     position.entry_fee = entry_fee
                     position.entry_price = event.price
@@ -376,7 +399,8 @@ class SwingAccountBacktester:
                         meta, params_by_ticker[ticker], event.price, event.side
                     )
                     exit_fee = self._fees.register_notional(
-                        self._notional(meta, exit_price, closed), meta.ticker
+                        self._notional(meta, exit_price - Decimal(str(position.adj)), closed),
+                        meta.ticker,
                     )
                     trade = self._make_trade(
                         ticker,
@@ -408,7 +432,8 @@ class SwingAccountBacktester:
                     continue
                 exit_price = self._apply_exit_fill(meta, params_by_ticker[ticker], event.price, event.side)
                 exit_fee = self._fees.register_notional(
-                    self._notional(meta, exit_price, position.quantity), meta.ticker
+                    self._notional(meta, exit_price - Decimal(str(position.adj)), position.quantity),
+                    meta.ticker,
                 )
                 trade = self._make_trade(
                     ticker,

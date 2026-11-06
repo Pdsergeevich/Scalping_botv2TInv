@@ -25,10 +25,11 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 from bot_a.backtest.breakout_backtest import BreakoutResult, BreakoutTrade
 from bot_a.backtest.candles import Candle
+from bot_a.backtest import rolls as roll_map
 from bot_a.backtest.swing_portfolio import equity_metrics
 from bot_a.economics.fees import Tariff, TinkoffFeeCalculator
 from bot_a.engine.breakout_fsm import Bar, BreakoutParams, BreakoutSide, BreakoutExitReason
@@ -70,6 +71,7 @@ class Signal:
     reason: str = ""
     family: str = ""
     free_ms: int = 0  # когда стоп ушёл в прибыль (0 = не дошло до breakeven)
+    adj: float = 0.0  # v4.4: сдвиг back-adjustment (сырая цена = price − adj)
     rank: int = 0  # место в корзине на момент входа (1 = лидер)
     basket_pf: float = 0.0  # трейлинг-PF пары на момент отбора
     pair_trades: int = 0  # сделок пары в трейлинг-окне
@@ -89,8 +91,13 @@ def build_signals(
     candles: Sequence[Candle],
     engine: str,
     slip_steps: int = 1,
+    barriers: Optional[Set[int]] = None,
 ) -> List[Signal]:
-    """Прогон FSM по истории → список самодостаточных сделок (вход/выход/стоп)."""
+    """Прогон FSM по истории → список самодостаточных сделок (вход/выход/стоп).
+
+    `barriers` — бары-барьеры переключения контракта (v4.4): на них позиция
+    закрывается по цене открытия, поэтому сделка никогда не пересекает ролл.
+    """
     machine = regime_machine(meta, engine_params(params, engine))
     slip = meta.min_price_increment * Decimal(max(int(slip_steps), 0))
     signals: List[Signal] = []
@@ -108,19 +115,24 @@ def build_signals(
         if opened is not None and opened[3] == 0:
             position_now = machine.position
             if position_now is not None and position_now.breakeven_done:
-                opened = (opened[0], opened[1], opened[2], bar.time_ms)
-        for event in machine.on_bar(bar):
+                opened = (opened[0], opened[1], opened[2], bar.time_ms, opened[4])
+        events = list(machine.on_bar(bar))
+        if barriers and bar.time_ms in barriers and machine.position is not None:
+            forced = machine.force_close(bar, BreakoutExitReason.ROLL, price=bar.open)
+            if forced is not None:
+                events.append(forced)
+        for event in events:
             if event.kind == "entry":
                 position = machine.position
                 if position is None:
                     continue
                 fill = event.price + slip if event.side is BreakoutSide.LONG else event.price - slip
                 stop_points = abs(float(position.entry_price - position.initial_stop))
-                opened = (event, fill, stop_points, 0)
+                opened = (event, fill, stop_points, 0, float(candle.adj or 0.0))
                 continue
             if event.kind != "exit" or opened is None:
                 continue
-            entry_event, entry_fill, stop_points, _free = opened
+            entry_event, entry_fill, stop_points, _free, adj = opened
             exit_fill = event.price - slip if event.side is BreakoutSide.LONG else event.price + slip
             signals.append(
                 Signal(
@@ -136,6 +148,7 @@ def build_signals(
                     reason=str(event.reason or ""),
                     family=underlying_family(meta.ticker),
                     free_ms=_free,
+                    adj=adj,
                 )
             )
             opened = None
@@ -156,8 +169,9 @@ def build_all_signals(
         if not series:
             continue
         params = params_by_ticker.get(ticker) or BreakoutParams()
+        barriers = roll_map.boundary_ms(ticker, series)
         for engine in engines:
-            out[(ticker, engine)] = build_signals(meta, params, series, engine)
+            out[(ticker, engine)] = build_signals(meta, params, series, engine, barriers=barriers)
         if progress is not None:
             progress(ticker)
     return out
@@ -185,8 +199,9 @@ def _window_stats(
     for item in selected:
         sign = 1.0 if item.side is BreakoutSide.LONG else -1.0
         gross = sign * float(item.exit_price - item.entry_price) * rub
+        shift = Decimal(str(item.adj or 0.0))
         fee = fee_rate * float(
-            meta.value_in_rub(item.entry_price) + meta.value_in_rub(item.exit_price)
+            meta.value_in_rub(item.entry_price - shift) + meta.value_in_rub(item.exit_price - shift)
         )
         value = gross - fee
         net += value
@@ -292,7 +307,11 @@ class WalkForwardSettings:
     core_anchors: Tuple[str, ...] = ()
     core_min_pf: float = 1.15
     satellite_min_pf: float = 0.0
-    exclude_tickers: Tuple[str, ...] = ()
+    # v4.4: чужие индексные прокси (`NASD_CONT`, `SPYF_CONT`) по умолчанию вне
+    # универсума: их реальный спред на MOEX шире, чем 1 шаг слиппеджа в бэктесте.
+    exclude_tickers: Tuple[str, ...] = ("NASD_CONT", "SPYF_CONT")
+    # v4.4: доля бюджета ГО на одну позицию (0 = без ограничения).
+    max_position_margin_pct: float = 35.0
     free_slot_on_breakeven: bool = True
     max_total_open_positions: int = 8
     conviction_leader_boost: float = 1.45
@@ -471,14 +490,18 @@ def run_walkforward(
             free = max(min(util_cap, equity) - margin_used, 0.0)
             rate = margin_rate(meta)
             by_margin = int(free // rate) if rate > 0 else quantity
+            if settings.max_position_margin_pct > 0 and rate > 0:
+                per_position = util_cap * float(settings.max_position_margin_pct) / 100.0
+                by_margin = min(by_margin, int(per_position // rate))
             if by_margin < quantity:
                 quantity = by_margin
                 if quantity <= 0:
                     result.rejected_by_margin += 1
                     continue
             executed.append(signal)
-            notional_entry = meta.value_in_rub(signal.entry_price) * Decimal(quantity)
-            notional_exit = meta.value_in_rub(signal.exit_price) * Decimal(quantity)
+            shift = Decimal(str(signal.adj or 0.0))
+            notional_entry = meta.value_in_rub(signal.entry_price - shift) * Decimal(quantity)
+            notional_exit = meta.value_in_rub(signal.exit_price - shift) * Decimal(quantity)
             fees.roll_day(signal.entry_date)
             entry_fee = fees.register_notional(notional_entry, signal.ticker)
             fees.roll_day(signal.exit_date)

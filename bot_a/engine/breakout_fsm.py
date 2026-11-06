@@ -53,6 +53,8 @@ class BreakoutExitReason(str, Enum):
     SESSION_CLOSE = "SessionClose"
     CLEARING = "Clearing"
     MAX_HOLD = "MaxHold"
+    MOMENTUM_STALL = "MomentumStall"
+    ROLL = "RollSwitch"
     DATA_END = "DataEnd"
 
 
@@ -129,6 +131,13 @@ class BreakoutParams:
     scale_out_atr: float = 0.0
     scale_out_fraction: float = 0.5
     scale_out_stop_atr: float = 0.0
+    # v4.4: застой моментума. Если прибыль уже >= stallBreakevenAtr, но новых
+    # экстремумов нет `stallBars` баров — стоп подтягивается к безубытку (+комиссия
+    # или stallLockAtr). В отличие от soft-breakeven, срабатывает только по времени,
+    # а не сразу: трендовые сделки не «придушиваются» на первом же откате.
+    stall_breakeven_atr: float = 0.0
+    stall_bars: int = 0
+    stall_lock_atr: float = 0.0
     trail_trigger_atr: float = 1.8
     trail_atr_multiple: float = 2.0
     take_profit_atr: float = 5.0
@@ -401,6 +410,12 @@ class BreakoutPosition:
     style: str = "trend"  # "trend" | "pullback" | "fade"
     trail_mult: float = 0.0  # 0 = брать trail_atr_multiple из параметров
     target_price: Decimal = Decimal(0)  # цель для fade-сделок (EMA20)
+    # v4.4: застой моментума — сколько баров без нового экстремума при прибыли.
+    stall_ref_mfe: float = 0.0
+    stall_bars_seen: int = 0
+    stall_done: bool = False
+    # v4.4: сдвиг back-adjustment серии (для честной комиссии по «сырой» цене).
+    adj: float = 0.0
 
     def unrealized_points(self, price: Decimal) -> float:
         sign = 1.0 if self.side is BreakoutSide.LONG else -1.0
@@ -934,6 +949,44 @@ class MomentumBreakoutStateMachine:
                     )
                 )
                 position.quantity -= quantity
+        # 1d) v4.4 Тайм-условный ratchet застоя: прибыль уже была, но моментум умер —
+        #     подтягиваем стоп к безубытку, не дожидаясь полного отката в −2 ATR.
+        if (
+            params.stall_breakeven_atr > 0
+            and params.stall_bars > 0
+            and atr > 0
+            and not position.stall_done
+            and position.mfe_points >= params.stall_breakeven_atr * atr
+        ):
+            if position.mfe_points > position.stall_ref_mfe:
+                position.stall_ref_mfe = position.mfe_points
+                position.stall_bars_seen = 0
+            else:
+                position.stall_bars_seen += 1
+            if position.stall_bars_seen >= params.stall_bars:
+                offset = self._fee_round_trip(bar.close, position.quantity) * dec(
+                    params.breakeven_fee_multiple
+                )
+                offset /= max(dec(self._meta.rub_per_price_unit), Decimal(1)) * Decimal(
+                    max(int(position.quantity), 1)
+                )
+                if params.stall_lock_atr > 0:
+                    offset = max(offset, dec(params.stall_lock_atr * atr))
+                candidate = (
+                    position.entry_price + offset
+                    if position.side is BreakoutSide.LONG
+                    else position.entry_price - offset
+                )
+                if position.side is BreakoutSide.LONG and candidate > position.stop_price:
+                    position.stop_price = candidate
+                    position.stall_done = True
+                    position.breakeven_done = True
+                elif position.side is BreakoutSide.SHORT and (
+                    position.stop_price <= 0 or candidate < position.stop_price
+                ):
+                    position.stop_price = candidate
+                    position.stall_done = True
+                    position.breakeven_done = True
         # 2) Breakeven-ratchet: после `breakevenTriggerAtr` прибыли стоп уходит
         #    минимум за комиссию, а при `breakevenLockAtr > 0` — ещё и за долю ATR.
         if (
@@ -977,6 +1030,9 @@ class MomentumBreakoutStateMachine:
                 else:
                     fill = position.stop_price
                 reason = (
+                    BreakoutExitReason.MOMENTUM_STALL
+                    if position.stall_done and not position.trail_active
+                    else (
                     BreakoutExitReason.BREAKEVEN_STOP
                     if position.breakeven_done and position.mfe_points < params.trail_trigger_atr * atr
                     else (
@@ -987,7 +1043,7 @@ class MomentumBreakoutStateMachine:
                             if position.trail_active
                             else BreakoutExitReason.HARD_STOP
                         )
-                    )
+                    ))
                 )
                 events.append(self._close(position, fill, bar.time_ms, reason, bar))
                 return events
@@ -1076,6 +1132,7 @@ class MomentumBreakoutStateMachine:
             BreakoutExitReason.TRAIL_STOP,
             BreakoutExitReason.BREAKEVEN_STOP,
             BreakoutExitReason.SOFT_STOP,
+            BreakoutExitReason.MOMENTUM_STALL,
         ):
             self._consecutive_stops += 1
             self._cooldown_until_ms = time_ms + int(self._p.cooldown_minutes) * 60_000
@@ -1090,8 +1147,13 @@ class MomentumBreakoutStateMachine:
             note=f"mfe={position.mfe_points:.4f} atr={position.atr_points:.4f}",
         )
 
-    def force_close(self, bar: Bar, reason: BreakoutExitReason = BreakoutExitReason.DATA_END):
-        """Принудительное закрытие (конец данных/остановка)."""
+    def force_close(
+        self,
+        bar: Bar,
+        reason: BreakoutExitReason = BreakoutExitReason.DATA_END,
+        price: Optional[Decimal] = None,
+    ):
+        """Принудительное закрытие (конец данных, остановка, переключение контракта)."""
         if self.position is None:
             return None
-        return self._close(self.position, bar.close, bar.time_ms, reason, bar)
+        return self._close(self.position, bar.close if price is None else price, bar.time_ms, reason, bar)

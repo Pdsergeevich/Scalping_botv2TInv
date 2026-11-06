@@ -28,6 +28,8 @@ class Candle:
     low: Decimal
     close: Decimal
     volume: int
+    # v4.4: сдвиг back-adjustment для continuous-серий (0 = цена «как есть»).
+    adj: float = 0.0
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -37,6 +39,7 @@ class Candle:
             "low": str(self.low),
             "close": str(self.close),
             "volume": self.volume,
+            "adj": self.adj,
         }
 
     @staticmethod
@@ -48,6 +51,7 @@ class Candle:
             low=dec(data["low"]),
             close=dec(data["close"]),
             volume=int(data.get("volume", 0) or 0),
+            adj=float(data.get("adj", 0.0) or 0.0),
         )
 
 
@@ -64,12 +68,21 @@ def resample_candles(candles: Sequence[Candle], minutes: int) -> List[Candle]:
     bucket: Optional[int] = None
     open_ = high = low = close = None
     volume = 0
+    adj = 0.0
     for candle in candles:
         key = (candle.time_ms // width) * width
         if bucket is None or key != bucket:
             if bucket is not None and open_ is not None:
                 result.append(
-                    Candle(time_ms=bucket, open=open_, high=high, low=low, close=close, volume=volume)
+                    Candle(
+                        time_ms=bucket,
+                        open=open_,
+                        high=high,
+                        low=low,
+                        close=close,
+                        volume=volume,
+                        adj=adj,
+                    )
                 )
             bucket = key
             open_ = candle.open
@@ -77,6 +90,7 @@ def resample_candles(candles: Sequence[Candle], minutes: int) -> List[Candle]:
             low = candle.low
             close = candle.close
             volume = int(candle.volume)
+            adj = candle.adj
             continue
         high = max(high, candle.high)
         low = min(low, candle.low)
@@ -84,7 +98,15 @@ def resample_candles(candles: Sequence[Candle], minutes: int) -> List[Candle]:
         volume += int(candle.volume)
     if bucket is not None and open_ is not None:
         result.append(
-            Candle(time_ms=bucket, open=open_, high=high, low=low, close=close, volume=volume)
+            Candle(
+                time_ms=bucket,
+                open=open_,
+                high=high,
+                low=low,
+                close=close,
+                volume=volume,
+                adj=adj,
+            )
         )
     return result
 

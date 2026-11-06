@@ -55,6 +55,8 @@ class SwingBasketSettings:
     # v4.3: безрисковые «раннеры» (стоп выше входа) не занимают риск-слот.
     free_slot_on_breakeven: bool = True
     max_total_open_positions: int = 8
+    # v4.4: доля бюджета ГО на одну позицию (тяжёлый контракт не съедает весь лимит).
+    max_position_margin_pct: float = 35.0
     bar_minutes: int = 30
     poll_ms: int = 2000
     state_path: Optional[Path] = None
@@ -517,7 +519,11 @@ class SwingBasketRunner:
         util_cap = max(self._equity, 0.0) * max(float(settings.max_margin_utilization_pct), 1.0) / 100.0
         free = max(min(util_cap, self._equity) - self.margin_used, 0.0)
         by_margin = int(free // margin_per_contract) if margin_per_contract > 0 else by_risk
-        return max(min(by_risk, by_margin), 0)
+        quantity = min(by_risk, by_margin)
+        if settings.max_position_margin_pct > 0 and margin_per_contract > 0:
+            per_position = util_cap * float(settings.max_position_margin_pct) / 100.0
+            quantity = min(quantity, int(per_position // margin_per_contract))
+        return max(quantity, 0)
 
     # ------------------------------------------------------------------ отчёт
     def summary(self) -> Dict[str, Any]:

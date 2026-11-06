@@ -52,6 +52,7 @@ from bot_a.utils.time_provider import MSK  # noqa: E402
 CACHE_DIR = ROOT / "data_cache"
 META_CACHE = CACHE_DIR / "forts_meta.json"
 UNIVERSE_JSON = CACHE_DIR / "forts_universe.json"
+ROLLS_CACHE = CACHE_DIR / "forts_rolls.json"
 DATE_FROM = "2026-04-25"
 DATE_TO = "2026-11-05"
 MAX_MARGIN = 15_000.0
@@ -343,8 +344,67 @@ def download_series(series: Dict[str, Dict[str, Any]], jobs: int) -> None:
     )
 
 
+def _load_day(ticker: str, day: str) -> List[Dict[str, Any]]:
+    path = CACHE_DIR / f"iss_forts_{ticker}_{day}.json"
+    if not path.exists():
+        return []
+    try:
+        return json.loads(path.read_text(encoding="utf-8")) or []
+    except (OSError, json.JSONDecodeError):
+        return []
+
+
+def _median(values: List[float]) -> float:
+    ordered = sorted(values)
+    return ordered[len(ordered) // 2]
+
+
+def _roll_delta(
+    old_ticker: str,
+    new_ticker: str,
+    day: str,
+    prev_day: str,
+    prev_rows: List[Dict[str, Any]],
+) -> Tuple[float, str]:
+    """Спред ролла ΔP = P_новый − P_старый на дне переключения.
+
+    Основной способ — медиана разниц по **общим минутам** дня ролла (обе серии
+    ещё торгуются): так в ΔP не попадает обычный ночной гэп. Если пересечения
+    нет (старый контракт уже неликвид или данных мало) — оценка по стыку
+    `open нового` − `close старого` предыдущего дня.
+    """
+    old_rows = _load_day(old_ticker, day)
+    new_rows = _load_day(new_ticker, day)
+    if old_rows and new_rows:
+        old_close = {int(row["time"]): float(row["close"]) for row in old_rows}
+        diffs = [
+            float(row["close"]) - old_close[int(row["time"])]
+            for row in new_rows
+            if int(row["time"]) in old_close
+        ]
+        if len(diffs) >= 10:
+            return _median(diffs), "overlap"
+    last_old = float(prev_rows[-1]["close"]) if prev_rows else 0.0
+    first_new = float(new_rows[0]["open"]) if new_rows else last_old
+    if not last_old:
+        return 0.0, "none"
+    return first_new - last_old, "edge"
+
+
 def stitch(universe: Dict[str, Any]) -> Dict[str, str]:
-    """Склейка continuous по семействам: каждый день — серия с максимальным объёмом."""
+    """Склейка continuous по семействам с back-adjustment на роллах.
+
+    Каждый день берётся серия с максимальным дневным объёмом (реальный фронт).
+    На дне переключения контракта считается спред ролла ΔP = P_новый − P_старый
+    и **вся более старая история сдвигается на накопленную сумму ΔP** (difference /
+    back-adjustment, как в непрерывных сериях вендоров): после этого в ряду нет
+    фантомных скачков `+357 пт` (GAZR) и `−575 пт` (VTBR), которые ломали
+    `EMA20/EMA90`, `ATR`, `ER_20` и PnL открытых сделок.
+
+    Исходные цены восстановимы: в каждой свече пишется поле ``adj`` (на сколько
+    пунктов её сдвинули), поэтому комиссия и ГО считаются от ``price - adj``.
+    Роллы складываются в ``data_cache/forts_rolls.json``.
+    """
     series = universe["series"]
     by_family: Dict[str, List[str]] = defaultdict(list)
     for secid, row in series.items():
@@ -354,11 +414,11 @@ def stitch(universe: Dict[str, Any]) -> Dict[str, str]:
             continue
         by_family[row["asset"]].append(secid)
 
-    # Дневные свечи всех серий семейства: (asset, day) -> (volume, ticker, rows)
+    # Лучшая серия семейства на каждый день: (asset, day) -> (volume, ticker, rows)
     daily: Dict[Tuple[str, str], Tuple[float, str, List[Dict[str, Any]]]] = {}
     for path in CACHE_DIR.glob("iss_forts_*.json"):
         parts = path.stem.split("_")
-        if len(parts) != 4:
+        if len(parts) != 4 or parts[2].endswith("_CONT"):
             continue
         ticker = parts[2]
         family = series.get(ticker, {}).get("asset")
@@ -377,22 +437,57 @@ def stitch(universe: Dict[str, Any]) -> Dict[str, str]:
             daily[key] = (volume, ticker, rows)
 
     summary: Dict[str, str] = {}
+    rolls_out: Dict[str, List[Dict[str, Any]]] = {}
     for family in sorted(by_family):
-        picked: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
-        for (fam, day), (_volume, ticker, rows) in daily.items():
-            if fam != family:
-                continue
-            picked[day].extend(rows)
+        picked = sorted(
+            (day, ticker, rows)
+            for (fam, day), (_volume, ticker, rows) in daily.items()
+            if fam == family
+        )
         if not picked:
             continue
         ticker = f"{family}_CONT"
-        merged: List[Dict[str, Any]] = []
-        for day in sorted(picked):
-            merged.extend(sorted(picked[day], key=lambda item: item["time"]))
-        merged.sort(key=lambda item: item["time"])
-        unique = {item["time"]: item for item in merged}
-        candles = [unique[key] for key in sorted(unique)]
-        # Раскладываем по дням в тот же формат кэша, что читает load_candles.
+
+        # 1) Роллы: где меняется активный контракт и какой спред между ними.
+        delta_at: Dict[int, float] = {}
+        rolls: List[Dict[str, Any]] = []
+        for index in range(1, len(picked)):
+            day, active, _rows = picked[index]
+            prev_day, prev_ticker, prev_rows = picked[index - 1]
+            if active == prev_ticker:
+                continue
+            delta, mode = _roll_delta(prev_ticker, active, day, prev_day, prev_rows)
+            delta_at[index] = delta
+            rolls.append(
+                {
+                    "day": day,
+                    "from": prev_ticker,
+                    "to": active,
+                    "delta": round(delta, 4),
+                    "mode": mode,
+                }
+            )
+
+        # 2) Back-adjustment: самая свежая сегментация остаётся без сдвига,
+        #    каждая более старая сдвигается на накопленную сумму ΔP.
+        adj = [0.0] * len(picked)
+        for index in range(len(picked) - 1, 0, -1):
+            adj[index - 1] = adj[index] + delta_at.get(index, 0.0)
+
+        merged_by_time: Dict[int, Dict[str, Any]] = {}
+        for index, (_day, _active, rows) in enumerate(picked):
+            offset = adj[index]
+            for item in rows:
+                record = dict(item)
+                if offset:
+                    for field in ("open", "high", "low", "close"):
+                        if record.get(field) is not None:
+                            record[field] = str(Decimal(str(record[field])) + Decimal(str(round(offset, 6))))
+                record["adj"] = round(offset, 6)
+                merged_by_time[int(record["time"])] = record
+        candles = [merged_by_time[key] for key in sorted(merged_by_time)]
+
+        # 3) Раскладываем по дням в тот же формат кэша, что читает load_candles.
         per_day: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
         for item in candles:
             stamp = datetime.fromtimestamp(item["time"] / 1000, tz=MSK).strftime("%Y%m%d")
@@ -403,8 +498,18 @@ def stitch(universe: Dict[str, Any]) -> Dict[str, str]:
             path = CACHE_DIR / f"iss_forts_{ticker}_{day}.json"
             path.write_text(json.dumps(rows, ensure_ascii=False), encoding="utf-8")
         days = len(per_day)
-        print(f"{ticker:<10} дней {days:>3}  свечей {len(candles):>6}", flush=True)
+        rolls_out[ticker] = rolls
+        worst = max(rolls, key=lambda item: abs(item["delta"]), default=None)
+        detail = (
+            f"; роллов {len(rolls)}, макс |ΔP| {float(worst['delta']):+.1f} пт ({worst['day']} {worst['from']}→{worst['to']})"
+            if worst
+            else "; роллов нет"
+        )
+        print(f"{ticker:<10} дней {days:>3}  свечей {len(candles):>6}{detail}", flush=True)
         summary[family] = ticker
+
+    ROLLS_CACHE.write_text(json.dumps(rolls_out, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"роллы записаны: {ROLLS_CACHE.name}", flush=True)
     return summary
 
 

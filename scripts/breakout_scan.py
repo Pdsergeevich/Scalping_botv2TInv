@@ -125,12 +125,21 @@ def resample(candles: Sequence[Candle], minutes: int) -> List[Candle]:
     bucket: Optional[int] = None
     open_ = high = low = close = None
     volume = 0
+    adj = 0.0
     for candle in candles:
         key = (candle.time_ms // width) * width
         if bucket is None or key != bucket:
             if bucket is not None and open_ is not None:
                 result.append(
-                    Candle(time_ms=bucket, open=open_, high=high, low=low, close=close, volume=volume)
+                    Candle(
+                        time_ms=bucket,
+                        open=open_,
+                        high=high,
+                        low=low,
+                        close=close,
+                        volume=volume,
+                        adj=adj,
+                    )
                 )
             bucket = key
             open_ = candle.open
@@ -138,6 +147,7 @@ def resample(candles: Sequence[Candle], minutes: int) -> List[Candle]:
             low = candle.low
             close = candle.close
             volume = int(candle.volume)
+            adj = candle.adj
             continue
         high = max(high, candle.high)
         low = min(low, candle.low)
@@ -145,7 +155,15 @@ def resample(candles: Sequence[Candle], minutes: int) -> List[Candle]:
         volume += int(candle.volume)
     if bucket is not None and open_ is not None:
         result.append(
-            Candle(time_ms=bucket, open=open_, high=high, low=low, close=close, volume=volume)
+            Candle(
+                time_ms=bucket,
+                open=open_,
+                high=high,
+                low=low,
+                close=close,
+                volume=volume,
+                adj=adj,
+            )
         )
     return result
 
