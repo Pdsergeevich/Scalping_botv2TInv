@@ -1,0 +1,2311 @@
+{
+  "bars": 30,
+  "capital": 50000.0,
+  "cases": {
+    "warm45x r1.0 freeSlot": {
+      "params": {
+        "name": "warm45x r1.0 freeSlot",
+        "step": 14,
+        "lookback": 45,
+        "top": 12,
+        "risk": 1.0,
+        "slots": 4,
+        "conviction": true,
+        "min_pf": 1.15,
+        "min_trades": 3,
+        "warmup": 45,
+        "free_slot": true
+      },
+      "metrics": {
+        "netRub": 24728.14,
+        "profitFactor": 1.345,
+        "sharpe": 2.307,
+        "maxDrawdownRub": 10263.62,
+        "maxDrawdownPct": 18.69,
+        "returnPct": 49.46,
+        "annualizedPct": 121.15,
+        "monthly": {
+          "2026-06": -4033.53,
+          "2026-07": -1316.65,
+          "2026-08": 24721.19,
+          "2026-09": -1071.25,
+          "2026-10": 8781.73,
+          "2026-11": -2353.35
+        },
+        "trades": 317,
+        "days": 109,
+        "winRate": 0.3407
+      },
+      "oosNet": -964.17,
+      "isNet": 25692.31,
+      "baskets": [
+        {
+          "date": "2026-06-09",
+          "pairs": [
+            {
+              "ticker": "SPYF_CONT",
+              "engine": "A",
+              "net": 1363.0,
+              "pf": 4.33,
+              "trades": 6
+            },
+            {
+              "ticker": "Si_CONT",
+              "engine": "AB",
+              "net": 1311.64,
+              "pf": 1.63,
+              "trades": 19
+            },
+            {
+              "ticker": "GOLDM_CONT",
+              "engine": "C",
+              "net": 1178.86,
+              "pf": 2.83,
+              "trades": 7
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "ABC",
+              "net": 855.95,
+              "pf": 3.53,
+              "trades": 19
+            },
+            {
+              "ticker": "GAZR_CONT",
+              "engine": "C",
+              "net": 405.39,
+              "pf": 6.7,
+              "trades": 7
+            },
+            {
+              "ticker": "SBRF_CONT",
+              "engine": "C",
+              "net": 301.41,
+              "pf": 36.07,
+              "trades": 3
+            }
+          ]
+        },
+        {
+          "date": "2026-06-23",
+          "pairs": [
+            {
+              "ticker": "SILV_CONT",
+              "engine": "AB",
+              "net": 6255.05,
+              "pf": 2.09,
+              "trades": 21
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "AB",
+              "net": 3660.93,
+              "pf": 2.53,
+              "trades": 14
+            },
+            {
+              "ticker": "Si_CONT",
+              "engine": "AB",
+              "net": 2091.66,
+              "pf": 2.05,
+              "trades": 17
+            },
+            {
+              "ticker": "VTBR_CONT",
+              "engine": "ABC",
+              "net": 1159.77,
+              "pf": 3.86,
+              "trades": 16
+            },
+            {
+              "ticker": "GL_CONT",
+              "engine": "AB",
+              "net": 758.18,
+              "pf": 2.67,
+              "trades": 19
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "C",
+              "net": 364.92,
+              "pf": 7.58,
+              "trades": 6
+            },
+            {
+              "ticker": "GAZPF",
+              "engine": "AB",
+              "net": 332.64,
+              "pf": 1.56,
+              "trades": 17
+            },
+            {
+              "ticker": "BTC_CONT",
+              "engine": "C",
+              "net": 178.06,
+              "pf": 3.86,
+              "trades": 9
+            }
+          ]
+        },
+        {
+          "date": "2026-07-07",
+          "pairs": [
+            {
+              "ticker": "SILV_CONT",
+              "engine": "AB",
+              "net": 3904.34,
+              "pf": 1.71,
+              "trades": 19
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "AB",
+              "net": 2381.12,
+              "pf": 2.02,
+              "trades": 15
+            },
+            {
+              "ticker": "Si_CONT",
+              "engine": "AB",
+              "net": 1542.82,
+              "pf": 1.6,
+              "trades": 17
+            },
+            {
+              "ticker": "SPYF_CONT",
+              "engine": "ABC",
+              "net": 1311.58,
+              "pf": 2.09,
+              "trades": 15
+            },
+            {
+              "ticker": "VTBR_CONT",
+              "engine": "ABC",
+              "net": 1040.97,
+              "pf": 2.53,
+              "trades": 17
+            },
+            {
+              "ticker": "GLDRUBF",
+              "engine": "ABC",
+              "net": 800.5,
+              "pf": 3.23,
+              "trades": 22
+            },
+            {
+              "ticker": "GAZPF",
+              "engine": "AB",
+              "net": 305.42,
+              "pf": 1.53,
+              "trades": 18
+            },
+            {
+              "ticker": "BTC_CONT",
+              "engine": "C",
+              "net": 269.68,
+              "pf": 6.14,
+              "trades": 9
+            },
+            {
+              "ticker": "YDEX_CONT",
+              "engine": "AB",
+              "net": 245.33,
+              "pf": 2.19,
+              "trades": 17
+            }
+          ]
+        },
+        {
+          "date": "2026-07-21",
+          "pairs": [
+            {
+              "ticker": "Eu_CONT",
+              "engine": "C",
+              "net": 3833.58,
+              "pf": 17.21,
+              "trades": 4
+            },
+            {
+              "ticker": "VTBR_CONT",
+              "engine": "ABC",
+              "net": 1600.75,
+              "pf": 3.65,
+              "trades": 17
+            },
+            {
+              "ticker": "GLDRUBF",
+              "engine": "ABC",
+              "net": 854.79,
+              "pf": 3.18,
+              "trades": 22
+            },
+            {
+              "ticker": "GAZPF",
+              "engine": "AB",
+              "net": 683.58,
+              "pf": 2.13,
+              "trades": 24
+            },
+            {
+              "ticker": "CNYRUBF",
+              "engine": "AB",
+              "net": 359.74,
+              "pf": 2.13,
+              "trades": 18
+            },
+            {
+              "ticker": "BTC_CONT",
+              "engine": "C",
+              "net": 198.57,
+              "pf": 2.53,
+              "trades": 10
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "C",
+              "net": 184.87,
+              "pf": 1.5,
+              "trades": 13
+            }
+          ]
+        },
+        {
+          "date": "2026-08-04",
+          "pairs": [
+            {
+              "ticker": "Eu_CONT",
+              "engine": "C",
+              "net": 4429.1,
+              "pf": 13.97,
+              "trades": 9
+            },
+            {
+              "ticker": "LKOH_CONT",
+              "engine": "C",
+              "net": 1393.21,
+              "pf": 10.0,
+              "trades": 3
+            },
+            {
+              "ticker": "BRM_CONT",
+              "engine": "ABC",
+              "net": 1342.98,
+              "pf": 2.92,
+              "trades": 17
+            },
+            {
+              "ticker": "PLZLM_CONT",
+              "engine": "ABC",
+              "net": 1159.65,
+              "pf": 1.75,
+              "trades": 24
+            },
+            {
+              "ticker": "GAZPF",
+              "engine": "AB",
+              "net": 618.58,
+              "pf": 2.09,
+              "trades": 24
+            },
+            {
+              "ticker": "IMOEXF",
+              "engine": "C",
+              "net": 335.93,
+              "pf": 2.28,
+              "trades": 7
+            },
+            {
+              "ticker": "GLDRUBF",
+              "engine": "C",
+              "net": 207.02,
+              "pf": 5.55,
+              "trades": 5
+            },
+            {
+              "ticker": "RGBI_CONT",
+              "engine": "AB",
+              "net": 180.29,
+              "pf": 1.59,
+              "trades": 18
+            },
+            {
+              "ticker": "SILVM_CONT",
+              "engine": "C",
+              "net": 175.45,
+              "pf": 1.56,
+              "trades": 14
+            }
+          ]
+        },
+        {
+          "date": "2026-08-18",
+          "pairs": [
+            {
+              "ticker": "IMOEXF",
+              "engine": "C",
+              "net": 1837.69,
+              "pf": 10.19,
+              "trades": 6
+            },
+            {
+              "ticker": "LKOH_CONT",
+              "engine": "C",
+              "net": 1552.0,
+              "pf": 10.0,
+              "trades": 4
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "C",
+              "net": 1496.03,
+              "pf": 3.65,
+              "trades": 11
+            },
+            {
+              "ticker": "GAZPF",
+              "engine": "AB",
+              "net": 780.91,
+              "pf": 2.91,
+              "trades": 21
+            },
+            {
+              "ticker": "SLVRUBF",
+              "engine": "C",
+              "net": 293.78,
+              "pf": 1.91,
+              "trades": 9
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "A",
+              "net": 280.89,
+              "pf": 1.74,
+              "trades": 9
+            },
+            {
+              "ticker": "RGBI_CONT",
+              "engine": "AB",
+              "net": 210.42,
+              "pf": 2.03,
+              "trades": 14
+            },
+            {
+              "ticker": "GL_CONT",
+              "engine": "C",
+              "net": 83.22,
+              "pf": 1.99,
+              "trades": 6
+            }
+          ]
+        },
+        {
+          "date": "2026-09-01",
+          "pairs": [
+            {
+              "ticker": "LKOH_CONT",
+              "engine": "C",
+              "net": 2033.13,
+              "pf": 5.32,
+              "trades": 4
+            },
+            {
+              "ticker": "SILV_CONT",
+              "engine": "C",
+              "net": 1994.95,
+              "pf": 2.36,
+              "trades": 10
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "C",
+              "net": 1780.01,
+              "pf": 5.23,
+              "trades": 12
+            },
+            {
+              "ticker": "IMOEXF",
+              "engine": "A",
+              "net": 1666.97,
+              "pf": 7.84,
+              "trades": 5
+            },
+            {
+              "ticker": "SPYF_CONT",
+              "engine": "AB",
+              "net": 1664.29,
+              "pf": 3.37,
+              "trades": 10
+            },
+            {
+              "ticker": "Si_CONT",
+              "engine": "AB",
+              "net": 1289.36,
+              "pf": 1.64,
+              "trades": 21
+            },
+            {
+              "ticker": "BRM_CONT",
+              "engine": "ABC",
+              "net": 775.92,
+              "pf": 1.86,
+              "trades": 21
+            },
+            {
+              "ticker": "GOLDM_CONT",
+              "engine": "AB",
+              "net": 708.29,
+              "pf": 1.66,
+              "trades": 12
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "C",
+              "net": 554.66,
+              "pf": 2.51,
+              "trades": 13
+            },
+            {
+              "ticker": "CNYRUBF",
+              "engine": "AB",
+              "net": 546.11,
+              "pf": 2.54,
+              "trades": 16
+            },
+            {
+              "ticker": "RGBI_CONT",
+              "engine": "AB",
+              "net": 219.05,
+              "pf": 4.62,
+              "trades": 7
+            },
+            {
+              "ticker": "VTBR_CONT",
+              "engine": "C",
+              "net": 17.58,
+              "pf": 1.16,
+              "trades": 5
+            }
+          ]
+        },
+        {
+          "date": "2026-09-15",
+          "pairs": [
+            {
+              "ticker": "LKOH_CONT",
+              "engine": "A",
+              "net": 8166.76,
+              "pf": 18.36,
+              "trades": 4
+            },
+            {
+              "ticker": "USDRUBF",
+              "engine": "ABC",
+              "net": 3381.67,
+              "pf": 2.87,
+              "trades": 20
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "ABC",
+              "net": 3379.59,
+              "pf": 2.13,
+              "trades": 21
+            },
+            {
+              "ticker": "BRM_CONT",
+              "engine": "ABC",
+              "net": 1175.64,
+              "pf": 3.52,
+              "trades": 21
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "ABC",
+              "net": 897.78,
+              "pf": 2.32,
+              "trades": 24
+            },
+            {
+              "ticker": "CNYRUBF",
+              "engine": "AB",
+              "net": 762.67,
+              "pf": 4.59,
+              "trades": 16
+            },
+            {
+              "ticker": "ROSN_CONT",
+              "engine": "C",
+              "net": 506.5,
+              "pf": 2.17,
+              "trades": 7
+            },
+            {
+              "ticker": "GAZR_CONT",
+              "engine": "C",
+              "net": 472.97,
+              "pf": 16.43,
+              "trades": 6
+            },
+            {
+              "ticker": "SILVM_CONT",
+              "engine": "AB",
+              "net": 341.36,
+              "pf": 2.59,
+              "trades": 16
+            },
+            {
+              "ticker": "YDEX_CONT",
+              "engine": "AB",
+              "net": 148.17,
+              "pf": 1.56,
+              "trades": 23
+            },
+            {
+              "ticker": "RGBI_CONT",
+              "engine": "AB",
+              "net": 74.52,
+              "pf": 3.42,
+              "trades": 4
+            }
+          ]
+        },
+        {
+          "date": "2026-09-29",
+          "pairs": [
+            {
+              "ticker": "LKOH_CONT",
+              "engine": "A",
+              "net": 8007.98,
+              "pf": 18.02,
+              "trades": 3
+            },
+            {
+              "ticker": "USDRUBF",
+              "engine": "ABC",
+              "net": 2141.82,
+              "pf": 1.95,
+              "trades": 24
+            },
+            {
+              "ticker": "SBRF_CONT",
+              "engine": "C",
+              "net": 1451.61,
+              "pf": 16.06,
+              "trades": 9
+            },
+            {
+              "ticker": "ROSN_CONT",
+              "engine": "C",
+              "net": 1077.04,
+              "pf": 3.58,
+              "trades": 8
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "C",
+              "net": 1028.54,
+              "pf": 2.59,
+              "trades": 9
+            },
+            {
+              "ticker": "BRM_CONT",
+              "engine": "AB",
+              "net": 865.18,
+              "pf": 2.17,
+              "trades": 20
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "ABC",
+              "net": 808.86,
+              "pf": 2.6,
+              "trades": 25
+            },
+            {
+              "ticker": "SBERF",
+              "engine": "ABC",
+              "net": 792.8,
+              "pf": 1.91,
+              "trades": 21
+            },
+            {
+              "ticker": "BTC_CONT",
+              "engine": "C",
+              "net": 749.1,
+              "pf": 35.03,
+              "trades": 5
+            },
+            {
+              "ticker": "GAZR_CONT",
+              "engine": "C",
+              "net": 500.93,
+              "pf": 11.97,
+              "trades": 7
+            },
+            {
+              "ticker": "SPYF_CONT",
+              "engine": "AB",
+              "net": 500.85,
+              "pf": 1.53,
+              "trades": 14
+            },
+            {
+              "ticker": "CNY_CONT",
+              "engine": "AB",
+              "net": 385.74,
+              "pf": 2.38,
+              "trades": 17
+            }
+          ]
+        },
+        {
+          "date": "2026-10-13",
+          "pairs": [
+            {
+              "ticker": "Eu_CONT",
+              "engine": "A",
+              "net": 967.74,
+              "pf": 10.73,
+              "trades": 3
+            },
+            {
+              "ticker": "ROSN_CONT",
+              "engine": "C",
+              "net": 831.24,
+              "pf": 4.14,
+              "trades": 6
+            },
+            {
+              "ticker": "BTC_CONT",
+              "engine": "A",
+              "net": 709.76,
+              "pf": 70.3,
+              "trades": 3
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "AB",
+              "net": 647.92,
+              "pf": 1.98,
+              "trades": 23
+            },
+            {
+              "ticker": "CNY_CONT",
+              "engine": "AB",
+              "net": 403.84,
+              "pf": 2.41,
+              "trades": 15
+            },
+            {
+              "ticker": "USDRUBF",
+              "engine": "ABC",
+              "net": 370.35,
+              "pf": 1.21,
+              "trades": 20
+            },
+            {
+              "ticker": "PLZLM_CONT",
+              "engine": "C",
+              "net": 274.85,
+              "pf": 2.82,
+              "trades": 6
+            },
+            {
+              "ticker": "VTBR_CONT",
+              "engine": "C",
+              "net": 78.14,
+              "pf": 2.86,
+              "trades": 4
+            },
+            {
+              "ticker": "IBIT_CONT",
+              "engine": "C",
+              "net": 52.76,
+              "pf": 8.61,
+              "trades": 3
+            }
+          ]
+        },
+        {
+          "date": "2026-10-27",
+          "pairs": [
+            {
+              "ticker": "NASD_CONT",
+              "engine": "AB",
+              "net": 990.55,
+              "pf": 1.98,
+              "trades": 22
+            },
+            {
+              "ticker": "USDRUBF",
+              "engine": "C",
+              "net": 750.49,
+              "pf": 2.4,
+              "trades": 5
+            },
+            {
+              "ticker": "GAZR_CONT",
+              "engine": "ABC",
+              "net": 622.99,
+              "pf": 2.04,
+              "trades": 21
+            },
+            {
+              "ticker": "PLZLM_CONT",
+              "engine": "AB",
+              "net": 576.11,
+              "pf": 2.07,
+              "trades": 12
+            },
+            {
+              "ticker": "BRM_CONT",
+              "engine": "C",
+              "net": 436.13,
+              "pf": 1.93,
+              "trades": 13
+            },
+            {
+              "ticker": "EURRUBF",
+              "engine": "C",
+              "net": 413.42,
+              "pf": 1.58,
+              "trades": 8
+            },
+            {
+              "ticker": "VTBR_CONT",
+              "engine": "ABC",
+              "net": 113.72,
+              "pf": 1.43,
+              "trades": 17
+            }
+          ]
+        }
+      ]
+    },
+    "warm45x r0.9 core-hybrid": {
+      "params": {
+        "name": "warm45x r0.9 core-hybrid",
+        "step": 14,
+        "lookback": 45,
+        "top": 12,
+        "risk": 0.9,
+        "slots": 4,
+        "conviction": true,
+        "min_pf": 1.15,
+        "min_trades": 3,
+        "warmup": 45,
+        "free_slot": true,
+        "core": [
+          "CNYRUBF",
+          "USDRUBF",
+          "GLDRUBF",
+          "BRM_CONT",
+          "GAZR_CONT"
+        ],
+        "core_pf": 1.15,
+        "satellite_pf": 1.45
+      },
+      "metrics": {
+        "netRub": 26248.81,
+        "profitFactor": 1.381,
+        "sharpe": 2.5,
+        "maxDrawdownRub": 8977.61,
+        "maxDrawdownPct": 16.31,
+        "returnPct": 52.5,
+        "annualizedPct": 128.6,
+        "monthly": {
+          "2026-06": -3291.81,
+          "2026-07": -638.0,
+          "2026-08": 24348.19,
+          "2026-09": -1908.5,
+          "2026-10": 10417.78,
+          "2026-11": -2678.86
+        },
+        "trades": 317,
+        "days": 109,
+        "winRate": 0.3375
+      },
+      "oosNet": 342.39,
+      "isNet": 25906.42,
+      "baskets": [
+        {
+          "date": "2026-06-09",
+          "pairs": [
+            {
+              "ticker": "SPYF_CONT",
+              "engine": "A",
+              "net": 1363.0,
+              "pf": 4.33,
+              "trades": 6
+            },
+            {
+              "ticker": "Si_CONT",
+              "engine": "AB",
+              "net": 1311.64,
+              "pf": 1.63,
+              "trades": 19
+            },
+            {
+              "ticker": "GOLDM_CONT",
+              "engine": "C",
+              "net": 1178.86,
+              "pf": 2.83,
+              "trades": 7
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "ABC",
+              "net": 855.95,
+              "pf": 3.53,
+              "trades": 19
+            },
+            {
+              "ticker": "GAZR_CONT",
+              "engine": "C",
+              "net": 405.39,
+              "pf": 6.7,
+              "trades": 7
+            },
+            {
+              "ticker": "SBRF_CONT",
+              "engine": "C",
+              "net": 301.41,
+              "pf": 36.07,
+              "trades": 3
+            }
+          ]
+        },
+        {
+          "date": "2026-06-23",
+          "pairs": [
+            {
+              "ticker": "SILV_CONT",
+              "engine": "AB",
+              "net": 6255.05,
+              "pf": 2.09,
+              "trades": 21
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "AB",
+              "net": 3660.93,
+              "pf": 2.53,
+              "trades": 14
+            },
+            {
+              "ticker": "Si_CONT",
+              "engine": "AB",
+              "net": 2091.66,
+              "pf": 2.05,
+              "trades": 17
+            },
+            {
+              "ticker": "VTBR_CONT",
+              "engine": "ABC",
+              "net": 1159.77,
+              "pf": 3.86,
+              "trades": 16
+            },
+            {
+              "ticker": "GL_CONT",
+              "engine": "AB",
+              "net": 758.18,
+              "pf": 2.67,
+              "trades": 19
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "C",
+              "net": 364.92,
+              "pf": 7.58,
+              "trades": 6
+            },
+            {
+              "ticker": "GAZPF",
+              "engine": "AB",
+              "net": 332.64,
+              "pf": 1.56,
+              "trades": 17
+            },
+            {
+              "ticker": "BTC_CONT",
+              "engine": "C",
+              "net": 178.06,
+              "pf": 3.86,
+              "trades": 9
+            }
+          ]
+        },
+        {
+          "date": "2026-07-07",
+          "pairs": [
+            {
+              "ticker": "SILV_CONT",
+              "engine": "AB",
+              "net": 3904.34,
+              "pf": 1.71,
+              "trades": 19
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "AB",
+              "net": 2381.12,
+              "pf": 2.02,
+              "trades": 15
+            },
+            {
+              "ticker": "Si_CONT",
+              "engine": "AB",
+              "net": 1542.82,
+              "pf": 1.6,
+              "trades": 17
+            },
+            {
+              "ticker": "SPYF_CONT",
+              "engine": "ABC",
+              "net": 1311.58,
+              "pf": 2.09,
+              "trades": 15
+            },
+            {
+              "ticker": "VTBR_CONT",
+              "engine": "ABC",
+              "net": 1040.97,
+              "pf": 2.53,
+              "trades": 17
+            },
+            {
+              "ticker": "GLDRUBF",
+              "engine": "ABC",
+              "net": 800.5,
+              "pf": 3.23,
+              "trades": 22
+            },
+            {
+              "ticker": "GAZPF",
+              "engine": "AB",
+              "net": 305.42,
+              "pf": 1.53,
+              "trades": 18
+            },
+            {
+              "ticker": "BTC_CONT",
+              "engine": "C",
+              "net": 269.68,
+              "pf": 6.14,
+              "trades": 9
+            },
+            {
+              "ticker": "YDEX_CONT",
+              "engine": "AB",
+              "net": 245.33,
+              "pf": 2.19,
+              "trades": 17
+            }
+          ]
+        },
+        {
+          "date": "2026-07-21",
+          "pairs": [
+            {
+              "ticker": "Eu_CONT",
+              "engine": "C",
+              "net": 3833.58,
+              "pf": 17.21,
+              "trades": 4
+            },
+            {
+              "ticker": "VTBR_CONT",
+              "engine": "ABC",
+              "net": 1600.75,
+              "pf": 3.65,
+              "trades": 17
+            },
+            {
+              "ticker": "GLDRUBF",
+              "engine": "ABC",
+              "net": 854.79,
+              "pf": 3.18,
+              "trades": 22
+            },
+            {
+              "ticker": "GAZPF",
+              "engine": "AB",
+              "net": 683.58,
+              "pf": 2.13,
+              "trades": 24
+            },
+            {
+              "ticker": "CNYRUBF",
+              "engine": "AB",
+              "net": 359.74,
+              "pf": 2.13,
+              "trades": 18
+            },
+            {
+              "ticker": "BTC_CONT",
+              "engine": "C",
+              "net": 198.57,
+              "pf": 2.53,
+              "trades": 10
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "C",
+              "net": 184.87,
+              "pf": 1.5,
+              "trades": 13
+            }
+          ]
+        },
+        {
+          "date": "2026-08-04",
+          "pairs": [
+            {
+              "ticker": "Eu_CONT",
+              "engine": "C",
+              "net": 4429.1,
+              "pf": 13.97,
+              "trades": 9
+            },
+            {
+              "ticker": "LKOH_CONT",
+              "engine": "C",
+              "net": 1393.21,
+              "pf": 10.0,
+              "trades": 3
+            },
+            {
+              "ticker": "BRM_CONT",
+              "engine": "ABC",
+              "net": 1342.98,
+              "pf": 2.92,
+              "trades": 17
+            },
+            {
+              "ticker": "PLZLM_CONT",
+              "engine": "ABC",
+              "net": 1159.65,
+              "pf": 1.75,
+              "trades": 24
+            },
+            {
+              "ticker": "GAZPF",
+              "engine": "AB",
+              "net": 618.58,
+              "pf": 2.09,
+              "trades": 24
+            },
+            {
+              "ticker": "IMOEXF",
+              "engine": "C",
+              "net": 335.93,
+              "pf": 2.28,
+              "trades": 7
+            },
+            {
+              "ticker": "GLDRUBF",
+              "engine": "C",
+              "net": 207.02,
+              "pf": 5.55,
+              "trades": 5
+            },
+            {
+              "ticker": "RGBI_CONT",
+              "engine": "AB",
+              "net": 180.29,
+              "pf": 1.59,
+              "trades": 18
+            },
+            {
+              "ticker": "SILVM_CONT",
+              "engine": "C",
+              "net": 175.45,
+              "pf": 1.56,
+              "trades": 14
+            }
+          ]
+        },
+        {
+          "date": "2026-08-18",
+          "pairs": [
+            {
+              "ticker": "IMOEXF",
+              "engine": "C",
+              "net": 1837.69,
+              "pf": 10.19,
+              "trades": 6
+            },
+            {
+              "ticker": "LKOH_CONT",
+              "engine": "C",
+              "net": 1552.0,
+              "pf": 10.0,
+              "trades": 4
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "C",
+              "net": 1496.03,
+              "pf": 3.65,
+              "trades": 11
+            },
+            {
+              "ticker": "GAZPF",
+              "engine": "AB",
+              "net": 780.91,
+              "pf": 2.91,
+              "trades": 21
+            },
+            {
+              "ticker": "SLVRUBF",
+              "engine": "C",
+              "net": 293.78,
+              "pf": 1.91,
+              "trades": 9
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "A",
+              "net": 280.89,
+              "pf": 1.74,
+              "trades": 9
+            },
+            {
+              "ticker": "RGBI_CONT",
+              "engine": "AB",
+              "net": 210.42,
+              "pf": 2.03,
+              "trades": 14
+            },
+            {
+              "ticker": "GL_CONT",
+              "engine": "C",
+              "net": 83.22,
+              "pf": 1.99,
+              "trades": 6
+            }
+          ]
+        },
+        {
+          "date": "2026-09-01",
+          "pairs": [
+            {
+              "ticker": "LKOH_CONT",
+              "engine": "C",
+              "net": 2033.13,
+              "pf": 5.32,
+              "trades": 4
+            },
+            {
+              "ticker": "SILV_CONT",
+              "engine": "C",
+              "net": 1994.95,
+              "pf": 2.36,
+              "trades": 10
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "C",
+              "net": 1780.01,
+              "pf": 5.23,
+              "trades": 12
+            },
+            {
+              "ticker": "IMOEXF",
+              "engine": "A",
+              "net": 1666.97,
+              "pf": 7.84,
+              "trades": 5
+            },
+            {
+              "ticker": "SPYF_CONT",
+              "engine": "AB",
+              "net": 1664.29,
+              "pf": 3.37,
+              "trades": 10
+            },
+            {
+              "ticker": "Si_CONT",
+              "engine": "AB",
+              "net": 1289.36,
+              "pf": 1.64,
+              "trades": 21
+            },
+            {
+              "ticker": "BRM_CONT",
+              "engine": "ABC",
+              "net": 775.92,
+              "pf": 1.86,
+              "trades": 21
+            },
+            {
+              "ticker": "GOLDM_CONT",
+              "engine": "AB",
+              "net": 708.29,
+              "pf": 1.66,
+              "trades": 12
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "C",
+              "net": 554.66,
+              "pf": 2.51,
+              "trades": 13
+            },
+            {
+              "ticker": "CNYRUBF",
+              "engine": "AB",
+              "net": 546.11,
+              "pf": 2.54,
+              "trades": 16
+            },
+            {
+              "ticker": "RGBI_CONT",
+              "engine": "AB",
+              "net": 219.05,
+              "pf": 4.62,
+              "trades": 7
+            }
+          ]
+        },
+        {
+          "date": "2026-09-15",
+          "pairs": [
+            {
+              "ticker": "LKOH_CONT",
+              "engine": "A",
+              "net": 8166.76,
+              "pf": 18.36,
+              "trades": 4
+            },
+            {
+              "ticker": "USDRUBF",
+              "engine": "ABC",
+              "net": 3381.67,
+              "pf": 2.87,
+              "trades": 20
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "ABC",
+              "net": 3379.59,
+              "pf": 2.13,
+              "trades": 21
+            },
+            {
+              "ticker": "BRM_CONT",
+              "engine": "ABC",
+              "net": 1175.64,
+              "pf": 3.52,
+              "trades": 21
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "ABC",
+              "net": 897.78,
+              "pf": 2.32,
+              "trades": 24
+            },
+            {
+              "ticker": "CNYRUBF",
+              "engine": "AB",
+              "net": 762.67,
+              "pf": 4.59,
+              "trades": 16
+            },
+            {
+              "ticker": "ROSN_CONT",
+              "engine": "C",
+              "net": 506.5,
+              "pf": 2.17,
+              "trades": 7
+            },
+            {
+              "ticker": "GAZR_CONT",
+              "engine": "C",
+              "net": 472.97,
+              "pf": 16.43,
+              "trades": 6
+            },
+            {
+              "ticker": "SILVM_CONT",
+              "engine": "AB",
+              "net": 341.36,
+              "pf": 2.59,
+              "trades": 16
+            },
+            {
+              "ticker": "YDEX_CONT",
+              "engine": "AB",
+              "net": 148.17,
+              "pf": 1.56,
+              "trades": 23
+            },
+            {
+              "ticker": "RGBI_CONT",
+              "engine": "AB",
+              "net": 74.52,
+              "pf": 3.42,
+              "trades": 4
+            }
+          ]
+        },
+        {
+          "date": "2026-09-29",
+          "pairs": [
+            {
+              "ticker": "LKOH_CONT",
+              "engine": "A",
+              "net": 8007.98,
+              "pf": 18.02,
+              "trades": 3
+            },
+            {
+              "ticker": "USDRUBF",
+              "engine": "ABC",
+              "net": 2141.82,
+              "pf": 1.95,
+              "trades": 24
+            },
+            {
+              "ticker": "SBRF_CONT",
+              "engine": "C",
+              "net": 1451.61,
+              "pf": 16.06,
+              "trades": 9
+            },
+            {
+              "ticker": "ROSN_CONT",
+              "engine": "C",
+              "net": 1077.04,
+              "pf": 3.58,
+              "trades": 8
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "C",
+              "net": 1028.54,
+              "pf": 2.59,
+              "trades": 9
+            },
+            {
+              "ticker": "BRM_CONT",
+              "engine": "AB",
+              "net": 865.18,
+              "pf": 2.17,
+              "trades": 20
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "ABC",
+              "net": 808.86,
+              "pf": 2.6,
+              "trades": 25
+            },
+            {
+              "ticker": "SBERF",
+              "engine": "ABC",
+              "net": 792.8,
+              "pf": 1.91,
+              "trades": 21
+            },
+            {
+              "ticker": "BTC_CONT",
+              "engine": "C",
+              "net": 749.1,
+              "pf": 35.03,
+              "trades": 5
+            },
+            {
+              "ticker": "GAZR_CONT",
+              "engine": "C",
+              "net": 500.93,
+              "pf": 11.97,
+              "trades": 7
+            },
+            {
+              "ticker": "SPYF_CONT",
+              "engine": "AB",
+              "net": 500.85,
+              "pf": 1.53,
+              "trades": 14
+            },
+            {
+              "ticker": "CNY_CONT",
+              "engine": "AB",
+              "net": 385.74,
+              "pf": 2.38,
+              "trades": 17
+            }
+          ]
+        },
+        {
+          "date": "2026-10-13",
+          "pairs": [
+            {
+              "ticker": "Eu_CONT",
+              "engine": "A",
+              "net": 967.74,
+              "pf": 10.73,
+              "trades": 3
+            },
+            {
+              "ticker": "ROSN_CONT",
+              "engine": "C",
+              "net": 831.24,
+              "pf": 4.14,
+              "trades": 6
+            },
+            {
+              "ticker": "BTC_CONT",
+              "engine": "A",
+              "net": 709.76,
+              "pf": 70.3,
+              "trades": 3
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "AB",
+              "net": 647.92,
+              "pf": 1.98,
+              "trades": 23
+            },
+            {
+              "ticker": "CNY_CONT",
+              "engine": "AB",
+              "net": 403.84,
+              "pf": 2.41,
+              "trades": 15
+            },
+            {
+              "ticker": "USDRUBF",
+              "engine": "ABC",
+              "net": 370.35,
+              "pf": 1.21,
+              "trades": 20
+            },
+            {
+              "ticker": "PLZLM_CONT",
+              "engine": "C",
+              "net": 274.85,
+              "pf": 2.82,
+              "trades": 6
+            },
+            {
+              "ticker": "VTBR_CONT",
+              "engine": "C",
+              "net": 78.14,
+              "pf": 2.86,
+              "trades": 4
+            },
+            {
+              "ticker": "IBIT_CONT",
+              "engine": "C",
+              "net": 52.76,
+              "pf": 8.61,
+              "trades": 3
+            }
+          ]
+        },
+        {
+          "date": "2026-10-27",
+          "pairs": [
+            {
+              "ticker": "NASD_CONT",
+              "engine": "AB",
+              "net": 990.55,
+              "pf": 1.98,
+              "trades": 22
+            },
+            {
+              "ticker": "USDRUBF",
+              "engine": "C",
+              "net": 750.49,
+              "pf": 2.4,
+              "trades": 5
+            },
+            {
+              "ticker": "GAZR_CONT",
+              "engine": "ABC",
+              "net": 622.99,
+              "pf": 2.04,
+              "trades": 21
+            },
+            {
+              "ticker": "PLZLM_CONT",
+              "engine": "AB",
+              "net": 576.11,
+              "pf": 2.07,
+              "trades": 12
+            },
+            {
+              "ticker": "BRM_CONT",
+              "engine": "C",
+              "net": 436.13,
+              "pf": 1.93,
+              "trades": 13
+            },
+            {
+              "ticker": "EURRUBF",
+              "engine": "C",
+              "net": 413.42,
+              "pf": 1.58,
+              "trades": 8
+            },
+            {
+              "ticker": "VTBR_CONT",
+              "engine": "AB",
+              "net": 110.22,
+              "pf": 1.48,
+              "trades": 16
+            }
+          ]
+        }
+      ]
+    },
+    "warm45x r0.9 top8": {
+      "params": {
+        "name": "warm45x r0.9 top8",
+        "step": 14,
+        "lookback": 45,
+        "top": 8,
+        "risk": 0.9,
+        "slots": 4,
+        "conviction": true,
+        "min_pf": 1.15,
+        "min_trades": 3,
+        "warmup": 45,
+        "free_slot": true
+      },
+      "metrics": {
+        "netRub": 22884.95,
+        "profitFactor": 1.392,
+        "sharpe": 2.366,
+        "maxDrawdownRub": 8868.14,
+        "maxDrawdownPct": 16.06,
+        "returnPct": 45.77,
+        "annualizedPct": 112.12,
+        "monthly": {
+          "2026-06": -3291.81,
+          "2026-07": -369.62,
+          "2026-08": 20476.45,
+          "2026-09": -2333.77,
+          "2026-10": 10663.26,
+          "2026-11": -2259.57
+        },
+        "trades": 289,
+        "days": 109,
+        "winRate": 0.3391
+      },
+      "oosNet": 731.94,
+      "isNet": 22153.01,
+      "baskets": [
+        {
+          "date": "2026-06-09",
+          "pairs": [
+            {
+              "ticker": "SPYF_CONT",
+              "engine": "A",
+              "net": 1363.0,
+              "pf": 4.33,
+              "trades": 6
+            },
+            {
+              "ticker": "Si_CONT",
+              "engine": "AB",
+              "net": 1311.64,
+              "pf": 1.63,
+              "trades": 19
+            },
+            {
+              "ticker": "GOLDM_CONT",
+              "engine": "C",
+              "net": 1178.86,
+              "pf": 2.83,
+              "trades": 7
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "ABC",
+              "net": 855.95,
+              "pf": 3.53,
+              "trades": 19
+            },
+            {
+              "ticker": "GAZR_CONT",
+              "engine": "C",
+              "net": 405.39,
+              "pf": 6.7,
+              "trades": 7
+            },
+            {
+              "ticker": "SBRF_CONT",
+              "engine": "C",
+              "net": 301.41,
+              "pf": 36.07,
+              "trades": 3
+            }
+          ]
+        },
+        {
+          "date": "2026-06-23",
+          "pairs": [
+            {
+              "ticker": "SILV_CONT",
+              "engine": "AB",
+              "net": 6255.05,
+              "pf": 2.09,
+              "trades": 21
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "AB",
+              "net": 3660.93,
+              "pf": 2.53,
+              "trades": 14
+            },
+            {
+              "ticker": "Si_CONT",
+              "engine": "AB",
+              "net": 2091.66,
+              "pf": 2.05,
+              "trades": 17
+            },
+            {
+              "ticker": "VTBR_CONT",
+              "engine": "ABC",
+              "net": 1159.77,
+              "pf": 3.86,
+              "trades": 16
+            },
+            {
+              "ticker": "GL_CONT",
+              "engine": "AB",
+              "net": 758.18,
+              "pf": 2.67,
+              "trades": 19
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "C",
+              "net": 364.92,
+              "pf": 7.58,
+              "trades": 6
+            },
+            {
+              "ticker": "GAZPF",
+              "engine": "AB",
+              "net": 332.64,
+              "pf": 1.56,
+              "trades": 17
+            },
+            {
+              "ticker": "BTC_CONT",
+              "engine": "C",
+              "net": 178.06,
+              "pf": 3.86,
+              "trades": 9
+            }
+          ]
+        },
+        {
+          "date": "2026-07-07",
+          "pairs": [
+            {
+              "ticker": "SILV_CONT",
+              "engine": "AB",
+              "net": 3904.34,
+              "pf": 1.71,
+              "trades": 19
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "AB",
+              "net": 2381.12,
+              "pf": 2.02,
+              "trades": 15
+            },
+            {
+              "ticker": "Si_CONT",
+              "engine": "AB",
+              "net": 1542.82,
+              "pf": 1.6,
+              "trades": 17
+            },
+            {
+              "ticker": "SPYF_CONT",
+              "engine": "ABC",
+              "net": 1311.58,
+              "pf": 2.09,
+              "trades": 15
+            },
+            {
+              "ticker": "VTBR_CONT",
+              "engine": "ABC",
+              "net": 1040.97,
+              "pf": 2.53,
+              "trades": 17
+            },
+            {
+              "ticker": "GLDRUBF",
+              "engine": "ABC",
+              "net": 800.5,
+              "pf": 3.23,
+              "trades": 22
+            },
+            {
+              "ticker": "GAZPF",
+              "engine": "AB",
+              "net": 305.42,
+              "pf": 1.53,
+              "trades": 18
+            },
+            {
+              "ticker": "BTC_CONT",
+              "engine": "C",
+              "net": 269.68,
+              "pf": 6.14,
+              "trades": 9
+            }
+          ]
+        },
+        {
+          "date": "2026-07-21",
+          "pairs": [
+            {
+              "ticker": "Eu_CONT",
+              "engine": "C",
+              "net": 3833.58,
+              "pf": 17.21,
+              "trades": 4
+            },
+            {
+              "ticker": "VTBR_CONT",
+              "engine": "ABC",
+              "net": 1600.75,
+              "pf": 3.65,
+              "trades": 17
+            },
+            {
+              "ticker": "GLDRUBF",
+              "engine": "ABC",
+              "net": 854.79,
+              "pf": 3.18,
+              "trades": 22
+            },
+            {
+              "ticker": "GAZPF",
+              "engine": "AB",
+              "net": 683.58,
+              "pf": 2.13,
+              "trades": 24
+            },
+            {
+              "ticker": "CNYRUBF",
+              "engine": "AB",
+              "net": 359.74,
+              "pf": 2.13,
+              "trades": 18
+            },
+            {
+              "ticker": "BTC_CONT",
+              "engine": "C",
+              "net": 198.57,
+              "pf": 2.53,
+              "trades": 10
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "C",
+              "net": 184.87,
+              "pf": 1.5,
+              "trades": 13
+            }
+          ]
+        },
+        {
+          "date": "2026-08-04",
+          "pairs": [
+            {
+              "ticker": "Eu_CONT",
+              "engine": "C",
+              "net": 4429.1,
+              "pf": 13.97,
+              "trades": 9
+            },
+            {
+              "ticker": "LKOH_CONT",
+              "engine": "C",
+              "net": 1393.21,
+              "pf": 10.0,
+              "trades": 3
+            },
+            {
+              "ticker": "BRM_CONT",
+              "engine": "ABC",
+              "net": 1342.98,
+              "pf": 2.92,
+              "trades": 17
+            },
+            {
+              "ticker": "PLZLM_CONT",
+              "engine": "ABC",
+              "net": 1159.65,
+              "pf": 1.75,
+              "trades": 24
+            },
+            {
+              "ticker": "GAZPF",
+              "engine": "AB",
+              "net": 618.58,
+              "pf": 2.09,
+              "trades": 24
+            },
+            {
+              "ticker": "IMOEXF",
+              "engine": "C",
+              "net": 335.93,
+              "pf": 2.28,
+              "trades": 7
+            },
+            {
+              "ticker": "GLDRUBF",
+              "engine": "C",
+              "net": 207.02,
+              "pf": 5.55,
+              "trades": 5
+            },
+            {
+              "ticker": "RGBI_CONT",
+              "engine": "AB",
+              "net": 180.29,
+              "pf": 1.59,
+              "trades": 18
+            }
+          ]
+        },
+        {
+          "date": "2026-08-18",
+          "pairs": [
+            {
+              "ticker": "IMOEXF",
+              "engine": "C",
+              "net": 1837.69,
+              "pf": 10.19,
+              "trades": 6
+            },
+            {
+              "ticker": "LKOH_CONT",
+              "engine": "C",
+              "net": 1552.0,
+              "pf": 10.0,
+              "trades": 4
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "C",
+              "net": 1496.03,
+              "pf": 3.65,
+              "trades": 11
+            },
+            {
+              "ticker": "GAZPF",
+              "engine": "AB",
+              "net": 780.91,
+              "pf": 2.91,
+              "trades": 21
+            },
+            {
+              "ticker": "SLVRUBF",
+              "engine": "C",
+              "net": 293.78,
+              "pf": 1.91,
+              "trades": 9
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "A",
+              "net": 280.89,
+              "pf": 1.74,
+              "trades": 9
+            },
+            {
+              "ticker": "RGBI_CONT",
+              "engine": "AB",
+              "net": 210.42,
+              "pf": 2.03,
+              "trades": 14
+            },
+            {
+              "ticker": "GL_CONT",
+              "engine": "C",
+              "net": 83.22,
+              "pf": 1.99,
+              "trades": 6
+            }
+          ]
+        },
+        {
+          "date": "2026-09-01",
+          "pairs": [
+            {
+              "ticker": "LKOH_CONT",
+              "engine": "C",
+              "net": 2033.13,
+              "pf": 5.32,
+              "trades": 4
+            },
+            {
+              "ticker": "SILV_CONT",
+              "engine": "C",
+              "net": 1994.95,
+              "pf": 2.36,
+              "trades": 10
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "C",
+              "net": 1780.01,
+              "pf": 5.23,
+              "trades": 12
+            },
+            {
+              "ticker": "IMOEXF",
+              "engine": "A",
+              "net": 1666.97,
+              "pf": 7.84,
+              "trades": 5
+            },
+            {
+              "ticker": "SPYF_CONT",
+              "engine": "AB",
+              "net": 1664.29,
+              "pf": 3.37,
+              "trades": 10
+            },
+            {
+              "ticker": "Si_CONT",
+              "engine": "AB",
+              "net": 1289.36,
+              "pf": 1.64,
+              "trades": 21
+            },
+            {
+              "ticker": "BRM_CONT",
+              "engine": "ABC",
+              "net": 775.92,
+              "pf": 1.86,
+              "trades": 21
+            },
+            {
+              "ticker": "GOLDM_CONT",
+              "engine": "AB",
+              "net": 708.29,
+              "pf": 1.66,
+              "trades": 12
+            }
+          ]
+        },
+        {
+          "date": "2026-09-15",
+          "pairs": [
+            {
+              "ticker": "LKOH_CONT",
+              "engine": "A",
+              "net": 8166.76,
+              "pf": 18.36,
+              "trades": 4
+            },
+            {
+              "ticker": "USDRUBF",
+              "engine": "ABC",
+              "net": 3381.67,
+              "pf": 2.87,
+              "trades": 20
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "ABC",
+              "net": 3379.59,
+              "pf": 2.13,
+              "trades": 21
+            },
+            {
+              "ticker": "BRM_CONT",
+              "engine": "ABC",
+              "net": 1175.64,
+              "pf": 3.52,
+              "trades": 21
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "ABC",
+              "net": 897.78,
+              "pf": 2.32,
+              "trades": 24
+            },
+            {
+              "ticker": "CNYRUBF",
+              "engine": "AB",
+              "net": 762.67,
+              "pf": 4.59,
+              "trades": 16
+            },
+            {
+              "ticker": "ROSN_CONT",
+              "engine": "C",
+              "net": 506.5,
+              "pf": 2.17,
+              "trades": 7
+            },
+            {
+              "ticker": "GAZR_CONT",
+              "engine": "C",
+              "net": 472.97,
+              "pf": 16.43,
+              "trades": 6
+            }
+          ]
+        },
+        {
+          "date": "2026-09-29",
+          "pairs": [
+            {
+              "ticker": "LKOH_CONT",
+              "engine": "A",
+              "net": 8007.98,
+              "pf": 18.02,
+              "trades": 3
+            },
+            {
+              "ticker": "USDRUBF",
+              "engine": "ABC",
+              "net": 2141.82,
+              "pf": 1.95,
+              "trades": 24
+            },
+            {
+              "ticker": "SBRF_CONT",
+              "engine": "C",
+              "net": 1451.61,
+              "pf": 16.06,
+              "trades": 9
+            },
+            {
+              "ticker": "ROSN_CONT",
+              "engine": "C",
+              "net": 1077.04,
+              "pf": 3.58,
+              "trades": 8
+            },
+            {
+              "ticker": "Eu_CONT",
+              "engine": "C",
+              "net": 1028.54,
+              "pf": 2.59,
+              "trades": 9
+            },
+            {
+              "ticker": "BRM_CONT",
+              "engine": "AB",
+              "net": 865.18,
+              "pf": 2.17,
+              "trades": 20
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "ABC",
+              "net": 808.86,
+              "pf": 2.6,
+              "trades": 25
+            },
+            {
+              "ticker": "SBERF",
+              "engine": "ABC",
+              "net": 792.8,
+              "pf": 1.91,
+              "trades": 21
+            }
+          ]
+        },
+        {
+          "date": "2026-10-13",
+          "pairs": [
+            {
+              "ticker": "Eu_CONT",
+              "engine": "A",
+              "net": 967.74,
+              "pf": 10.73,
+              "trades": 3
+            },
+            {
+              "ticker": "ROSN_CONT",
+              "engine": "C",
+              "net": 831.24,
+              "pf": 4.14,
+              "trades": 6
+            },
+            {
+              "ticker": "BTC_CONT",
+              "engine": "A",
+              "net": 709.76,
+              "pf": 70.3,
+              "trades": 3
+            },
+            {
+              "ticker": "COCOA_CONT",
+              "engine": "AB",
+              "net": 647.92,
+              "pf": 1.98,
+              "trades": 23
+            },
+            {
+              "ticker": "CNY_CONT",
+              "engine": "AB",
+              "net": 403.84,
+              "pf": 2.41,
+              "trades": 15
+            },
+            {
+              "ticker": "USDRUBF",
+              "engine": "ABC",
+              "net": 370.35,
+              "pf": 1.21,
+              "trades": 20
+            },
+            {
+              "ticker": "PLZLM_CONT",
+              "engine": "C",
+              "net": 274.85,
+              "pf": 2.82,
+              "trades": 6
+            },
+            {
+              "ticker": "VTBR_CONT",
+              "engine": "C",
+              "net": 78.14,
+              "pf": 2.86,
+              "trades": 4
+            }
+          ]
+        },
+        {
+          "date": "2026-10-27",
+          "pairs": [
+            {
+              "ticker": "NASD_CONT",
+              "engine": "AB",
+              "net": 990.55,
+              "pf": 1.98,
+              "trades": 22
+            },
+            {
+              "ticker": "USDRUBF",
+              "engine": "C",
+              "net": 750.49,
+              "pf": 2.4,
+              "trades": 5
+            },
+            {
+              "ticker": "GAZR_CONT",
+              "engine": "ABC",
+              "net": 622.99,
+              "pf": 2.04,
+              "trades": 21
+            },
+            {
+              "ticker": "PLZLM_CONT",
+              "engine": "AB",
+              "net": 576.11,
+              "pf": 2.07,
+              "trades": 12
+            },
+            {
+              "ticker": "BRM_CONT",
+              "engine": "C",
+              "net": 436.13,
+              "pf": 1.93,
+              "trades": 13
+            },
+            {
+              "ticker": "EURRUBF",
+              "engine": "C",
+              "net": 413.42,
+              "pf": 1.58,
+              "trades": 8
+            },
+            {
+              "ticker": "VTBR_CONT",
+              "engine": "ABC",
+              "net": 113.72,
+              "pf": 1.43,
+              "trades": 17
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "static_v41": {
+    "oos": {
+      "netRub": 12314.83,
+      "profitFactor": 2.055,
+      "sharpe": 3.829,
+      "maxDrawdownRub": 1803.68,
+      "maxDrawdownPct": 2.91,
+      "returnPct": 24.63,
+      "annualizedPct": 102.16,
+      "monthly": {
+        "2026-04": 2052.09,
+        "2026-05": 3371.0,
+        "2026-06": 3236.37,
+        "2026-07": 3655.37
+      },
+      "trades": 130,
+      "days": 63,
+      "winRate": 0.3462
+    },
+    "is": {
+      "netRub": 7907.31,
+      "profitFactor": 1.524,
+      "sharpe": 3.157,
+      "maxDrawdownRub": 2480.87,
+      "maxDrawdownPct": 4.51,
+      "returnPct": 15.81,
+      "annualizedPct": 57.15,
+      "monthly": {
+        "2026-07": -1081.84,
+        "2026-08": 5326.59,
+        "2026-09": -510.78,
+        "2026-10": 3630.73,
+        "2026-11": 542.6
+      },
+      "trades": 144,
+      "days": 66,
+      "winRate": 0.4097
+    },
+    "full": {
+      "netRub": 21462.76,
+      "profitFactor": 1.629,
+      "sharpe": 3.26,
+      "maxDrawdownRub": 3625.65,
+      "maxDrawdownPct": 5.16,
+      "returnPct": 42.93,
+      "annualizedPct": 81.6,
+      "monthly": {
+        "2026-04": 2052.09,
+        "2026-05": 3371.0,
+        "2026-06": 3236.37,
+        "2026-07": 2142.87,
+        "2026-08": 8163.55,
+        "2026-09": -869.38,
+        "2026-10": 2839.63,
+        "2026-11": 526.64
+      },
+      "trades": 282,
+      "days": 130,
+      "winRate": 0.3759
+    }
+  }
+}

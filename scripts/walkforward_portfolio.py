@@ -55,15 +55,18 @@ def universe() -> List[str]:
 
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Роллинг walk-forward портфель v4.2")
+    parser.add_argument("--only", default="", help="фильтр по подстроке имени случая")
     parser.add_argument("--bars", type=int, default=30)
     parser.add_argument("--capital", type=float, default=50_000.0)
     parser.add_argument("--out", default="")
+    parser.add_argument("--signal-from", default="2026-03-05",
+                        help="начало прогрева сигналов (v4.3: 2026-03-05)")
     args = parser.parse_args(argv)
 
     started = time.time()
     tickers = universe()
     print(f"универсум: {len(tickers)} инструментов", flush=True)
-    candles = {ticker: load_candles(ticker, "2026-04-25", "2026-11-05", args.bars) for ticker in tickers}
+    candles = {ticker: load_candles(ticker, args.signal_from, "2026-11-05", args.bars) for ticker in tickers}
     metas = {ticker: load_meta(ticker) for ticker in tickers}
     params = {ticker: v32_params(args.bars, True) for ticker in tickers}
 
@@ -72,27 +75,76 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     signals = build_all_signals(metas, params, candles, progress=progress)
     total = sum(len(series) for series in signals.values())
-    print(f"пар (инструмент×движки): {len(signals)}, сделок в потоках: {total}", flush=True)
+    free_share = sum(1 for series in signals.values() for s in series if s.free_ms > 0)
+    print(
+        f"пар (инструмент×движки): {len(signals)}, сделок в потоках: {total}, "
+        f"с breakeven-меткой: {free_share} ({100.0 * free_share / max(total, 1):.1f}%)",
+        flush=True,
+    )
 
     start_ms = _ms("2026-04-25")
     end_ms = _ms("2026-11-05")
     oos_end = _ms("2026-07-25")
 
+    core = ("CNYRUBF", "USDRUBF", "GLDRUBF", "BRM_CONT", "GAZR_CONT")
+    foreign = ("NASD_CONT", "SPYF_CONT")
     cases: List[Dict[str, Any]] = [
-        {"name": "v4.1-style step30/L60/top8/r0.7", "step": 30, "lookback": 60, "top": 8,
-         "risk": 0.7, "slots": 3, "conviction": False, "min_pf": 1.30, "min_trades": 4},
-        {"name": "biweekly L45/top10/r0.7+conv", "step": 14, "lookback": 45, "top": 10,
+        {"name": "v4.2-style warm45 r0.7", "step": 14, "lookback": 45, "top": 12,
+         "risk": 0.7, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3,
+         "warmup": 45, "free_slot": False},
+        {"name": "warm45 r0.7 freeSlot", "step": 14, "lookback": 45, "top": 12,
+         "risk": 0.7, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3,
+         "warmup": 45, "free_slot": True},
+        {"name": "warm45 r0.9 freeSlot", "step": 14, "lookback": 45, "top": 12,
+         "risk": 0.9, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3,
+         "warmup": 45, "free_slot": True},
+        {"name": "warm45 r0.6 freeSlot", "step": 14, "lookback": 45, "top": 12,
+         "risk": 0.6, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3,
+         "warmup": 45, "free_slot": True},
+        {"name": "warm45 r0.9 nofreeSlot", "step": 14, "lookback": 45, "top": 12,
+         "risk": 0.9, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3,
+         "warmup": 45, "free_slot": False},
+        {"name": "warm45 r1.1 freeSlot", "step": 14, "lookback": 45, "top": 12,
+         "risk": 1.1, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3,
+         "warmup": 45, "free_slot": True},
+        {"name": "warm45 r1.1 nofreeSlot", "step": 14, "lookback": 45, "top": 12,
+         "risk": 1.1, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3,
+         "warmup": 45, "free_slot": False},
+        {"name": "warm45 r0.9 5slots", "step": 14, "lookback": 45, "top": 12,
+         "risk": 0.9, "slots": 5, "conviction": True, "min_pf": 1.15, "min_trades": 3,
+         "warmup": 45, "free_slot": True},
+        {"name": "warm45x r1.0 freeSlot", "step": 14, "lookback": 45, "top": 12,
+         "risk": 1.0, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3,
+         "warmup": 45, "free_slot": True},
+        {"name": "warm45x r0.9 core-hybrid", "step": 14, "lookback": 45, "top": 12,
+         "risk": 0.9, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3,
+         "warmup": 45, "free_slot": True, "core": core, "core_pf": 1.15, "satellite_pf": 1.45},
+        {"name": "warm45x r0.9 top8", "step": 14, "lookback": 45, "top": 8,
+         "risk": 0.9, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3,
+         "warmup": 45, "free_slot": True},
+        {"name": "v4.3 prewarm r0.7 freeSlot", "step": 14, "lookback": 45, "top": 12,
          "risk": 0.7, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3},
-        {"name": "weekly L45/top10/r0.7+conv", "step": 7, "lookback": 45, "top": 10,
-         "risk": 0.7, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3},
-        {"name": "biweekly L45/top12/r0.7+conv", "step": 14, "lookback": 45, "top": 12,
-         "risk": 0.7, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3},
-        {"name": "biweekly L30/top10/r0.7+conv", "step": 14, "lookback": 30, "top": 10,
-         "risk": 0.7, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3},
-        {"name": "biweekly L45/top10/r1.0+conv", "step": 14, "lookback": 45, "top": 10,
-         "risk": 1.0, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3},
-        {"name": "biweekly L45/top10/r1.0 no conv", "step": 14, "lookback": 45, "top": 10,
-         "risk": 1.0, "slots": 4, "conviction": False, "min_pf": 1.15, "min_trades": 3},
+        {"name": "v4.3 r0.9 freeSlot", "step": 14, "lookback": 45, "top": 12,
+         "risk": 0.9, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3},
+        {"name": "v4.3 r1.1 freeSlot", "step": 14, "lookback": 45, "top": 12,
+         "risk": 1.1, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3},
+        {"name": "v4.3 r0.9 nofreeSlot", "step": 14, "lookback": 45, "top": 12,
+         "risk": 0.9, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3,
+         "free_slot": False},
+        {"name": "v4.3 r0.9 no convictions", "step": 14, "lookback": 45, "top": 12,
+         "risk": 0.9, "slots": 4, "conviction": False, "min_pf": 1.15, "min_trades": 3},
+        {"name": "v4.3 r0.9 core-hybrid", "step": 14, "lookback": 45, "top": 12,
+         "risk": 0.9, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3,
+         "core": core, "core_pf": 1.15, "satellite_pf": 1.45},
+        {"name": "v4.3 r0.9 no foreign idx", "step": 14, "lookback": 45, "top": 12,
+         "risk": 0.9, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3,
+         "exclude": foreign},
+        {"name": "v4.3 r1.1 core+nofidx", "step": 14, "lookback": 45, "top": 12,
+         "risk": 1.1, "slots": 4, "conviction": True, "min_pf": 1.15, "min_trades": 3,
+         "core": core, "core_pf": 1.15, "satellite_pf": 1.45, "exclude": foreign},
+        {"name": "v4.3 r1.1 core+free+5slots", "step": 14, "lookback": 45, "top": 12,
+         "risk": 1.1, "slots": 5, "conviction": True, "min_pf": 1.15, "min_trades": 3,
+         "core": core, "core_pf": 1.15, "satellite_pf": 1.45},
     ]
 
     report: Dict[str, Any] = {"bars": args.bars, "capital": args.capital, "cases": {}}
@@ -101,6 +153,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         f"{'PF':>6} {'Sh':>6} {'DD%':>6} {'год%':>7}",
         flush=True,
     )
+    flt = getattr(args, "only", "") or ""
+    if flt:
+        cases = [case for case in cases if flt in case["name"]]
     for case in cases:
         settings = WalkForwardSettings(
             capital_rub=args.capital,
@@ -112,6 +167,13 @@ def main(argv: Optional[List[str]] = None) -> int:
             min_trades=case.get("min_trades", 4),
             max_concurrent_positions=case["slots"],
             conviction_sizing=case["conviction"],
+            free_slot_on_breakeven=case.get("free_slot", True),
+            core_anchors=tuple(case.get("core", ())),
+            core_min_pf=case.get("core_pf", 1.15),
+            satellite_min_pf=case.get("satellite_pf", 0.0),
+            exclude_tickers=tuple(case.get("exclude", ())),
+            throttle_start_pct=6.0,
+            warmup_days=case.get("warmup", 0),
         )
         result = run_walkforward(signals, metas, start_ms, end_ms, settings)
         metrics = result.metrics(args.capital)

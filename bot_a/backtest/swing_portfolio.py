@@ -64,6 +64,10 @@ class SwingAccountSettings:
     conviction_sizing: bool = False
     conviction_min: float = 0.75
     conviction_max: float = 1.35
+    # v4.3: риск-слот освобождается, когда стоп уже в прибыли (позиция безрисковая),
+    # и общий лимит открытых позиций отдельно от лимита «под риском».
+    free_slot_on_breakeven: bool = False
+    max_total_open_positions: int = 8
 
 
 @dataclass(slots=True)
@@ -321,9 +325,24 @@ class SwingAccountBacktester:
                             open_positions[ticker] = virtual
                             pending[ticker] = (event, virtual)
                         continue
+                    if settings.max_concurrent_positions > 0:
+                        at_risk = len(open_positions)
+                        if settings.free_slot_on_breakeven:
+                            at_risk = sum(
+                                1
+                                for open_ticker in open_positions
+                                if (
+                                    machines[open_ticker].position is not None
+                                    and not machines[open_ticker].position.breakeven_done
+                                )
+                            )
+                        if at_risk >= settings.max_concurrent_positions:
+                            machine.position = None
+                            result.rejected_by_slots += 1
+                            continue
                     if (
-                        settings.max_concurrent_positions > 0
-                        and len(open_positions) >= settings.max_concurrent_positions
+                        settings.max_total_open_positions > 0
+                        and len(open_positions) >= settings.max_total_open_positions
                     ):
                         machine.position = None
                         result.rejected_by_slots += 1

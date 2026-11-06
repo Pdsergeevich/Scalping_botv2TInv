@@ -440,16 +440,22 @@ def write_meta(universe: Dict[str, Any], stitched: Dict[str, str]) -> None:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    global MAX_MARGIN
+    global MAX_MARGIN, DATE_FROM, DATE_TO
     parser = argparse.ArgumentParser(description="Универсум FORTS: обнаружение, загрузка, склейка")
     parser.add_argument("--stage", default="all", choices=["discover", "download", "stitch", "all"])
     parser.add_argument("--jobs", type=int, default=12)
     parser.add_argument("--max-margin", type=float, default=MAX_MARGIN)
     parser.add_argument("--max-series", type=int, default=60)
     parser.add_argument("--refresh", action="store_true", help="пересобрать универсум с ISS")
+    parser.add_argument("--from", dest="date_from", default=DATE_FROM,
+                        help="начало окна докачки (v4.3: 2026-03-05 для прогрева walk-forward)")
+    parser.add_argument("--to", dest="date_to", default=DATE_TO, help="конец окна докачки")
     args = parser.parse_args(argv)
 
     MAX_MARGIN = float(args.max_margin)
+    # Прогрев (v4.3): можно задать своё окно — качаем только свечи, универсум из кэша.
+    DATE_FROM = str(args.date_from)
+    DATE_TO = str(args.date_to)
     started = time.time()
     current = fetch_current()
     print(f"живых контрактов FORTS: {len(current)}", flush=True)

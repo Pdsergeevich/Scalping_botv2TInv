@@ -69,6 +69,10 @@ class Signal:
     conviction: float
     reason: str = ""
     family: str = ""
+    free_ms: int = 0  # когда стоп ушёл в прибыль (0 = не дошло до breakeven)
+    rank: int = 0  # место в корзине на момент входа (1 = лидер)
+    basket_pf: float = 0.0  # трейлинг-PF пары на момент отбора
+    pair_trades: int = 0  # сделок пары в трейлинг-окне
 
     @property
     def entry_date(self) -> date:
@@ -90,7 +94,7 @@ def build_signals(
     machine = regime_machine(meta, engine_params(params, engine))
     slip = meta.min_price_increment * Decimal(max(int(slip_steps), 0))
     signals: List[Signal] = []
-    opened: Optional[Tuple[Any, Decimal, float]] = None  # (event, entry_price, stop_points)
+    opened: Optional[Tuple[Any, Decimal, float, int]] = None  # event, fill, stop_points, free_ms
     for candle in candles:
         bar = Bar(
             time_ms=candle.time_ms,
@@ -100,6 +104,11 @@ def build_signals(
             close=candle.close,
             volume=int(candle.volume),
         )
+        # Метку «стоп ушёл в прибыль» ставим на баре, следующем за ратчетом (без заглядывания вперёд).
+        if opened is not None and opened[3] == 0:
+            position_now = machine.position
+            if position_now is not None and position_now.breakeven_done:
+                opened = (opened[0], opened[1], opened[2], bar.time_ms)
         for event in machine.on_bar(bar):
             if event.kind == "entry":
                 position = machine.position
@@ -107,11 +116,11 @@ def build_signals(
                     continue
                 fill = event.price + slip if event.side is BreakoutSide.LONG else event.price - slip
                 stop_points = abs(float(position.entry_price - position.initial_stop))
-                opened = (event, fill, stop_points)
+                opened = (event, fill, stop_points, 0)
                 continue
             if event.kind != "exit" or opened is None:
                 continue
-            entry_event, entry_fill, stop_points = opened
+            entry_event, entry_fill, stop_points, _free = opened
             exit_fill = event.price - slip if event.side is BreakoutSide.LONG else event.price + slip
             signals.append(
                 Signal(
@@ -126,6 +135,7 @@ def build_signals(
                     conviction=float(getattr(entry_event, "conviction", 1.0) or 1.0),
                     reason=str(event.reason or ""),
                     family=underlying_family(meta.ticker),
+                    free_ms=_free,
                 )
             )
             opened = None
@@ -200,13 +210,21 @@ def select_basket(
     min_pf: float = 1.30,
     min_trades: int = 4,
     deduplicate: bool = True,
+    core_anchors: Sequence[str] = (),
+    core_min_pf: float = 1.15,
+    satellite_min_pf: float = 0.0,
+    exclude_tickers: Sequence[str] = (),
 ) -> List[Dict[str, Any]]:
     """Кандидаты на трейлинг-окне `[at_ms − L, at_ms)`: устойчивость + дедуп + Top-M."""
     start_ms = at_ms - int(lookback_days) * 86_400_000
     middle_ms = (start_ms + at_ms) // 2
     scored: List[Dict[str, Any]] = []
+    anchors = {str(item).upper() for item in core_anchors}
+    excluded = {str(item).upper() for item in exclude_tickers}
     for key, series in signals.items():
         ticker, engine = key if isinstance(key, tuple) else (str(key), "A")
+        if ticker.upper() in excluded:
+            continue
         meta = metas.get(ticker)
         if meta is None:
             continue
@@ -217,7 +235,13 @@ def select_basket(
             continue
         if first["net"] <= 0 or second["net"] <= 0:
             continue
-        if full["pf"] < min_pf:
+        required_pf = min_pf
+        if ticker.upper() in anchors:
+            # Ядро: достаточно устойчивости и умеренного PF.
+            required_pf = min(required_pf, core_min_pf)
+        elif satellite_min_pf > 0:
+            required_pf = max(required_pf, satellite_min_pf)
+        if full["pf"] < required_pf:
             continue
         scored.append(
             {
@@ -231,7 +255,10 @@ def select_basket(
         )
     scored.sort(key=lambda item: (-item["net"], item["ticker"], item["engine"]))
     if not deduplicate:
-        return scored[:top]
+        chosen = scored[:top]
+        for position, item in enumerate(chosen, start=1):
+            item["rank"] = position
+        return chosen
     kept: List[Dict[str, Any]] = []
     used: set = set()
     for item in scored:
@@ -241,6 +268,8 @@ def select_basket(
         used.add(item["family"])
         if len(kept) >= top:
             break
+    for position, item in enumerate(kept, start=1):
+        item["rank"] = position
     return kept
 
 
@@ -258,6 +287,17 @@ class WalkForwardSettings:
     min_pf: float = 1.30
     min_trades: int = 4
     conviction_sizing: bool = False
+    # v4.3: ядро-анкоры (всегда имеют право на слот при PF >= core_min_pf),
+    # сателлиты требуют satellite_min_pf; чужие индексы можно исключить.
+    core_anchors: Tuple[str, ...] = ()
+    core_min_pf: float = 1.15
+    satellite_min_pf: float = 0.0
+    exclude_tickers: Tuple[str, ...] = ()
+    free_slot_on_breakeven: bool = True
+    max_total_open_positions: int = 8
+    conviction_leader_boost: float = 1.45
+    # v4.3: 0 = торговать с первого дня (сигналы прогреты историей до start_ms).
+    warmup_days: int = 0
     drawdown_throttle: bool = True
     throttle_start_pct: float = 5.0
     throttle_min_multiplier: float = 0.4
@@ -311,7 +351,19 @@ def run_walkforward(
     peak = equity
     step_ms = max(int(settings.step_days), 1) * 86_400_000
     lookback = max(int(settings.lookback_days), 1)
-    rebalance_ms = start_ms + lookback * 86_400_000
+    rebalance_ms = start_ms + max(int(settings.warmup_days), 0) * 86_400_000
+
+    executed: List[Signal] = []
+
+    def open_positions_at(at_ms: int) -> List[Tuple[Signal, bool]]:
+        """Открытые позиции: (сигнал, под риском ли ещё)."""
+        out: List[Tuple[Signal, bool]] = []
+        for item in executed:
+            if not (item.entry_ms <= at_ms < item.exit_ms):
+                continue
+            risk_free = item.free_ms > 0 and at_ms >= item.free_ms
+            out.append((item, not risk_free))
+        return out
 
     def open_trades(at_ms: int) -> List[BreakoutTrade]:
         return [trade for trade in result.trades if trade.entry_ms <= at_ms < trade.exit_ms]
@@ -340,7 +392,15 @@ def run_walkforward(
             min_pf=settings.min_pf,
             min_trades=settings.min_trades,
             deduplicate=settings.deduplicate,
+            core_anchors=settings.core_anchors,
+            core_min_pf=settings.core_min_pf,
+            satellite_min_pf=settings.satellite_min_pf,
+            exclude_tickers=settings.exclude_tickers,
         )
+        rank_by_key = {
+            (item["ticker"], item["engine"]): (item.get("rank", 99), item["pf"], item["trades"])
+            for item in basket
+        }
         result.baskets.append(
             {
                 "date": datetime.fromtimestamp(rebalance_ms / 1000, tz=MSK).date().isoformat(),
@@ -360,23 +420,47 @@ def run_walkforward(
         executions: List[Signal] = []
         for item in basket:
             key = (item["ticker"], item["engine"])
-            executions.extend(
-                signal for signal in signals.get(key, []) if rebalance_ms <= signal.entry_ms < slice_end
-            )
+            for signal in signals.get(key, []):
+                if rebalance_ms <= signal.entry_ms < slice_end:
+                    rank, pair_pf, pair_trades = rank_by_key.get(key, (99, 0.0, 0))
+                    signal.rank = int(rank)
+                    signal.basket_pf = float(pair_pf)
+                    signal.pair_trades = int(pair_trades)
+                    executions.append(signal)
         executions.sort(key=lambda signal: (signal.entry_ms, signal.ticker, signal.engine))
         for signal in executions:
             meta = metas.get(signal.ticker)
             if meta is None:
                 continue
             margin_used = reserved_margin(signal.entry_ms)
+            open_now = open_positions_at(signal.entry_ms)
+            if settings.max_concurrent_positions > 0:
+                if settings.free_slot_on_breakeven:
+                    at_risk = sum(1 for item in open_now if item[1])
+                else:
+                    at_risk = len(open_now)
+                if at_risk >= settings.max_concurrent_positions:
+                    result.rejected_by_slots += 1
+                    continue
             if (
-                settings.max_concurrent_positions > 0
-                and len(open_trades(signal.entry_ms)) >= settings.max_concurrent_positions
+                settings.max_total_open_positions > 0
+                and len(open_now) >= settings.max_total_open_positions
             ):
                 result.rejected_by_slots += 1
                 continue
             throttle = _throttle(settings, equity, peak)
-            conviction = signal.conviction if settings.conviction_sizing else 1.0
+            conviction = 1.0
+            if settings.conviction_sizing:
+                conviction = signal.conviction
+                # Лидеры корзины (top-3 с PF >= 2.0 и >= 6 сделками) при сильном ER
+                # получают повышенный риск — это приоритет ранга, а не удача слота.
+                if (
+                    signal.rank <= 3
+                    and signal.basket_pf >= 2.0
+                    and signal.pair_trades >= 6
+                    and signal.conviction >= 1.1
+                ):
+                    conviction = max(conviction, settings.conviction_leader_boost)
             risk_budget = max(equity, 0.0) * float(settings.risk_pct_per_trade) / 100.0
             stop_rub = max(signal.stop_points * float(meta.rub_per_price_unit), 1e-9)
             quantity = int(risk_budget * conviction * throttle // stop_rub)
@@ -392,6 +476,7 @@ def run_walkforward(
                 if quantity <= 0:
                     result.rejected_by_margin += 1
                     continue
+            executed.append(signal)
             notional_entry = meta.value_in_rub(signal.entry_price) * Decimal(quantity)
             notional_exit = meta.value_in_rub(signal.exit_price) * Decimal(quantity)
             fees.roll_day(signal.entry_date)

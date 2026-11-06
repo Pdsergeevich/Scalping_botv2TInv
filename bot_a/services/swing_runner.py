@@ -52,6 +52,9 @@ class SwingBasketSettings:
     margin_safety_buffer_pct: float = 25.0
     max_margin_utilization_pct: float = 60.0
     max_concurrent_positions: int = 0
+    # v4.3: безрисковые «раннеры» (стоп выше входа) не занимают риск-слот.
+    free_slot_on_breakeven: bool = True
+    max_total_open_positions: int = 8
     bar_minutes: int = 30
     poll_ms: int = 2000
     state_path: Optional[Path] = None
@@ -343,9 +346,20 @@ class SwingBasketRunner:
         position = machine.position
         if position is None:
             return
+        if self._settings.max_concurrent_positions > 0:
+            at_risk = len(self._positions)
+            if self._settings.free_slot_on_breakeven:
+                at_risk = sum(
+                    1
+                    for ticker_open in self._positions
+                    if not getattr(self._machines[ticker_open].position, "breakeven_done", False)
+                )
+            if at_risk >= self._settings.max_concurrent_positions:
+                machine.position = None
+                return
         if (
-            self._settings.max_concurrent_positions > 0
-            and len(self._positions) >= self._settings.max_concurrent_positions
+            self._settings.max_total_open_positions > 0
+            and len(self._positions) >= self._settings.max_total_open_positions
         ):
             machine.position = None
             return
