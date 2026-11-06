@@ -13,7 +13,13 @@ from typing import Optional, Sequence
 from bot_a.backtest.candles import TInvestCandleSource, resample_candles
 from bot_a.backtest.grid_search import GridSearchOptimizer
 from bot_a.backtest.historical_candles import HistoricalCandleBacktester
-from bot_a.backtest.iss_source import IssCandleSource, fetch_futures_metadata, fetch_stock_metadata
+from bot_a.backtest.iss_source import (
+    IssCandleSource,
+    cached_candles,
+    cached_futures_metadata,
+    fetch_futures_metadata,
+    fetch_stock_metadata,
+)
 from bot_a.backtest.recorder import RecordingService
 from bot_a.backtest.tick_replay import ReplayRange, TickReplayBacktester, build_replay_source
 from bot_a.broker import tinvest as broker
@@ -88,6 +94,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         default=None,
         help="разрешить перенос позиции через вечернюю сессию и ночь (v3.1)",
+    )
+    parser.add_argument(
+        "--max-slots",
+        type=int,
+        default=0,
+        help="максимум одновременных позиций в корзине ALL_SWING (0 = без лимита); v4.0: 3",
     )
     parser.add_argument(
         "--margin-utilization",
@@ -386,8 +398,9 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
     risk = float(getattr(args, "risk_pct", 1.0))
 
     def _params(ticker: str):
-        params = config.breakout(ticker) if ticker in config.breakout_names() else None
-        if params is None:
+        try:
+            params = config.breakout(ticker)
+        except KeyError:
             from bot_a.engine.breakout_fsm import BreakoutParams
 
             params = BreakoutParams()
@@ -399,8 +412,16 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
             overrides["close_losers_before_clearing"] = bool(args.overnight)
         return params.overrides(**overrides) if overrides else params
 
+    cache_dir = config.path(config.storage.data_cache_dir)
     metas = {}
     for ticker in tickers:
+        # Сначала локальный кэш (детерминированный бэктест и continuous-серии),
+        # сеть — только как резерв.
+        try:
+            metas[ticker] = cached_futures_metadata(ticker, cache_dir)
+            continue
+        except Exception:  # noqa: BLE001 — нет в кэше, спросим ISS
+            pass
         try:
             metas[ticker] = await asyncio.to_thread(fetch_futures_metadata, ticker)
         except Exception as exc:  # noqa: BLE001
@@ -415,7 +436,7 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
         bar_minutes,
         getattr(args, "margin_utilization", 60.0),
     )
-    source = IssCandleSource(config.path(config.storage.data_cache_dir))
+    source = IssCandleSource(cache_dir)
 
     if args.mode == "backtest":
         start_ms, end_ms = _parse_period(args)
@@ -425,7 +446,10 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
             start_ms = end_ms - int(args.days) * 86_400_000
         data = {}
         for ticker, meta in metas.items():
-            candles = await source.get_candles(meta, start_ms, end_ms, "1min")
+            if ticker.endswith("_CONT"):
+                candles = cached_candles(ticker, cache_dir, start_ms, end_ms)
+            else:
+                candles = await source.get_candles(meta, start_ms, end_ms, "1min")
             data[ticker] = _resample_if_needed(candles, bar_minutes)
         engine = SwingAccountBacktester(
             [(metas[ticker], _params(ticker)) for ticker in tickers],
@@ -435,6 +459,7 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
                 tariff=config.fees.tariff,
                 margin_safety_buffer_pct=config.risk.margin_safety_buffer_pct,
                 max_margin_utilization_pct=float(getattr(args, "margin_utilization", 60.0)),
+                max_concurrent_positions=int(getattr(args, "max_slots", 0) or 0),
             ),
         )
         result = engine.run(data)
@@ -628,7 +653,7 @@ async def _dispatch_breakout(args: argparse.Namespace, config: AppConfig, logger
         tariff=config.fees.tariff,
         margin_safety_buffer_pct=config.risk.margin_safety_buffer_pct,
     )
-    source = IssCandleSource(config.path(config.storage.data_cache_dir))
+    source = IssCandleSource(cache_dir)
     bar_minutes = max(int(getattr(args, "bar_minutes", 1) or 1), 1)
     logger.info(
         "Пробой %s: шаг %s, 1 шаг = %s RUB, ГО %s RUB, капитал %.0f RUB, тариф %s, бары %d мин, "
@@ -922,7 +947,7 @@ async def _dispatch(args: argparse.Namespace, config: AppConfig, logger) -> int:
                 resolved.leg2.min_price_increment_amount,
                 resolved.leg2.position_margin_rub(1),
             )
-            source = IssCandleSource(config.path(config.storage.data_cache_dir))
+            source = IssCandleSource(cache_dir)
             backtester = HistoricalCandleBacktester(
                 config, resolved, source, logger=logger, synth_mode=args.synth_mode
             )
@@ -985,7 +1010,7 @@ async def _dispatch(args: argparse.Namespace, config: AppConfig, logger) -> int:
     if args.mode == "optimize":
         if args.source == "iss":
             resolved = await _resolve_iss_preset(preset)
-            source = IssCandleSource(config.path(config.storage.data_cache_dir))
+            source = IssCandleSource(cache_dir)
             optimizer = GridSearchOptimizer(
                 config, resolved, source, base_params=config.strategy, jobs=args.jobs, logger=logger
             )

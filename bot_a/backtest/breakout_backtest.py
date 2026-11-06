@@ -22,6 +22,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from bot_a.backtest.candles import Candle
 from bot_a.economics.fees import Tariff, TinkoffFeeCalculator
+from bot_a.engine.multiregime_fsm import regime_machine
 from bot_a.engine.breakout_fsm import (
     Bar,
     BreakoutEvent,
@@ -310,7 +311,7 @@ class BreakoutBacktester:
     # ------------------------------------------------------------------ прогон
     def run(self, candles: Sequence[Candle]) -> BreakoutResult:
         bars = candles_to_bars(candles)
-        machine = MomentumBreakoutStateMachine(
+        machine = regime_machine(
             self._meta,
             self._p,
             fee_calculator=self._round_trip_fee,

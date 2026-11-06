@@ -57,6 +57,49 @@ def fetch_futures_metadata(ticker: str) -> InstrumentMetadata:
     )
 
 
+def cached_futures_metadata(ticker: str, cache_dir: str | Path) -> InstrumentMetadata:
+    """Метаданные из локального `forts_meta.json` (нужно для continuous-серий `*_CONT`,
+    которых нет на ISS как отдельного инструмента)."""
+    path = Path(cache_dir) / "forts_meta.json"
+    if path.exists():
+        cache = json.loads(path.read_text(encoding="utf-8"))
+        row = cache.get(ticker)
+        if row:
+            return InstrumentMetadata(
+                instrument_uid=ticker,
+                ticker=ticker,
+                class_code="SPBFUT",
+                market=MarketKind.FUTURES,
+                name=str(row.get("name") or ticker),
+                lot_size=int(row.get("lot") or 1),
+                min_price_increment=dec(row.get("min_step") or "0.01"),
+                min_price_increment_amount=dec(row.get("step_price") or "0"),
+                initial_margin_buy=dec(str(row.get("margin") or 0)),
+                initial_margin_sell=dec(str(row.get("margin") or 0)),
+            )
+    raise RuntimeError(
+        f"нет метаданных для {ticker} в {path}: запустите scripts/discover_forts_universe.py"
+    )
+
+
+def cached_candles(
+    ticker: str, cache_dir: str | Path, start_ms: int, end_ms: int
+) -> List[Candle]:
+    """1-мин свечи из локального кэша `iss_forts_{ticker}_*.json` (без сети)."""
+    candles: List[Candle] = []
+    for path in sorted(Path(cache_dir).glob(f"iss_forts_{ticker}_*.json")):
+        try:
+            rows = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        for row in rows:
+            item = Candle.from_dict(row)
+            if start_ms <= item.time_ms <= end_ms:
+                candles.append(item)
+    candles.sort(key=lambda item: item.time_ms)
+    return candles
+
+
 def fetch_stock_metadata(ticker: str, board: str = "TQBR") -> InstrumentMetadata:
     """Метаданные акции: размер лота из списка бумаг режима ``board``."""
     payload = _get_json(

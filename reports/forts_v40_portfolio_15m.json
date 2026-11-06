@@ -1,0 +1,1444 @@
+{
+  "bars": 15,
+  "capital": 50000.0,
+  "selection": {
+    "CNYRUBF": "C",
+    "GLDRUBF": "A",
+    "GAZR_CONT": "C",
+    "GOLDM_CONT": "B",
+    "GAZPF": "B",
+    "RGBI_CONT": "B",
+    "SILV_CONT": "A"
+  },
+  "cases": {
+    "v3.2 эталон (2 тикера)": {
+      "risk": 1.0,
+      "utilization": 60.0,
+      "tickers": [
+        "CNYRUBF",
+        "GLDRUBF"
+      ],
+      "concurrent": 0,
+      "engines": {
+        "CNYRUBF": "BASE",
+        "GLDRUBF": "BASE"
+      },
+      "periods": {
+        "oos": {
+          "net": 2640.8,
+          "pf": 1.789,
+          "trades": 15,
+          "sharpe": 3.77,
+          "dd": 2.69,
+          "monthly": {
+            "2026-04": 1310.14,
+            "2026-05": -938.23,
+            "2026-06": 1774.06,
+            "2026-07": 494.83
+          },
+          "fees": 902.23,
+          "maxMargin": 30508.0,
+          "rejectedMargin": 0,
+          "rejectedRisk": 0,
+          "rejectedSlots": 0,
+          "perTicker": {
+            "CNYRUBF": 269.47,
+            "GLDRUBF": 2371.34
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 6,
+            "GLDRUBF": 9
+          }
+        },
+        "is": {
+          "net": -394.49,
+          "pf": 0.908,
+          "trades": 24,
+          "sharpe": -0.59,
+          "dd": 6.18,
+          "monthly": {
+            "2026-08": 660.57,
+            "2026-09": -313.82,
+            "2026-10": -2335.11,
+            "2026-11": 1593.87
+          },
+          "fees": 1468.56,
+          "maxMargin": 29526.0,
+          "rejectedMargin": 0,
+          "rejectedRisk": 0,
+          "rejectedSlots": 0,
+          "perTicker": {
+            "CNYRUBF": -829.86,
+            "GLDRUBF": 435.37
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 6,
+            "GLDRUBF": 18
+          }
+        },
+        "full": {
+          "net": 1977.33,
+          "pf": 1.248,
+          "trades": 39,
+          "sharpe": 1.36,
+          "dd": 6.74,
+          "monthly": {
+            "2026-04": 1310.14,
+            "2026-05": -938.23,
+            "2026-06": 1774.06,
+            "2026-07": 494.83,
+            "2026-08": 697.21,
+            "2026-09": -415.05,
+            "2026-10": -2539.51,
+            "2026-11": 1593.87
+          },
+          "fees": 2470.2,
+          "maxMargin": 30760.0,
+          "rejectedMargin": 0,
+          "rejectedRisk": 0,
+          "rejectedSlots": 0,
+          "perTicker": {
+            "CNYRUBF": -649.42,
+            "GLDRUBF": 2626.75
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 12,
+            "GLDRUBF": 27
+          }
+        }
+      }
+    },
+    "v4.0 все r=1.0% ГО=75% слотов=∞": {
+      "risk": 1.0,
+      "utilization": 75.0,
+      "tickers": [
+        "CNYRUBF",
+        "GLDRUBF",
+        "GAZR_CONT",
+        "GOLDM_CONT",
+        "GAZPF",
+        "RGBI_CONT",
+        "SILV_CONT"
+      ],
+      "concurrent": 0,
+      "engines": {
+        "CNYRUBF": "C",
+        "GLDRUBF": "A",
+        "GAZR_CONT": "C",
+        "GOLDM_CONT": "B",
+        "GAZPF": "B",
+        "RGBI_CONT": "B",
+        "SILV_CONT": "A"
+      },
+      "periods": {
+        "oos": {
+          "net": 2082.94,
+          "pf": 1.033,
+          "trades": 357,
+          "sharpe": 0.43,
+          "dd": 14.58,
+          "monthly": {
+            "2026-04": 1146.11,
+            "2026-05": -2614.01,
+            "2026-06": 7689.03,
+            "2026-07": -4138.2
+          },
+          "fees": 17175.09,
+          "maxMargin": 44976.0,
+          "rejectedMargin": 11,
+          "rejectedRisk": 6,
+          "rejectedSlots": 0,
+          "perTicker": {
+            "CNYRUBF": 3047.37,
+            "GLDRUBF": 3065.78,
+            "GAZR_CONT": -261.77,
+            "GOLDM_CONT": -3782.69,
+            "GAZPF": 2926.44,
+            "RGBI_CONT": -2609.92,
+            "SILV_CONT": -302.26
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 95,
+            "GLDRUBF": 6,
+            "GAZR_CONT": 30,
+            "GOLDM_CONT": 113,
+            "GAZPF": 83,
+            "RGBI_CONT": 28,
+            "SILV_CONT": 2
+          }
+        },
+        "is": {
+          "net": -20265.63,
+          "pf": 0.612,
+          "trades": 401,
+          "sharpe": -5.67,
+          "dd": 40.53,
+          "monthly": {
+            "2026-07": -3684.09,
+            "2026-08": -9592.58,
+            "2026-09": -2499.78,
+            "2026-10": -2241.88,
+            "2026-11": -2247.3
+          },
+          "fees": 12963.19,
+          "maxMargin": 35911.0,
+          "rejectedMargin": 21,
+          "rejectedRisk": 14,
+          "rejectedSlots": 0,
+          "perTicker": {
+            "CNYRUBF": -7114.79,
+            "GLDRUBF": -780.14,
+            "GAZR_CONT": -1522.64,
+            "GOLDM_CONT": -7540.05,
+            "GAZPF": -2278.83,
+            "RGBI_CONT": -35.1,
+            "SILV_CONT": -994.07
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 95,
+            "GLDRUBF": 15,
+            "GAZR_CONT": 35,
+            "GOLDM_CONT": 124,
+            "GAZPF": 125,
+            "RGBI_CONT": 1,
+            "SILV_CONT": 6
+          }
+        },
+        "full": {
+          "net": -19027.73,
+          "pf": 0.836,
+          "trades": 757,
+          "sharpe": -2.17,
+          "dd": 56.33,
+          "monthly": {
+            "2026-04": 1146.11,
+            "2026-05": -2614.01,
+            "2026-06": 7689.03,
+            "2026-07": -8302.47,
+            "2026-08": -9977.9,
+            "2026-09": -2815.63,
+            "2026-10": -1796.26,
+            "2026-11": -2356.6
+          },
+          "fees": 30334.49,
+          "maxMargin": 44976.0,
+          "rejectedMargin": 24,
+          "rejectedRisk": 18,
+          "rejectedSlots": 0,
+          "perTicker": {
+            "CNYRUBF": -4485.86,
+            "GLDRUBF": 2285.97,
+            "GAZR_CONT": -1592.47,
+            "GOLDM_CONT": -12294.25,
+            "GAZPF": 1000.23,
+            "RGBI_CONT": -2645.01,
+            "SILV_CONT": -1296.34
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 189,
+            "GLDRUBF": 21,
+            "GAZR_CONT": 65,
+            "GOLDM_CONT": 238,
+            "GAZPF": 207,
+            "RGBI_CONT": 29,
+            "SILV_CONT": 8
+          }
+        }
+      }
+    },
+    "v4.0 все r=1.0% ГО=75% слотов=3": {
+      "risk": 1.0,
+      "utilization": 75.0,
+      "tickers": [
+        "CNYRUBF",
+        "GLDRUBF",
+        "GAZR_CONT",
+        "GOLDM_CONT",
+        "GAZPF",
+        "RGBI_CONT",
+        "SILV_CONT"
+      ],
+      "concurrent": 3,
+      "engines": {
+        "CNYRUBF": "C",
+        "GLDRUBF": "A",
+        "GAZR_CONT": "C",
+        "GOLDM_CONT": "B",
+        "GAZPF": "B",
+        "RGBI_CONT": "B",
+        "SILV_CONT": "A"
+      },
+      "periods": {
+        "oos": {
+          "net": 3858.8,
+          "pf": 1.061,
+          "trades": 354,
+          "sharpe": 0.76,
+          "dd": 15.01,
+          "monthly": {
+            "2026-04": 1146.11,
+            "2026-05": -2614.01,
+            "2026-06": 9381.84,
+            "2026-07": -4055.15
+          },
+          "fees": 17697.37,
+          "maxMargin": 46143.0,
+          "rejectedMargin": 7,
+          "rejectedRisk": 5,
+          "rejectedSlots": 16,
+          "perTicker": {
+            "CNYRUBF": 3122.16,
+            "GLDRUBF": 3304.54,
+            "GAZR_CONT": -224.82,
+            "GOLDM_CONT": -3239.34,
+            "GAZPF": 3701.66,
+            "RGBI_CONT": -2503.14,
+            "SILV_CONT": -302.26
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 97,
+            "GLDRUBF": 6,
+            "GAZR_CONT": 29,
+            "GOLDM_CONT": 113,
+            "GAZPF": 80,
+            "RGBI_CONT": 27,
+            "SILV_CONT": 2
+          }
+        },
+        "is": {
+          "net": -19782.67,
+          "pf": 0.62,
+          "trades": 398,
+          "sharpe": -5.51,
+          "dd": 39.57,
+          "monthly": {
+            "2026-07": -3684.09,
+            "2026-08": -9363.97,
+            "2026-09": -2397.36,
+            "2026-10": -2027.7,
+            "2026-11": -2309.55
+          },
+          "fees": 13004.06,
+          "maxMargin": 35911.0,
+          "rejectedMargin": 19,
+          "rejectedRisk": 14,
+          "rejectedSlots": 5,
+          "perTicker": {
+            "CNYRUBF": -7130.64,
+            "GLDRUBF": -780.14,
+            "GAZR_CONT": -1184.94,
+            "GOLDM_CONT": -7580.03,
+            "GAZPF": -2077.74,
+            "RGBI_CONT": -35.1,
+            "SILV_CONT": -994.07
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 95,
+            "GLDRUBF": 15,
+            "GAZR_CONT": 33,
+            "GOLDM_CONT": 124,
+            "GAZPF": 124,
+            "RGBI_CONT": 1,
+            "SILV_CONT": 6
+          }
+        },
+        "full": {
+          "net": -17745.86,
+          "pf": 0.851,
+          "trades": 751,
+          "sharpe": -1.92,
+          "dd": 58.15,
+          "monthly": {
+            "2026-04": 1146.11,
+            "2026-05": -2614.01,
+            "2026-06": 9381.84,
+            "2026-07": -8150.41,
+            "2026-08": -10222.83,
+            "2026-09": -2669.69,
+            "2026-10": -2337.85,
+            "2026-11": -2279.03
+          },
+          "fees": 31488.88,
+          "maxMargin": 46143.0,
+          "rejectedMargin": 19,
+          "rejectedRisk": 13,
+          "rejectedSlots": 25,
+          "perTicker": {
+            "CNYRUBF": -4413.92,
+            "GLDRUBF": 2567.09,
+            "GAZR_CONT": -1286.01,
+            "GOLDM_CONT": -11588.43,
+            "GAZPF": 1001.36,
+            "RGBI_CONT": -2538.24,
+            "SILV_CONT": -1487.71
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 191,
+            "GLDRUBF": 21,
+            "GAZR_CONT": 62,
+            "GOLDM_CONT": 237,
+            "GAZPF": 203,
+            "RGBI_CONT": 28,
+            "SILV_CONT": 9
+          }
+        }
+      }
+    },
+    "v4.0 все r=1.0% ГО=75% слотов=2": {
+      "risk": 1.0,
+      "utilization": 75.0,
+      "tickers": [
+        "CNYRUBF",
+        "GLDRUBF",
+        "GAZR_CONT",
+        "GOLDM_CONT",
+        "GAZPF",
+        "RGBI_CONT",
+        "SILV_CONT"
+      ],
+      "concurrent": 2,
+      "engines": {
+        "CNYRUBF": "C",
+        "GLDRUBF": "A",
+        "GAZR_CONT": "C",
+        "GOLDM_CONT": "B",
+        "GAZPF": "B",
+        "RGBI_CONT": "B",
+        "SILV_CONT": "A"
+      },
+      "periods": {
+        "oos": {
+          "net": -2180.29,
+          "pf": 0.963,
+          "trades": 320,
+          "sharpe": -0.49,
+          "dd": 19.55,
+          "monthly": {
+            "2026-04": 1146.11,
+            "2026-05": -2141.35,
+            "2026-06": 7076.53,
+            "2026-07": -8261.59
+          },
+          "fees": 16091.35,
+          "maxMargin": 42049.0,
+          "rejectedMargin": 1,
+          "rejectedRisk": 4,
+          "rejectedSlots": 102,
+          "perTicker": {
+            "CNYRUBF": 945.14,
+            "GLDRUBF": 1567.28,
+            "GAZR_CONT": -2586.43,
+            "GOLDM_CONT": -2158.24,
+            "GAZPF": 2132.45,
+            "RGBI_CONT": -1618.67,
+            "SILV_CONT": -461.82
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 84,
+            "GLDRUBF": 5,
+            "GAZR_CONT": 24,
+            "GOLDM_CONT": 108,
+            "GAZPF": 75,
+            "RGBI_CONT": 23,
+            "SILV_CONT": 1
+          }
+        },
+        "is": {
+          "net": -21081.5,
+          "pf": 0.572,
+          "trades": 368,
+          "sharpe": -6.31,
+          "dd": 42.16,
+          "monthly": {
+            "2026-07": -3576.14,
+            "2026-08": -7851.74,
+            "2026-09": -3264.54,
+            "2026-10": -4307.25,
+            "2026-11": -2081.83
+          },
+          "fees": 12446.73,
+          "maxMargin": 35347.0,
+          "rejectedMargin": 1,
+          "rejectedRisk": 10,
+          "rejectedSlots": 113,
+          "perTicker": {
+            "CNYRUBF": -6702.75,
+            "GLDRUBF": -329.31,
+            "GAZR_CONT": -814.33,
+            "GOLDM_CONT": -9963.84,
+            "GAZPF": -2637.19,
+            "RGBI_CONT": -35.1,
+            "SILV_CONT": -598.98
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 86,
+            "GLDRUBF": 14,
+            "GAZR_CONT": 27,
+            "GOLDM_CONT": 116,
+            "GAZPF": 119,
+            "RGBI_CONT": 1,
+            "SILV_CONT": 5
+          }
+        },
+        "full": {
+          "net": -22595.54,
+          "pf": 0.785,
+          "trades": 687,
+          "sharpe": -2.85,
+          "dd": 60.3,
+          "monthly": {
+            "2026-04": 1146.11,
+            "2026-05": -2141.35,
+            "2026-06": 7076.53,
+            "2026-07": -11814.34,
+            "2026-08": -7019.8,
+            "2026-09": -3429.16,
+            "2026-10": -4366.81,
+            "2026-11": -2046.73
+          },
+          "fees": 27907.84,
+          "maxMargin": 42049.0,
+          "rejectedMargin": 2,
+          "rejectedRisk": 14,
+          "rejectedSlots": 216,
+          "perTicker": {
+            "CNYRUBF": -4945.52,
+            "GLDRUBF": 1243.4,
+            "GAZR_CONT": -3435.53,
+            "GOLDM_CONT": -12277.5,
+            "GAZPF": -465.83,
+            "RGBI_CONT": -1653.76,
+            "SILV_CONT": -1060.8
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 168,
+            "GLDRUBF": 19,
+            "GAZR_CONT": 51,
+            "GOLDM_CONT": 226,
+            "GAZPF": 193,
+            "RGBI_CONT": 24,
+            "SILV_CONT": 6
+          }
+        }
+      }
+    },
+    "v4.0 все r=1.5% ГО=85% слотов=3": {
+      "risk": 1.5,
+      "utilization": 85.0,
+      "tickers": [
+        "CNYRUBF",
+        "GLDRUBF",
+        "GAZR_CONT",
+        "GOLDM_CONT",
+        "GAZPF",
+        "RGBI_CONT",
+        "SILV_CONT"
+      ],
+      "concurrent": 3,
+      "engines": {
+        "CNYRUBF": "C",
+        "GLDRUBF": "A",
+        "GAZR_CONT": "C",
+        "GOLDM_CONT": "B",
+        "GAZPF": "B",
+        "RGBI_CONT": "B",
+        "SILV_CONT": "A"
+      },
+      "periods": {
+        "oos": {
+          "net": 5156.09,
+          "pf": 1.059,
+          "trades": 345,
+          "sharpe": 0.71,
+          "dd": 23.4,
+          "monthly": {
+            "2026-04": 1689.77,
+            "2026-05": 42.09,
+            "2026-06": 9758.87,
+            "2026-07": -6334.63
+          },
+          "fees": 24267.83,
+          "maxMargin": 54698.0,
+          "rejectedMargin": 33,
+          "rejectedRisk": 1,
+          "rejectedSlots": 12,
+          "perTicker": {
+            "CNYRUBF": 4133.26,
+            "GLDRUBF": 5319.59,
+            "GAZR_CONT": -1843.57,
+            "GOLDM_CONT": -8255.35,
+            "GAZPF": 4728.3,
+            "RGBI_CONT": -960.5,
+            "SILV_CONT": 2034.36
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 91,
+            "GLDRUBF": 6,
+            "GAZR_CONT": 28,
+            "GOLDM_CONT": 114,
+            "GAZPF": 76,
+            "RGBI_CONT": 27,
+            "SILV_CONT": 3
+          }
+        },
+        "is": {
+          "net": -25543.7,
+          "pf": 0.609,
+          "trades": 384,
+          "sharpe": -5.33,
+          "dd": 51.09,
+          "monthly": {
+            "2026-07": -4286.5,
+            "2026-08": -10803.08,
+            "2026-09": -4400.77,
+            "2026-10": -2882.1,
+            "2026-11": -3171.25
+          },
+          "fees": 16158.55,
+          "maxMargin": 41390.0,
+          "rejectedMargin": 44,
+          "rejectedRisk": 4,
+          "rejectedSlots": 7,
+          "perTicker": {
+            "CNYRUBF": -9091.0,
+            "GLDRUBF": -448.03,
+            "GAZR_CONT": -505.87,
+            "GOLDM_CONT": -10719.21,
+            "GAZPF": -2591.5,
+            "RGBI_CONT": -46.8,
+            "SILV_CONT": -2141.29
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 93,
+            "GLDRUBF": 15,
+            "GAZR_CONT": 28,
+            "GOLDM_CONT": 117,
+            "GAZPF": 121,
+            "RGBI_CONT": 1,
+            "SILV_CONT": 9
+          }
+        },
+        "full": {
+          "net": -23117.94,
+          "pf": 0.855,
+          "trades": 729,
+          "sharpe": -1.78,
+          "dd": 77.91,
+          "monthly": {
+            "2026-04": 1689.77,
+            "2026-05": 42.09,
+            "2026-06": 9758.87,
+            "2026-07": -11466.4,
+            "2026-08": -12095.99,
+            "2026-09": -4089.02,
+            "2026-10": -3618.6,
+            "2026-11": -3338.65
+          },
+          "fees": 41885.72,
+          "maxMargin": 54698.0,
+          "rejectedMargin": 81,
+          "rejectedRisk": 5,
+          "rejectedSlots": 19,
+          "perTicker": {
+            "CNYRUBF": -4914.62,
+            "GLDRUBF": 4970.52,
+            "GAZR_CONT": -2767.61,
+            "GOLDM_CONT": -21870.9,
+            "GAZPF": 2590.59,
+            "RGBI_CONT": -1018.99,
+            "SILV_CONT": -106.93
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 184,
+            "GLDRUBF": 21,
+            "GAZR_CONT": 57,
+            "GOLDM_CONT": 232,
+            "GAZPF": 195,
+            "RGBI_CONT": 28,
+            "SILV_CONT": 12
+          }
+        }
+      }
+    },
+    "v4.0 без GOLDM r=0.5% слотов=3": {
+      "risk": 0.5,
+      "utilization": 85.0,
+      "tickers": [
+        "CNYRUBF",
+        "GLDRUBF",
+        "GAZR_CONT",
+        "GAZPF",
+        "RGBI_CONT",
+        "SILV_CONT"
+      ],
+      "concurrent": 3,
+      "engines": {
+        "CNYRUBF": "C",
+        "GLDRUBF": "A",
+        "GAZR_CONT": "C",
+        "GAZPF": "B",
+        "RGBI_CONT": "B",
+        "SILV_CONT": "A"
+      },
+      "periods": {
+        "oos": {
+          "net": 2420.28,
+          "pf": 1.115,
+          "trades": 243,
+          "sharpe": 1.12,
+          "dd": 7.03,
+          "monthly": {
+            "2026-04": 493.48,
+            "2026-05": 806.35,
+            "2026-06": 514.95,
+            "2026-07": 605.49
+          },
+          "fees": 5830.65,
+          "maxMargin": 27336.0,
+          "rejectedMargin": 0,
+          "rejectedRisk": 10,
+          "rejectedSlots": 1,
+          "perTicker": {
+            "CNYRUBF": 1311.26,
+            "GLDRUBF": 1612.72,
+            "GAZR_CONT": -55.46,
+            "GAZPF": 1045.83,
+            "RGBI_CONT": -1494.07,
+            "SILV_CONT": 0
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 95,
+            "GLDRUBF": 7,
+            "GAZR_CONT": 30,
+            "GAZPF": 83,
+            "RGBI_CONT": 28,
+            "SILV_CONT": 0
+          }
+        },
+        "is": {
+          "net": -7526.19,
+          "pf": 0.656,
+          "trades": 270,
+          "sharpe": -4.03,
+          "dd": 15.05,
+          "monthly": {
+            "2026-07": -1588.65,
+            "2026-08": -1685.83,
+            "2026-09": -2502.01,
+            "2026-10": -1091.2,
+            "2026-11": -658.5
+          },
+          "fees": 5058.65,
+          "maxMargin": 26673.0,
+          "rejectedMargin": 0,
+          "rejectedRisk": 22,
+          "rejectedSlots": 0,
+          "perTicker": {
+            "CNYRUBF": -3490.21,
+            "GLDRUBF": -605.87,
+            "GAZR_CONT": -1608.96,
+            "GAZPF": -1797.75,
+            "RGBI_CONT": -23.4,
+            "SILV_CONT": 0
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 94,
+            "GLDRUBF": 16,
+            "GAZR_CONT": 36,
+            "GAZPF": 123,
+            "RGBI_CONT": 1,
+            "SILV_CONT": 0
+          }
+        },
+        "full": {
+          "net": -5536.7,
+          "pf": 0.873,
+          "trades": 512,
+          "sharpe": -1.33,
+          "dd": 19.14,
+          "monthly": {
+            "2026-04": 493.48,
+            "2026-05": 806.35,
+            "2026-06": 514.95,
+            "2026-07": -1150.03,
+            "2026-08": -1626.41,
+            "2026-09": -2617.14,
+            "2026-10": -1248.42,
+            "2026-11": -709.49
+          },
+          "fees": 11103.6,
+          "maxMargin": 27336.0,
+          "rejectedMargin": 0,
+          "rejectedRisk": 31,
+          "rejectedSlots": 1,
+          "perTicker": {
+            "CNYRUBF": -2651.32,
+            "GLDRUBF": 964.19,
+            "GAZR_CONT": -1521.21,
+            "GAZPF": -810.9,
+            "RGBI_CONT": -1517.46,
+            "SILV_CONT": 0
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 189,
+            "GLDRUBF": 23,
+            "GAZR_CONT": 66,
+            "GAZPF": 205,
+            "RGBI_CONT": 29,
+            "SILV_CONT": 0
+          }
+        }
+      }
+    },
+    "v4.0 без GOLDM r=0.8% слотов=3": {
+      "risk": 0.75,
+      "utilization": 85.0,
+      "tickers": [
+        "CNYRUBF",
+        "GLDRUBF",
+        "GAZR_CONT",
+        "GAZPF",
+        "RGBI_CONT",
+        "SILV_CONT"
+      ],
+      "concurrent": 3,
+      "engines": {
+        "CNYRUBF": "C",
+        "GLDRUBF": "A",
+        "GAZR_CONT": "C",
+        "GAZPF": "B",
+        "RGBI_CONT": "B",
+        "SILV_CONT": "A"
+      },
+      "periods": {
+        "oos": {
+          "net": 2625.67,
+          "pf": 1.077,
+          "trades": 247,
+          "sharpe": 0.76,
+          "dd": 11.75,
+          "monthly": {
+            "2026-04": 657.81,
+            "2026-05": 1399.86,
+            "2026-06": 223.87,
+            "2026-07": 344.13
+          },
+          "fees": 9224.58,
+          "maxMargin": 40908.0,
+          "rejectedMargin": 0,
+          "rejectedRisk": 6,
+          "rejectedSlots": 1,
+          "perTicker": {
+            "CNYRUBF": 2025.88,
+            "GLDRUBF": 2423.47,
+            "GAZR_CONT": 29.01,
+            "GAZPF": 577.67,
+            "RGBI_CONT": -2349.42,
+            "SILV_CONT": -80.94
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 95,
+            "GLDRUBF": 7,
+            "GAZR_CONT": 31,
+            "GAZPF": 83,
+            "RGBI_CONT": 28,
+            "SILV_CONT": 3
+          }
+        },
+        "is": {
+          "net": -11371.89,
+          "pf": 0.646,
+          "trades": 277,
+          "sharpe": -4.24,
+          "dd": 22.74,
+          "monthly": {
+            "2026-07": -3015.03,
+            "2026-08": -2269.2,
+            "2026-09": -3720.5,
+            "2026-10": -1428.92,
+            "2026-11": -938.24
+          },
+          "fees": 7497.17,
+          "maxMargin": 34203.0,
+          "rejectedMargin": 2,
+          "rejectedRisk": 10,
+          "rejectedSlots": 0,
+          "perTicker": {
+            "CNYRUBF": -5458.57,
+            "GLDRUBF": -826.06,
+            "GAZR_CONT": -1948.08,
+            "GAZPF": -2463.87,
+            "RGBI_CONT": -35.1,
+            "SILV_CONT": -640.2
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 94,
+            "GLDRUBF": 16,
+            "GAZR_CONT": 36,
+            "GAZPF": 125,
+            "RGBI_CONT": 1,
+            "SILV_CONT": 5
+          }
+        },
+        "full": {
+          "net": -9854.62,
+          "pf": 0.855,
+          "trades": 523,
+          "sharpe": -1.56,
+          "dd": 31.68,
+          "monthly": {
+            "2026-04": 657.81,
+            "2026-05": 1399.86,
+            "2026-06": 223.87,
+            "2026-07": -2803.88,
+            "2026-08": -2671.59,
+            "2026-09": -3815.43,
+            "2026-10": -1761.93,
+            "2026-11": -1083.33
+          },
+          "fees": 17036.06,
+          "maxMargin": 40908.0,
+          "rejectedMargin": 2,
+          "rejectedRisk": 16,
+          "rejectedSlots": 1,
+          "perTicker": {
+            "CNYRUBF": -4180.34,
+            "GLDRUBF": 1609.21,
+            "GAZR_CONT": -2107.99,
+            "GAZPF": -2069.83,
+            "RGBI_CONT": -2384.52,
+            "SILV_CONT": -721.15
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 189,
+            "GLDRUBF": 23,
+            "GAZR_CONT": 67,
+            "GAZPF": 207,
+            "RGBI_CONT": 29,
+            "SILV_CONT": 8
+          }
+        }
+      }
+    },
+    "v4.0 без GOLDM r=1.0% слотов=3": {
+      "risk": 1.0,
+      "utilization": 85.0,
+      "tickers": [
+        "CNYRUBF",
+        "GLDRUBF",
+        "GAZR_CONT",
+        "GAZPF",
+        "RGBI_CONT",
+        "SILV_CONT"
+      ],
+      "concurrent": 3,
+      "engines": {
+        "CNYRUBF": "C",
+        "GLDRUBF": "A",
+        "GAZR_CONT": "C",
+        "GAZPF": "B",
+        "RGBI_CONT": "B",
+        "SILV_CONT": "A"
+      },
+      "periods": {
+        "oos": {
+          "net": 5712.19,
+          "pf": 1.117,
+          "trades": 249,
+          "sharpe": 1.16,
+          "dd": 15.8,
+          "monthly": {
+            "2026-04": 837.59,
+            "2026-05": 4599.16,
+            "2026-06": -6.49,
+            "2026-07": 281.93
+          },
+          "fees": 13013.06,
+          "maxMargin": 49536.0,
+          "rejectedMargin": 1,
+          "rejectedRisk": 3,
+          "rejectedSlots": 1,
+          "perTicker": {
+            "CNYRUBF": 2560.13,
+            "GLDRUBF": 3642.56,
+            "GAZR_CONT": -485.3,
+            "GAZPF": 1505.75,
+            "RGBI_CONT": -3296.45,
+            "SILV_CONT": 1785.5
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 95,
+            "GLDRUBF": 7,
+            "GAZR_CONT": 31,
+            "GAZPF": 83,
+            "RGBI_CONT": 28,
+            "SILV_CONT": 5
+          }
+        },
+        "is": {
+          "net": -16050.92,
+          "pf": 0.615,
+          "trades": 281,
+          "sharpe": -4.83,
+          "dd": 32.1,
+          "monthly": {
+            "2026-07": -3862.63,
+            "2026-08": -3727.09,
+            "2026-09": -4784.11,
+            "2026-10": -2489.35,
+            "2026-11": -1187.74
+          },
+          "fees": 9434.98,
+          "maxMargin": 38894.0,
+          "rejectedMargin": 4,
+          "rejectedRisk": 4,
+          "rejectedSlots": 0,
+          "perTicker": {
+            "CNYRUBF": -7454.07,
+            "GLDRUBF": -833.64,
+            "GAZR_CONT": -2499.57,
+            "GAZPF": -3404.18,
+            "RGBI_CONT": -35.1,
+            "SILV_CONT": -1824.36
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 94,
+            "GLDRUBF": 16,
+            "GAZR_CONT": 36,
+            "GAZPF": 125,
+            "RGBI_CONT": 1,
+            "SILV_CONT": 9
+          }
+        },
+        "full": {
+          "net": -12883.49,
+          "pf": 0.865,
+          "trades": 530,
+          "sharpe": -1.44,
+          "dd": 46.13,
+          "monthly": {
+            "2026-04": 837.59,
+            "2026-05": 4599.16,
+            "2026-06": -6.49,
+            "2026-07": -4054.32,
+            "2026-08": -4123.32,
+            "2026-09": -5902.21,
+            "2026-10": -2581.03,
+            "2026-11": -1652.86
+          },
+          "fees": 23496.83,
+          "maxMargin": 49536.0,
+          "rejectedMargin": 5,
+          "rejectedRisk": 6,
+          "rejectedSlots": 1,
+          "perTicker": {
+            "CNYRUBF": -5827.69,
+            "GLDRUBF": 2641.84,
+            "GAZR_CONT": -3229.35,
+            "GAZPF": -2738.33,
+            "RGBI_CONT": -3343.25,
+            "SILV_CONT": -386.71
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 189,
+            "GLDRUBF": 23,
+            "GAZR_CONT": 67,
+            "GAZPF": 207,
+            "RGBI_CONT": 29,
+            "SILV_CONT": 15
+          }
+        }
+      }
+    },
+    "v4.0 без GOLDM r=1.2% слотов=3": {
+      "risk": 1.25,
+      "utilization": 85.0,
+      "tickers": [
+        "CNYRUBF",
+        "GLDRUBF",
+        "GAZR_CONT",
+        "GAZPF",
+        "RGBI_CONT",
+        "SILV_CONT"
+      ],
+      "concurrent": 3,
+      "engines": {
+        "CNYRUBF": "C",
+        "GLDRUBF": "A",
+        "GAZR_CONT": "C",
+        "GAZPF": "B",
+        "RGBI_CONT": "B",
+        "SILV_CONT": "A"
+      },
+      "periods": {
+        "oos": {
+          "net": 7660.0,
+          "pf": 1.127,
+          "trades": 248,
+          "sharpe": 1.25,
+          "dd": 19.58,
+          "monthly": {
+            "2026-04": 1138.81,
+            "2026-05": 5849.17,
+            "2026-06": 282.27,
+            "2026-07": 389.75
+          },
+          "fees": 15991.56,
+          "maxMargin": 55644.0,
+          "rejectedMargin": 3,
+          "rejectedRisk": 2,
+          "rejectedSlots": 1,
+          "perTicker": {
+            "CNYRUBF": 3184.09,
+            "GLDRUBF": 4393.6,
+            "GAZR_CONT": -923.03,
+            "GAZPF": 3186.66,
+            "RGBI_CONT": -3558.4,
+            "SILV_CONT": 1377.09
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 95,
+            "GLDRUBF": 6,
+            "GAZR_CONT": 31,
+            "GAZPF": 83,
+            "RGBI_CONT": 28,
+            "SILV_CONT": 5
+          }
+        },
+        "is": {
+          "net": -17944.59,
+          "pf": 0.637,
+          "trades": 282,
+          "sharpe": -4.33,
+          "dd": 35.89,
+          "monthly": {
+            "2026-07": -4234.95,
+            "2026-08": -4317.06,
+            "2026-09": -5273.42,
+            "2026-10": -2431.09,
+            "2026-11": -1688.07
+          },
+          "fees": 11218.87,
+          "maxMargin": 40027.0,
+          "rejectedMargin": 10,
+          "rejectedRisk": 1,
+          "rejectedSlots": 0,
+          "perTicker": {
+            "CNYRUBF": -9213.92,
+            "GLDRUBF": -819.4,
+            "GAZR_CONT": -2017.9,
+            "GAZPF": -3170.53,
+            "RGBI_CONT": -46.8,
+            "SILV_CONT": -2676.05
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 93,
+            "GLDRUBF": 15,
+            "GAZR_CONT": 36,
+            "GAZPF": 125,
+            "RGBI_CONT": 1,
+            "SILV_CONT": 12
+          }
+        },
+        "full": {
+          "net": -14243.96,
+          "pf": 0.878,
+          "trades": 531,
+          "sharpe": -1.28,
+          "dd": 54.89,
+          "monthly": {
+            "2026-04": 1138.81,
+            "2026-05": 5849.17,
+            "2026-06": 282.27,
+            "2026-07": -5297.53,
+            "2026-08": -4965.61,
+            "2026-09": -6063.93,
+            "2026-10": -3208.39,
+            "2026-11": -1978.74
+          },
+          "fees": 28709.32,
+          "maxMargin": 55644.0,
+          "rejectedMargin": 12,
+          "rejectedRisk": 2,
+          "rejectedSlots": 1,
+          "perTicker": {
+            "CNYRUBF": -7840.27,
+            "GLDRUBF": 3430.49,
+            "GAZR_CONT": -3296.36,
+            "GAZPF": -1058.2,
+            "RGBI_CONT": -3616.9,
+            "SILV_CONT": -1862.72
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 188,
+            "GLDRUBF": 22,
+            "GAZR_CONT": 67,
+            "GAZPF": 207,
+            "RGBI_CONT": 29,
+            "SILV_CONT": 18
+          }
+        }
+      }
+    },
+    "v4.0 без GOLDM r=1.5% слотов=3": {
+      "risk": 1.5,
+      "utilization": 85.0,
+      "tickers": [
+        "CNYRUBF",
+        "GLDRUBF",
+        "GAZR_CONT",
+        "GAZPF",
+        "RGBI_CONT",
+        "SILV_CONT"
+      ],
+      "concurrent": 3,
+      "engines": {
+        "CNYRUBF": "C",
+        "GLDRUBF": "A",
+        "GAZR_CONT": "C",
+        "GAZPF": "B",
+        "RGBI_CONT": "B",
+        "SILV_CONT": "A"
+      },
+      "periods": {
+        "oos": {
+          "net": 9230.01,
+          "pf": 1.13,
+          "trades": 249,
+          "sharpe": 1.3,
+          "dd": 21.7,
+          "monthly": {
+            "2026-04": 1121.11,
+            "2026-05": 7602.43,
+            "2026-06": 265.39,
+            "2026-07": 241.07
+          },
+          "fees": 18591.78,
+          "maxMargin": 58820.0,
+          "rejectedMargin": 8,
+          "rejectedRisk": 1,
+          "rejectedSlots": 1,
+          "perTicker": {
+            "CNYRUBF": 4541.83,
+            "GLDRUBF": 4937.51,
+            "GAZR_CONT": -2303.3,
+            "GAZPF": 4491.36,
+            "RGBI_CONT": -3591.99,
+            "SILV_CONT": 1154.59
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 96,
+            "GLDRUBF": 7,
+            "GAZR_CONT": 29,
+            "GAZPF": 83,
+            "RGBI_CONT": 28,
+            "SILV_CONT": 6
+          }
+        },
+        "is": {
+          "net": -19298.52,
+          "pf": 0.648,
+          "trades": 279,
+          "sharpe": -4.08,
+          "dd": 38.6,
+          "monthly": {
+            "2026-07": -4655.25,
+            "2026-08": -4318.19,
+            "2026-09": -5844.4,
+            "2026-10": -2715.71,
+            "2026-11": -1764.98
+          },
+          "fees": 12468.06,
+          "maxMargin": 41390.0,
+          "rejectedMargin": 14,
+          "rejectedRisk": 0,
+          "rejectedSlots": 0,
+          "perTicker": {
+            "CNYRUBF": -11010.12,
+            "GLDRUBF": -787.48,
+            "GAZR_CONT": -2093.63,
+            "GAZPF": -2583.39,
+            "RGBI_CONT": -58.5,
+            "SILV_CONT": -2765.41
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 93,
+            "GLDRUBF": 15,
+            "GAZR_CONT": 34,
+            "GAZPF": 125,
+            "RGBI_CONT": 1,
+            "SILV_CONT": 11
+          }
+        },
+        "full": {
+          "net": -14196.15,
+          "pf": 0.896,
+          "trades": 529,
+          "sharpe": -1.09,
+          "dd": 60.54,
+          "monthly": {
+            "2026-04": 1121.11,
+            "2026-05": 7602.43,
+            "2026-06": 265.39,
+            "2026-07": -5669.09,
+            "2026-08": -4905.45,
+            "2026-09": -7338.98,
+            "2026-10": -3228.38,
+            "2026-11": -2043.19
+          },
+          "fees": 33316.92,
+          "maxMargin": 58820.0,
+          "rejectedMargin": 16,
+          "rejectedRisk": 1,
+          "rejectedSlots": 1,
+          "perTicker": {
+            "CNYRUBF": -8933.4,
+            "GLDRUBF": 4114.01,
+            "GAZR_CONT": -4649.85,
+            "GAZPF": 864.38,
+            "RGBI_CONT": -3662.19,
+            "SILV_CONT": -1929.11
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 190,
+            "GLDRUBF": 22,
+            "GAZR_CONT": 63,
+            "GAZPF": 207,
+            "RGBI_CONT": 29,
+            "SILV_CONT": 18
+          }
+        }
+      }
+    },
+    "v4.0 без GOLDM r=2.0% слотов=4": {
+      "risk": 2.0,
+      "utilization": 85.0,
+      "tickers": [
+        "CNYRUBF",
+        "GLDRUBF",
+        "GAZR_CONT",
+        "GAZPF",
+        "RGBI_CONT",
+        "SILV_CONT"
+      ],
+      "concurrent": 4,
+      "engines": {
+        "CNYRUBF": "C",
+        "GLDRUBF": "A",
+        "GAZR_CONT": "C",
+        "GAZPF": "B",
+        "RGBI_CONT": "B",
+        "SILV_CONT": "A"
+      },
+      "periods": {
+        "oos": {
+          "net": 16423.88,
+          "pf": 1.18,
+          "trades": 238,
+          "sharpe": 1.69,
+          "dd": 26.63,
+          "monthly": {
+            "2026-04": 1213.76,
+            "2026-05": 13840.89,
+            "2026-06": 2825.07,
+            "2026-07": -1455.83
+          },
+          "fees": 23358.28,
+          "maxMargin": 67643.0,
+          "rejectedMargin": 26,
+          "rejectedRisk": 0,
+          "rejectedSlots": 0,
+          "perTicker": {
+            "CNYRUBF": 4819.88,
+            "GLDRUBF": 6864.65,
+            "GAZR_CONT": -4155.47,
+            "GAZPF": 8298.48,
+            "RGBI_CONT": -3709.06,
+            "SILV_CONT": 4305.4
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 95,
+            "GLDRUBF": 6,
+            "GAZR_CONT": 26,
+            "GAZPF": 78,
+            "RGBI_CONT": 28,
+            "SILV_CONT": 5
+          }
+        },
+        "is": {
+          "net": -18439.7,
+          "pf": 0.707,
+          "trades": 267,
+          "sharpe": -3.05,
+          "dd": 36.88,
+          "monthly": {
+            "2026-07": -3567.71,
+            "2026-08": -4549.69,
+            "2026-09": -5024.13,
+            "2026-10": -3322.38,
+            "2026-11": -1975.8
+          },
+          "fees": 14866.71,
+          "maxMargin": 41685.0,
+          "rejectedMargin": 32,
+          "rejectedRisk": 0,
+          "rejectedSlots": 0,
+          "perTicker": {
+            "CNYRUBF": -13720.23,
+            "GLDRUBF": -457.1,
+            "GAZR_CONT": -1300.69,
+            "GAZPF": -232.65,
+            "RGBI_CONT": -81.89,
+            "SILV_CONT": -2647.15
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 91,
+            "GLDRUBF": 14,
+            "GAZR_CONT": 29,
+            "GAZPF": 123,
+            "RGBI_CONT": 1,
+            "SILV_CONT": 9
+          }
+        },
+        "full": {
+          "net": -9535.41,
+          "pf": 0.945,
+          "trades": 509,
+          "sharpe": -0.53,
+          "dd": 71.64,
+          "monthly": {
+            "2026-04": 1213.76,
+            "2026-05": 13840.89,
+            "2026-06": 2825.07,
+            "2026-07": -7265.86,
+            "2026-08": -6002.71,
+            "2026-09": -6991.93,
+            "2026-10": -4509.6,
+            "2026-11": -2645.02
+          },
+          "fees": 42932.81,
+          "maxMargin": 67643.0,
+          "rejectedMargin": 55,
+          "rejectedRisk": 0,
+          "rejectedSlots": 0,
+          "perTicker": {
+            "CNYRUBF": -14084.99,
+            "GLDRUBF": 6377.26,
+            "GAZR_CONT": -5981.81,
+            "GAZPF": 7019.42,
+            "RGBI_CONT": -3814.35,
+            "SILV_CONT": 949.06
+          },
+          "perTickerTrades": {
+            "CNYRUBF": 187,
+            "GLDRUBF": 22,
+            "GAZR_CONT": 55,
+            "GAZPF": 201,
+            "RGBI_CONT": 29,
+            "SILV_CONT": 15
+          }
+        }
+      }
+    }
+  }
+}

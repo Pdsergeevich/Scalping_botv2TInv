@@ -72,6 +72,20 @@ class BreakoutParams:
     efficiency_ratio_bars: int = 20
     min_efficiency_ratio: float = 0.0
     min_ema_slope_atr: float = 0.0
+    # --- мульти-режимный движок (v4.0) ---
+    regime_mode: str = "breakout"  # "breakout" | "multi"
+    pullback_enabled: bool = False
+    pullback_min_er: float = 0.22
+    pullback_lookback_bars: int = 4
+    pullback_touch_atr: float = 0.30
+    pullback_stop_atr: float = 0.5
+    pullback_trail_atr: float = 3.2
+    fade_enabled: bool = False
+    fade_max_er: float = 0.20
+    fade_keltner_atr: float = 2.2
+    fade_stop_atr: float = 0.3
+    fade_min_target_fee_ratio: float = 4.0
+    fade_max_bars: int = 40
     volume_lookback: int = 20
     volume_multiple: float = 1.5
     close_in_range: float = 0.30
@@ -378,6 +392,9 @@ class BreakoutPosition:
     scale_out_done: bool = False
     trail_active: bool = False
     entry_bar_index: int = 0
+    style: str = "trend"  # "trend" | "pullback" | "fade"
+    trail_mult: float = 0.0  # 0 = брать trail_atr_multiple из параметров
+    target_price: Decimal = Decimal(0)  # цель для fade-сделок (EMA20)
 
     def unrealized_points(self, price: Decimal) -> float:
         sign = 1.0 if self.side is BreakoutSide.LONG else -1.0
@@ -420,6 +437,8 @@ class BreakoutCounters:
     cooldown_skips: int = 0
     extension_skips: int = 0
     chop_skips: int = 0
+    pullback_entries: int = 0
+    fade_entries: int = 0
     consecutive_stop_days: int = 0
 
     def as_dict(self) -> Dict[str, int]:
@@ -437,6 +456,8 @@ class BreakoutCounters:
             "cooldownSkips": self.cooldown_skips,
             "extensionSkips": self.extension_skips,
             "chopSkips": self.chop_skips,
+            "pullbackEntries": self.pullback_entries,
+            "fadeEntries": self.fade_entries,
         }
 
 
@@ -479,6 +500,11 @@ class MomentumBreakoutStateMachine:
         self._loser_cuts: set = set()
         self._bar_minutes = 1
         self._last_bar_ms = 0
+        # v4.0: предыдущий бар и диапазон откатов для Engine B/C.
+        self._prev_bar: Optional[Bar] = None
+        self._prev_snapshot: Optional[IndicatorSnapshot] = None
+        self._recent_lows: Deque[float] = deque(maxlen=max(int(params.pullback_lookback_bars), 2))
+        self._recent_highs: Deque[float] = deque(maxlen=max(int(params.pullback_lookback_bars), 2))
         self._clearing_minutes = tuple(
             minute
             for minute in (_minutes(chunk) for chunk in str(self._p.clearing_close).split(","))
@@ -515,6 +541,10 @@ class MomentumBreakoutStateMachine:
             if event is not None:
                 events.append(event)
         self.events.extend(events)
+        self._prev_bar = bar
+        self._prev_snapshot = snapshot
+        self._recent_lows.append(float(bar.low))
+        self._recent_highs.append(float(bar.high))
         return events
 
     def _roll_day(self, time_ms: int) -> None:
@@ -588,6 +618,10 @@ class MomentumBreakoutStateMachine:
         entry_price: Decimal,
         atr_points: float,
         note: str,
+        stop_price: Optional[Decimal] = None,
+        style: str = "trend",
+        trail_mult: float = 0.0,
+        target_price: Optional[Decimal] = None,
     ) -> BreakoutEvent:
         """Создаёт позицию и возвращает событие входа."""
         step = float(self._meta.min_price_increment)
@@ -595,11 +629,12 @@ class MomentumBreakoutStateMachine:
             self._p.initial_stop_atr_multiple * atr_points,
             step * max(int(self._p.min_stop_steps), 1),
         )
-        stop_price = (
-            entry_price - dec(stop_points)
-            if side is BreakoutSide.LONG
-            else entry_price + dec(stop_points)
-        )
+        if stop_price is None or stop_price <= 0:
+            stop_price = (
+                entry_price - dec(stop_points)
+                if side is BreakoutSide.LONG
+                else entry_price + dec(stop_points)
+            )
         position = BreakoutPosition(
             side=side,
             quantity=1,
@@ -612,6 +647,9 @@ class MomentumBreakoutStateMachine:
             max_price=entry_price if side is BreakoutSide.LONG else Decimal(0),
             min_price=entry_price if side is BreakoutSide.SHORT else Decimal(0),
             entry_bar_index=self._bar_index,
+            style=style,
+            trail_mult=trail_mult,
+            target_price=target_price or Decimal(0),
         )
         self.position = position
         self.counters.entries += 1
@@ -790,7 +828,7 @@ class MomentumBreakoutStateMachine:
         if position.mfe_points >= params.trail_trigger_atr * atr:
             position.trail_active = True
         if position.trail_active:
-            distance = dec(params.trail_atr_multiple * atr)
+            distance = dec((position.trail_mult or params.trail_atr_multiple) * atr)
             if position.side is BreakoutSide.LONG:
                 candidate = position.max_price - distance
                 if candidate > position.stop_price:

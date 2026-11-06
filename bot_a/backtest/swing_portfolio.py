@@ -23,6 +23,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 from bot_a.backtest.breakout_backtest import BreakoutResult, BreakoutTrade
 from bot_a.backtest.candles import Candle
 from bot_a.economics.fees import Tariff, TinkoffFeeCalculator
+from bot_a.engine.multiregime_fsm import regime_machine
 from bot_a.engine.breakout_fsm import (
     Bar,
     BreakoutEvent,
@@ -167,7 +168,7 @@ class SwingAccountBacktester:
             ticker = meta.ticker
             metas[ticker] = meta
             params_by_ticker[ticker] = params
-            machines[ticker] = MomentumBreakoutStateMachine(
+            machines[ticker] = regime_machine(
                 meta,
                 params,
                 fee_calculator=lambda price, qty, _meta=meta: self._round_trip_fee(_meta, price, qty),

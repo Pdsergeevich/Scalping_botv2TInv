@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional
 
 from bot_a.backtest.breakout_backtest import BreakoutBacktester, BreakoutSettings, BreakoutTrade
 from bot_a.economics.fees import Tariff, TinkoffFeeCalculator
+from bot_a.engine.multiregime_fsm import regime_machine
 from bot_a.engine.breakout_fsm import (
     Bar,
     BreakoutEvent,
@@ -192,7 +193,7 @@ class BreakoutLiveWorker:
     # ------------------------------------------------------------------ прогрев
     def warmup(self, candles: List[Bar]) -> None:
         """Прогоняет исторические бары через ФСМ без исполнения (индикаторы греются)."""
-        self._machine = MomentumBreakoutStateMachine(
+        self._machine = regime_machine(
             self._meta, self._p, fee_calculator=self._backtester._round_trip_fee  # noqa: SLF001
         )
         for bar in candles:

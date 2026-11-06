@@ -1,0 +1,1606 @@
+{
+  "bars": 30,
+  "capital": 50000.0,
+  "risk": 1.0,
+  "min_trades": 3,
+  "table": {
+    "CNYRUBF": {
+      "A": {
+        "oos1": -346.13,
+        "oos2": 606.5,
+        "oos": 260.36,
+        "oos_trades": 4,
+        "is": 2087.82,
+        "is_trades": 8,
+        "full": 2348.19,
+        "full_trades": 12,
+        "pf": 2.576
+      },
+      "B": {
+        "oos1": 3342.15,
+        "oos2": 4582.94,
+        "oos": 7235.13,
+        "oos_trades": 63,
+        "is": 3257.56,
+        "is_trades": 76,
+        "full": 10278.61,
+        "full_trades": 139,
+        "pf": 1.529
+      },
+      "C": {
+        "oos1": -785.23,
+        "oos2": 236.68,
+        "oos": -548.55,
+        "oos_trades": 10,
+        "is": 691.08,
+        "is_trades": 19,
+        "full": 142.53,
+        "full_trades": 29,
+        "pf": 1.032
+      },
+      "ABC": {
+        "oos1": 3161.63,
+        "oos2": 4582.94,
+        "oos": 7054.62,
+        "oos_trades": 63,
+        "is": 2053.8,
+        "is_trades": 83,
+        "full": 8894.33,
+        "full_trades": 146,
+        "pf": 1.417
+      }
+    },
+    "GLDRUBF": {
+      "A": {
+        "oos1": 2949.88,
+        "oos2": 245.38,
+        "oos": 3353.46,
+        "oos_trades": 11,
+        "is": 1555.08,
+        "is_trades": 7,
+        "full": 4908.54,
+        "full_trades": 18,
+        "pf": 2.468
+      },
+      "B": {
+        "oos1": -2543.97,
+        "oos2": 1432.84,
+        "oos": -1016.84,
+        "oos_trades": 92,
+        "is": 5809.99,
+        "is_trades": 68,
+        "full": 3557.34,
+        "full_trades": 163,
+        "pf": 1.12
+      },
+      "C": {
+        "oos1": 2918.59,
+        "oos2": 261.04,
+        "oos": 3337.83,
+        "oos_trades": 22,
+        "is": 3205.53,
+        "is_trades": 19,
+        "full": 6543.36,
+        "full_trades": 41,
+        "pf": 2.386
+      },
+      "ABC": {
+        "oos1": -1075.62,
+        "oos2": 584.43,
+        "oos": -396.9,
+        "oos_trades": 95,
+        "is": 7324.49,
+        "is_trades": 72,
+        "full": 5691.78,
+        "full_trades": 170,
+        "pf": 1.196
+      }
+    },
+    "USDRUBF": {
+      "A": {
+        "oos1": -387.31,
+        "oos2": 2383.7,
+        "oos": 1996.39,
+        "oos_trades": 3,
+        "is": 1062.65,
+        "is_trades": 10,
+        "full": 3059.0,
+        "full_trades": 13,
+        "pf": 2.329
+      },
+      "B": {
+        "oos1": -1852.19,
+        "oos2": 1009.4,
+        "oos": -803.08,
+        "oos_trades": 50,
+        "is": -2810.52,
+        "is_trades": 68,
+        "full": -4011.94,
+        "full_trades": 118,
+        "pf": 0.777
+      },
+      "C": {
+        "oos1": -385.2,
+        "oos2": 2751.43,
+        "oos": 2366.23,
+        "oos_trades": 7,
+        "is": 1326.65,
+        "is_trades": 16,
+        "full": 3692.85,
+        "full_trades": 23,
+        "pf": 2.3
+      },
+      "ABC": {
+        "oos1": -1852.19,
+        "oos2": 1255.99,
+        "oos": -556.49,
+        "oos_trades": 52,
+        "is": -2331.42,
+        "is_trades": 72,
+        "full": -3286.26,
+        "full_trades": 124,
+        "pf": 0.818
+      }
+    },
+    "EURRUBF": {
+      "A": {
+        "oos1": -332.93,
+        "oos2": -182.47,
+        "oos": -515.4,
+        "oos_trades": 2,
+        "is": -1815.3,
+        "is_trades": 11,
+        "full": -2330.69,
+        "full_trades": 13,
+        "pf": 0.149
+      },
+      "B": {
+        "oos1": -3436.48,
+        "oos2": -1397.05,
+        "oos": -4808.78,
+        "oos_trades": 43,
+        "is": 767.41,
+        "is_trades": 56,
+        "full": -4216.13,
+        "full_trades": 101,
+        "pf": 0.772
+      },
+      "C": {
+        "oos1": -718.31,
+        "oos2": -467.52,
+        "oos": -1180.41,
+        "oos_trades": 6,
+        "is": -3547.13,
+        "is_trades": 19,
+        "full": -4727.54,
+        "full_trades": 25,
+        "pf": 0.172
+      },
+      "ABC": {
+        "oos1": -3821.86,
+        "oos2": -1199.62,
+        "oos": -4996.73,
+        "oos_trades": 46,
+        "is": -564.17,
+        "is_trades": 61,
+        "full": -5735.66,
+        "full_trades": 109,
+        "pf": 0.721
+      }
+    },
+    "IMOEXF": {
+      "A": {
+        "oos1": -113.19,
+        "oos2": -566.68,
+        "oos": -679.9,
+        "oos_trades": 6,
+        "is": 2024.82,
+        "is_trades": 18,
+        "full": 1344.56,
+        "full_trades": 24,
+        "pf": 1.321
+      },
+      "B": {
+        "oos1": -3179.67,
+        "oos2": 1194.78,
+        "oos": -2261.82,
+        "oos_trades": 56,
+        "is": -989.99,
+        "is_trades": 92,
+        "full": -3613.48,
+        "full_trades": 152,
+        "pf": 0.841
+      },
+      "C": {
+        "oos1": -252.33,
+        "oos2": -691.42,
+        "oos": -943.76,
+        "oos_trades": 13,
+        "is": 1455.98,
+        "is_trades": 29,
+        "full": 511.85,
+        "full_trades": 42,
+        "pf": 1.082
+      },
+      "ABC": {
+        "oos1": -3224.52,
+        "oos2": 1194.78,
+        "oos": -2306.66,
+        "oos_trades": 59,
+        "is": -2385.7,
+        "is_trades": 102,
+        "full": -5054.04,
+        "full_trades": 165,
+        "pf": 0.797
+      }
+    },
+    "GAZPF": {
+      "A": {
+        "oos1": -959.76,
+        "oos2": -598.99,
+        "oos": -1558.75,
+        "oos_trades": 6,
+        "is": 5123.55,
+        "is_trades": 6,
+        "full": 3564.8,
+        "full_trades": 12,
+        "pf": 2.871
+      },
+      "B": {
+        "oos1": -325.8,
+        "oos2": 1565.25,
+        "oos": 869.8,
+        "oos_trades": 54,
+        "is": 3781.01,
+        "is_trades": 61,
+        "full": 3993.31,
+        "full_trades": 118,
+        "pf": 1.208
+      },
+      "C": {
+        "oos1": -263.25,
+        "oos2": -1112.5,
+        "oos": -1375.75,
+        "oos_trades": 19,
+        "is": 4648.72,
+        "is_trades": 15,
+        "full": 3272.97,
+        "full_trades": 34,
+        "pf": 1.718
+      },
+      "ABC": {
+        "oos1": 1018.03,
+        "oos2": 1875.88,
+        "oos": 2524.27,
+        "oos_trades": 60,
+        "is": 3739.65,
+        "is_trades": 69,
+        "full": 5606.41,
+        "full_trades": 132,
+        "pf": 1.28
+      }
+    },
+    "BRM_CONT": {
+      "A": {
+        "oos1": 73.77,
+        "oos2": 2524.03,
+        "oos": 2621.17,
+        "oos_trades": 7,
+        "is": -549.02,
+        "is_trades": 14,
+        "full": 2072.15,
+        "full_trades": 21,
+        "pf": 1.604
+      },
+      "B": {
+        "oos1": 448.81,
+        "oos2": 4402.83,
+        "oos": 4854.45,
+        "oos_trades": 64,
+        "is": 4924.78,
+        "is_trades": 81,
+        "full": 9866.78,
+        "full_trades": 144,
+        "pf": 1.454
+      },
+      "C": {
+        "oos1": -474.4,
+        "oos2": 2724.37,
+        "oos": 2273.34,
+        "oos_trades": 16,
+        "is": 1166.58,
+        "is_trades": 25,
+        "full": 3439.92,
+        "full_trades": 41,
+        "pf": 1.764
+      },
+      "ABC": {
+        "oos1": -38.11,
+        "oos2": 4458.47,
+        "oos": 4423.18,
+        "oos_trades": 66,
+        "is": 5509.43,
+        "is_trades": 91,
+        "full": 10020.15,
+        "full_trades": 156,
+        "pf": 1.435
+      }
+    },
+    "BTC_CONT": {
+      "A": {
+        "oos1": -431.89,
+        "oos2": -1209.3,
+        "oos": -932.32,
+        "oos_trades": 10,
+        "is": 5555.89,
+        "is_trades": 5,
+        "full": 4623.58,
+        "full_trades": 15,
+        "pf": 2.518
+      },
+      "B": {
+        "oos1": -1857.65,
+        "oos2": -3315.76,
+        "oos": -4245.26,
+        "oos_trades": 68,
+        "is": 1000.47,
+        "is_trades": 82,
+        "full": -3416.06,
+        "full_trades": 151,
+        "pf": 0.884
+      },
+      "C": {
+        "oos1": -1557.25,
+        "oos2": -496.81,
+        "oos": -1345.18,
+        "oos_trades": 21,
+        "is": 4386.17,
+        "is_trades": 18,
+        "full": 3040.99,
+        "full_trades": 39,
+        "pf": 1.4
+      },
+      "ABC": {
+        "oos1": -2389.37,
+        "oos2": -3579.75,
+        "oos": -5040.99,
+        "oos_trades": 72,
+        "is": -713.02,
+        "is_trades": 88,
+        "full": -5925.28,
+        "full_trades": 161,
+        "pf": 0.817
+      }
+    },
+    "CNY_CONT": {
+      "A": {
+        "oos1": -486.03,
+        "oos2": 1907.78,
+        "oos": 1421.75,
+        "oos_trades": 8,
+        "is": -1806.26,
+        "is_trades": 10,
+        "full": -384.51,
+        "full_trades": 18,
+        "pf": 0.904
+      },
+      "B": {
+        "oos1": 777.16,
+        "oos2": 2304.3,
+        "oos": 3046.85,
+        "oos_trades": 63,
+        "is": 424.95,
+        "is_trades": 70,
+        "full": 4989.46,
+        "full_trades": 132,
+        "pf": 1.231
+      },
+      "C": {
+        "oos1": -1879.4,
+        "oos2": 1853.51,
+        "oos": -25.89,
+        "oos_trades": 13,
+        "is": -1629.8,
+        "is_trades": 18,
+        "full": -1655.69,
+        "full_trades": 31,
+        "pf": 0.714
+      },
+      "ABC": {
+        "oos1": -252.53,
+        "oos2": 2250.03,
+        "oos": 1962.89,
+        "oos_trades": 64,
+        "is": 613.77,
+        "is_trades": 73,
+        "full": 4094.32,
+        "full_trades": 136,
+        "pf": 1.179
+      }
+    },
+    "COCOA_CONT": {
+      "A": {
+        "oos1": 2693.67,
+        "oos2": 390.2,
+        "oos": 2271.58,
+        "oos_trades": 12,
+        "is": 5052.07,
+        "is_trades": 20,
+        "full": 6982.61,
+        "full_trades": 32,
+        "pf": 2.039
+      },
+      "B": {
+        "oos1": 3892.27,
+        "oos2": 842.23,
+        "oos": 4273.75,
+        "oos_trades": 71,
+        "is": 7300.12,
+        "is_trades": 83,
+        "full": 11600.27,
+        "full_trades": 155,
+        "pf": 1.481
+      },
+      "C": {
+        "oos1": 2924.56,
+        "oos2": 667.47,
+        "oos": 2777.28,
+        "oos_trades": 18,
+        "is": 5012.62,
+        "is_trades": 42,
+        "full": 7448.86,
+        "full_trades": 60,
+        "pf": 1.901
+      },
+      "ABC": {
+        "oos1": 4048.59,
+        "oos2": 121.09,
+        "oos": 3706.47,
+        "oos_trades": 75,
+        "is": 7941.67,
+        "is_trades": 95,
+        "full": 11674.54,
+        "full_trades": 171,
+        "pf": 1.463
+      }
+    },
+    "COFFEE_CONT": {
+      "A": {
+        "oos1": 557.1,
+        "oos2": -818.36,
+        "oos": -737.17,
+        "oos_trades": 13,
+        "is": -2081.9,
+        "is_trades": 13,
+        "full": -2819.07,
+        "full_trades": 26,
+        "pf": 0.63
+      },
+      "B": {
+        "oos1": -4202.48,
+        "oos2": 1508.62,
+        "oos": -3813.43,
+        "oos_trades": 73,
+        "is": 1303.9,
+        "is_trades": 76,
+        "full": -3216.01,
+        "full_trades": 153,
+        "pf": 0.895
+      },
+      "C": {
+        "oos1": -289.81,
+        "oos2": -1721.41,
+        "oos": -2480.61,
+        "oos_trades": 24,
+        "is": -1853.23,
+        "is_trades": 22,
+        "full": -4333.87,
+        "full_trades": 46,
+        "pf": 0.572
+      },
+      "ABC": {
+        "oos1": -2311.1,
+        "oos2": 1469.99,
+        "oos": -1885.51,
+        "oos_trades": 73,
+        "is": 1309.57,
+        "is_trades": 78,
+        "full": -1282.43,
+        "full_trades": 155,
+        "pf": 0.959
+      }
+    },
+    "ED_CONT": {
+      "A": {
+        "oos1": 0,
+        "oos2": 0,
+        "oos": 0,
+        "oos_trades": 0,
+        "is": 0,
+        "is_trades": 0,
+        "full": 0,
+        "full_trades": 0,
+        "pf": null
+      },
+      "B": {
+        "oos1": 0,
+        "oos2": 0,
+        "oos": 0,
+        "oos_trades": 0,
+        "is": -62.79,
+        "is_trades": 1,
+        "full": -62.79,
+        "full_trades": 1,
+        "pf": null
+      },
+      "C": {
+        "oos1": 0,
+        "oos2": 0,
+        "oos": 0,
+        "oos_trades": 0,
+        "is": 0,
+        "is_trades": 0,
+        "full": 0,
+        "full_trades": 0,
+        "pf": null
+      },
+      "ABC": {
+        "oos1": 0,
+        "oos2": 0,
+        "oos": 0,
+        "oos_trades": 0,
+        "is": -62.79,
+        "is_trades": 1,
+        "full": -62.79,
+        "full_trades": 1,
+        "pf": null
+      }
+    },
+    "Eu_CONT": {
+      "A": {
+        "oos1": 0,
+        "oos2": 3722.95,
+        "oos": 3722.95,
+        "oos_trades": 1,
+        "is": -37.19,
+        "is_trades": 16,
+        "full": 3685.29,
+        "full_trades": 17,
+        "pf": 2.737
+      },
+      "B": {
+        "oos1": 6005.85,
+        "oos2": 3314.27,
+        "oos": 9320.12,
+        "oos_trades": 31,
+        "is": -2639.66,
+        "is_trades": 61,
+        "full": 6553.93,
+        "full_trades": 93,
+        "pf": 1.38
+      },
+      "C": {
+        "oos1": -77.56,
+        "oos2": 3722.95,
+        "oos": 3645.39,
+        "oos_trades": 2,
+        "is": -1675.53,
+        "is_trades": 17,
+        "full": 1969.39,
+        "full_trades": 19,
+        "pf": 1.661
+      },
+      "ABC": {
+        "oos1": 5928.3,
+        "oos2": 3314.27,
+        "oos": 9242.57,
+        "oos_trades": 32,
+        "is": -4278.0,
+        "is_trades": 62,
+        "full": 4838.03,
+        "full_trades": 95,
+        "pf": 1.267
+      }
+    },
+    "GAZR_CONT": {
+      "A": {
+        "oos1": 1961.55,
+        "oos2": -32.42,
+        "oos": 1929.13,
+        "oos_trades": 7,
+        "is": 3424.1,
+        "is_trades": 6,
+        "full": 5353.23,
+        "full_trades": 13,
+        "pf": 6.086
+      },
+      "B": {
+        "oos1": 981.38,
+        "oos2": -1480.69,
+        "oos": 379.95,
+        "oos_trades": 45,
+        "is": 4640.84,
+        "is_trades": 56,
+        "full": 4404.9,
+        "full_trades": 105,
+        "pf": 1.282
+      },
+      "C": {
+        "oos1": 2447.88,
+        "oos2": 316.39,
+        "oos": 2764.27,
+        "oos_trades": 17,
+        "is": 4233.97,
+        "is_trades": 17,
+        "full": 6998.49,
+        "full_trades": 34,
+        "pf": 4.595
+      },
+      "ABC": {
+        "oos1": 1450.42,
+        "oos2": -1422.2,
+        "oos": 907.47,
+        "oos_trades": 51,
+        "is": 5343.46,
+        "is_trades": 63,
+        "full": 5517.98,
+        "full_trades": 117,
+        "pf": 1.342
+      }
+    },
+    "GL_CONT": {
+      "A": {
+        "oos1": -976.57,
+        "oos2": 17.21,
+        "oos": -674.08,
+        "oos_trades": 10,
+        "is": -1075.95,
+        "is_trades": 6,
+        "full": -1750.03,
+        "full_trades": 16,
+        "pf": 0.473
+      },
+      "B": {
+        "oos1": -170.87,
+        "oos2": -2567.53,
+        "oos": -2570.99,
+        "oos_trades": 78,
+        "is": 5504.42,
+        "is_trades": 56,
+        "full": 2389.71,
+        "full_trades": 136,
+        "pf": 1.106
+      },
+      "C": {
+        "oos1": -1489.37,
+        "oos2": -264.82,
+        "oos": -1468.9,
+        "oos_trades": 14,
+        "is": -1028.75,
+        "is_trades": 22,
+        "full": -2497.65,
+        "full_trades": 36,
+        "pf": 0.579
+      },
+      "ABC": {
+        "oos1": -683.66,
+        "oos2": -2481.43,
+        "oos": -2997.68,
+        "oos_trades": 80,
+        "is": 6623.25,
+        "is_trades": 63,
+        "full": 3081.84,
+        "full_trades": 145,
+        "pf": 1.133
+      }
+    },
+    "GOLDM_CONT": {
+      "A": {
+        "oos1": 183.77,
+        "oos2": -346.0,
+        "oos": -298.22,
+        "oos_trades": 9,
+        "is": 304.01,
+        "is_trades": 5,
+        "full": 5.79,
+        "full_trades": 14,
+        "pf": 1.002
+      },
+      "B": {
+        "oos1": -3362.79,
+        "oos2": 8381.04,
+        "oos": 5442.18,
+        "oos_trades": 67,
+        "is": -7240.97,
+        "is_trades": 72,
+        "full": -2793.06,
+        "full_trades": 142,
+        "pf": 0.892
+      },
+      "C": {
+        "oos1": -10.67,
+        "oos2": -353.59,
+        "oos": -500.25,
+        "oos_trades": 18,
+        "is": 33.6,
+        "is_trades": 20,
+        "full": -646.41,
+        "full_trades": 39,
+        "pf": 0.876
+      },
+      "ABC": {
+        "oos1": -4107.2,
+        "oos2": 7981.17,
+        "oos": 4297.91,
+        "oos_trades": 72,
+        "is": -8343.51,
+        "is_trades": 80,
+        "full": -5046.01,
+        "full_trades": 156,
+        "pf": 0.824
+      }
+    },
+    "IBIT_CONT": {
+      "A": {
+        "oos1": 527.03,
+        "oos2": -1880.23,
+        "oos": -1353.2,
+        "oos_trades": 8,
+        "is": -717.42,
+        "is_trades": 6,
+        "full": -2070.62,
+        "full_trades": 14,
+        "pf": 0.255
+      },
+      "B": {
+        "oos1": -1813.81,
+        "oos2": -6528.34,
+        "oos": -7607.69,
+        "oos_trades": 73,
+        "is": -2853.96,
+        "is_trades": 86,
+        "full": -10346.78,
+        "full_trades": 160,
+        "pf": 0.679
+      },
+      "C": {
+        "oos1": -395.52,
+        "oos2": -911.59,
+        "oos": -1307.09,
+        "oos_trades": 21,
+        "is": -2367.67,
+        "is_trades": 18,
+        "full": -3674.56,
+        "full_trades": 39,
+        "pf": 0.499
+      },
+      "ABC": {
+        "oos1": -2524.5,
+        "oos2": -6054.65,
+        "oos": -7844.67,
+        "oos_trades": 81,
+        "is": -3974.09,
+        "is_trades": 94,
+        "full": -11703.68,
+        "full_trades": 176,
+        "pf": 0.671
+      }
+    },
+    "LKOH_CONT": {
+      "A": {
+        "oos1": -426.16,
+        "oos2": -469.54,
+        "oos": -898.49,
+        "oos_trades": 5,
+        "is": -490.9,
+        "is_trades": 3,
+        "full": -1389.39,
+        "full_trades": 8,
+        "pf": 0.103
+      },
+      "B": {
+        "oos1": -1206.27,
+        "oos2": -1145.02,
+        "oos": -2788.85,
+        "oos_trades": 30,
+        "is": 2910.02,
+        "is_trades": 27,
+        "full": 38.52,
+        "full_trades": 58,
+        "pf": 1.004
+      },
+      "C": {
+        "oos1": -936.7,
+        "oos2": -754.57,
+        "oos": -1694.07,
+        "oos_trades": 8,
+        "is": -194.45,
+        "is_trades": 4,
+        "full": -1888.51,
+        "full_trades": 12,
+        "pf": 0.195
+      },
+      "ABC": {
+        "oos1": -1911.49,
+        "oos2": -1073.04,
+        "oos": -3457.44,
+        "oos_trades": 31,
+        "is": 3206.48,
+        "is_trades": 28,
+        "full": -333.62,
+        "full_trades": 60,
+        "pf": 0.968
+      }
+    },
+    "MXI_CONT": {
+      "A": {
+        "oos1": -659.68,
+        "oos2": -1049.66,
+        "oos": -1710.7,
+        "oos_trades": 7,
+        "is": -2494.96,
+        "is_trades": 14,
+        "full": -4328.29,
+        "full_trades": 22,
+        "pf": 0.127
+      },
+      "B": {
+        "oos1": -7219.92,
+        "oos2": -3721.63,
+        "oos": -14306.78,
+        "oos_trades": 50,
+        "is": -2927.12,
+        "is_trades": 87,
+        "full": -20179.27,
+        "full_trades": 137,
+        "pf": 0.401
+      },
+      "C": {
+        "oos1": -287.8,
+        "oos2": -1239.47,
+        "oos": -1528.63,
+        "oos_trades": 13,
+        "is": -3161.89,
+        "is_trades": 29,
+        "full": -4813.15,
+        "full_trades": 43,
+        "pf": 0.344
+      },
+      "ABC": {
+        "oos1": -6854.98,
+        "oos2": -4017.8,
+        "oos": -14238.01,
+        "oos_trades": 54,
+        "is": -3542.11,
+        "is_trades": 97,
+        "full": -20776.32,
+        "full_trades": 155,
+        "pf": 0.417
+      }
+    },
+    "NASD_CONT": {
+      "A": {
+        "oos1": 782.52,
+        "oos2": -923.06,
+        "oos": -1058.32,
+        "oos_trades": 13,
+        "is": -370.51,
+        "is_trades": 6,
+        "full": -1428.82,
+        "full_trades": 19,
+        "pf": 0.632
+      },
+      "B": {
+        "oos1": 5433.39,
+        "oos2": -491.58,
+        "oos": 3710.8,
+        "oos_trades": 64,
+        "is": -1019.46,
+        "is_trades": 85,
+        "full": 3464.75,
+        "full_trades": 150,
+        "pf": 1.122
+      },
+      "C": {
+        "oos1": 181.55,
+        "oos2": -723.89,
+        "oos": -1460.11,
+        "oos_trades": 22,
+        "is": -128.31,
+        "is_trades": 21,
+        "full": -1602.72,
+        "full_trades": 43,
+        "pf": 0.751
+      },
+      "ABC": {
+        "oos1": 5272.02,
+        "oos2": -430.11,
+        "oos": 3610.89,
+        "oos_trades": 71,
+        "is": -763.71,
+        "is_trades": 91,
+        "full": 3599.42,
+        "full_trades": 163,
+        "pf": 1.122
+      }
+    },
+    "NGM_CONT": {
+      "A": {
+        "oos1": -708.67,
+        "oos2": -263.22,
+        "oos": -971.89,
+        "oos_trades": 10,
+        "is": -3304.47,
+        "is_trades": 11,
+        "full": -4212.98,
+        "full_trades": 21,
+        "pf": 0.268
+      },
+      "B": {
+        "oos1": 185.1,
+        "oos2": -1399.59,
+        "oos": -1220.15,
+        "oos_trades": 61,
+        "is": -5971.85,
+        "is_trades": 82,
+        "full": -6969.52,
+        "full_trades": 145,
+        "pf": 0.736
+      },
+      "C": {
+        "oos1": -357.01,
+        "oos2": 259.33,
+        "oos": -97.78,
+        "oos_trades": 27,
+        "is": -4076.86,
+        "is_trades": 29,
+        "full": -5068.3,
+        "full_trades": 56,
+        "pf": 0.515
+      },
+      "ABC": {
+        "oos1": 1109.99,
+        "oos2": -467.69,
+        "oos": 636.64,
+        "oos_trades": 72,
+        "is": -6332.05,
+        "is_trades": 99,
+        "full": -6429.96,
+        "full_trades": 173,
+        "pf": 0.78
+      }
+    },
+    "NG_CONT": {
+      "A": {
+        "oos1": -329.32,
+        "oos2": -806.62,
+        "oos": -1135.95,
+        "oos_trades": 8,
+        "is": -2686.13,
+        "is_trades": 15,
+        "full": -3822.21,
+        "full_trades": 23,
+        "pf": 0.257
+      },
+      "B": {
+        "oos1": -1348.47,
+        "oos2": -2243.8,
+        "oos": -3635.22,
+        "oos_trades": 47,
+        "is": -3726.03,
+        "is_trades": 81,
+        "full": -6918.44,
+        "full_trades": 129,
+        "pf": 0.653
+      },
+      "C": {
+        "oos1": -474.97,
+        "oos2": -330.5,
+        "oos": -805.47,
+        "oos_trades": 21,
+        "is": -3006.25,
+        "is_trades": 26,
+        "full": -4523.29,
+        "full_trades": 47,
+        "pf": 0.453
+      },
+      "ABC": {
+        "oos1": -738.24,
+        "oos2": -1751.46,
+        "oos": -2532.66,
+        "oos_trades": 55,
+        "is": -4162.13,
+        "is_trades": 89,
+        "full": -6963.4,
+        "full_trades": 145,
+        "pf": 0.686
+      }
+    },
+    "OZON_CONT": {
+      "A": {
+        "oos1": -136.14,
+        "oos2": -805.63,
+        "oos": -941.77,
+        "oos_trades": 3,
+        "is": -610.47,
+        "is_trades": 4,
+        "full": -1552.24,
+        "full_trades": 7,
+        "pf": null
+      },
+      "B": {
+        "oos1": -1339.5,
+        "oos2": 339.83,
+        "oos": -1280.88,
+        "oos_trades": 62,
+        "is": -4944.58,
+        "is_trades": 68,
+        "full": -7054.09,
+        "full_trades": 131,
+        "pf": 0.682
+      },
+      "C": {
+        "oos1": -1570.91,
+        "oos2": -524.75,
+        "oos": -2095.44,
+        "oos_trades": 23,
+        "is": -1612.1,
+        "is_trades": 12,
+        "full": -3713.88,
+        "full_trades": 35,
+        "pf": 0.369
+      },
+      "ABC": {
+        "oos1": -2148.03,
+        "oos2": 620.71,
+        "oos": -1629.23,
+        "oos_trades": 75,
+        "is": -5339.55,
+        "is_trades": 75,
+        "full": -7803.75,
+        "full_trades": 151,
+        "pf": 0.693
+      }
+    },
+    "PLZLM_CONT": {
+      "A": {
+        "oos1": -432.5,
+        "oos2": 104.04,
+        "oos": -328.46,
+        "oos_trades": 5,
+        "is": 657.08,
+        "is_trades": 5,
+        "full": 328.62,
+        "full_trades": 10,
+        "pf": 1.188
+      },
+      "B": {
+        "oos1": -1097.56,
+        "oos2": 4875.54,
+        "oos": 3768.49,
+        "oos_trades": 47,
+        "is": 755.93,
+        "is_trades": 73,
+        "full": 6157.38,
+        "full_trades": 121,
+        "pf": 1.337
+      },
+      "C": {
+        "oos1": -799.41,
+        "oos2": 238.29,
+        "oos": -560.85,
+        "oos_trades": 15,
+        "is": 374.14,
+        "is_trades": 20,
+        "full": -186.71,
+        "full_trades": 35,
+        "pf": 0.956
+      },
+      "ABC": {
+        "oos1": -1464.46,
+        "oos2": 5129.36,
+        "oos": 3655.4,
+        "oos_trades": 54,
+        "is": 716.1,
+        "is_trades": 77,
+        "full": 5936.05,
+        "full_trades": 131,
+        "pf": 1.299
+      }
+    },
+    "RGBI_CONT": {
+      "A": {
+        "oos1": 0,
+        "oos2": -298.12,
+        "oos": -298.12,
+        "oos_trades": 5,
+        "is": 0,
+        "is_trades": 0,
+        "full": -298.12,
+        "full_trades": 5,
+        "pf": 0.761
+      },
+      "B": {
+        "oos1": 0,
+        "oos2": 2254.69,
+        "oos": 2254.69,
+        "oos_trades": 21,
+        "is": -363.02,
+        "is_trades": 8,
+        "full": 2010.43,
+        "full_trades": 30,
+        "pf": 1.306
+      },
+      "C": {
+        "oos1": 0,
+        "oos2": -1790.72,
+        "oos": -1790.72,
+        "oos_trades": 12,
+        "is": 0,
+        "is_trades": 0,
+        "full": -1790.72,
+        "full_trades": 12,
+        "pf": 0.267
+      },
+      "ABC": {
+        "oos1": 0,
+        "oos2": 2759.08,
+        "oos": 2759.08,
+        "oos_trades": 23,
+        "is": -363.02,
+        "is_trades": 8,
+        "full": 2514.83,
+        "full_trades": 32,
+        "pf": 1.382
+      }
+    },
+    "ROSN_CONT": {
+      "A": {
+        "oos1": 1337.1,
+        "oos2": -275.21,
+        "oos": 1061.89,
+        "oos_trades": 2,
+        "is": -484.8,
+        "is_trades": 5,
+        "full": 577.09,
+        "full_trades": 7,
+        "pf": 1.759
+      },
+      "B": {
+        "oos1": 2750.19,
+        "oos2": -2500.52,
+        "oos": 249.66,
+        "oos_trades": 44,
+        "is": -3245.18,
+        "is_trades": 54,
+        "full": -2775.09,
+        "full_trades": 99,
+        "pf": 0.801
+      },
+      "C": {
+        "oos1": 1553.38,
+        "oos2": -444.31,
+        "oos": 1109.07,
+        "oos_trades": 15,
+        "is": -646.62,
+        "is_trades": 9,
+        "full": 462.45,
+        "full_trades": 24,
+        "pf": 1.194
+      },
+      "ABC": {
+        "oos1": 3385.68,
+        "oos2": -2669.62,
+        "oos": 716.06,
+        "oos_trades": 53,
+        "is": -3526.15,
+        "is_trades": 56,
+        "full": -2589.67,
+        "full_trades": 110,
+        "pf": 0.827
+      }
+    },
+    "SBRF_CONT": {
+      "A": {
+        "oos1": 0,
+        "oos2": -1464.87,
+        "oos": -1464.87,
+        "oos_trades": 5,
+        "is": 1573.75,
+        "is_trades": 5,
+        "full": 108.88,
+        "full_trades": 10,
+        "pf": 1.046
+      },
+      "B": {
+        "oos1": -1790.21,
+        "oos2": -901.13,
+        "oos": -3154.81,
+        "oos_trades": 53,
+        "is": -15706.71,
+        "is_trades": 76,
+        "full": -18031.51,
+        "full_trades": 130,
+        "pf": 0.4
+      },
+      "C": {
+        "oos1": 466.67,
+        "oos2": -1607.74,
+        "oos": -1141.07,
+        "oos_trades": 16,
+        "is": 2051.17,
+        "is_trades": 18,
+        "full": 909.79,
+        "full_trades": 34,
+        "pf": 1.226
+      },
+      "ABC": {
+        "oos1": -1466.52,
+        "oos2": -1655.75,
+        "oos": -3585.74,
+        "oos_trades": 60,
+        "is": -14628.32,
+        "is_trades": 84,
+        "full": -17384.38,
+        "full_trades": 145,
+        "pf": 0.438
+      }
+    },
+    "SILVM_CONT": {
+      "A": {
+        "oos1": -147.83,
+        "oos2": 959.9,
+        "oos": 811.84,
+        "oos_trades": 9,
+        "is": 669.4,
+        "is_trades": 7,
+        "full": 1481.24,
+        "full_trades": 16,
+        "pf": 1.468
+      },
+      "B": {
+        "oos1": -881.26,
+        "oos2": 2746.84,
+        "oos": 1840.25,
+        "oos_trades": 67,
+        "is": -5276.11,
+        "is_trades": 85,
+        "full": -4487.68,
+        "full_trades": 155,
+        "pf": 0.842
+      },
+      "C": {
+        "oos1": -1073.48,
+        "oos2": 1381.47,
+        "oos": 307.76,
+        "oos_trades": 19,
+        "is": 1043.99,
+        "is_trades": 26,
+        "full": 1478.34,
+        "full_trades": 46,
+        "pf": 1.235
+      },
+      "ABC": {
+        "oos1": -849.64,
+        "oos2": 3404.36,
+        "oos": 2529.39,
+        "oos_trades": 73,
+        "is": -3044.01,
+        "is_trades": 96,
+        "full": -1036.08,
+        "full_trades": 171,
+        "pf": 0.962
+      }
+    },
+    "SILV_CONT": {
+      "A": {
+        "oos1": 4287.0,
+        "oos2": 0,
+        "oos": 4287.0,
+        "oos_trades": 1,
+        "is": 2790.66,
+        "is_trades": 6,
+        "full": 7339.03,
+        "full_trades": 6,
+        "pf": 7.686
+      },
+      "B": {
+        "oos1": 4375.89,
+        "oos2": -7623.48,
+        "oos": -3248.33,
+        "oos_trades": 12,
+        "is": -4956.17,
+        "is_trades": 65,
+        "full": -8518.26,
+        "full_trades": 76,
+        "pf": 0.652
+      },
+      "C": {
+        "oos1": 4287.0,
+        "oos2": -103.81,
+        "oos": 4287.0,
+        "oos_trades": 1,
+        "is": 2790.66,
+        "is_trades": 6,
+        "full": 7339.03,
+        "full_trades": 6,
+        "pf": 7.686
+      },
+      "ABC": {
+        "oos1": 4375.89,
+        "oos2": -7727.28,
+        "oos": -3248.33,
+        "oos_trades": 12,
+        "is": -4956.17,
+        "is_trades": 65,
+        "full": -8518.26,
+        "full_trades": 76,
+        "pf": 0.652
+      }
+    },
+    "SPYF_CONT": {
+      "A": {
+        "oos1": 3916.75,
+        "oos2": 0,
+        "oos": 3916.75,
+        "oos_trades": 6,
+        "is": -343.27,
+        "is_trades": 7,
+        "full": 3573.47,
+        "full_trades": 13,
+        "pf": 2.077
+      },
+      "B": {
+        "oos1": 3227.51,
+        "oos2": -1424.62,
+        "oos": 1803.67,
+        "oos_trades": 56,
+        "is": -3960.85,
+        "is_trades": 45,
+        "full": -2847.53,
+        "full_trades": 104,
+        "pf": 0.851
+      },
+      "C": {
+        "oos1": 3596.1,
+        "oos2": 439.38,
+        "oos": 4035.49,
+        "oos_trades": 9,
+        "is": -845.21,
+        "is_trades": 15,
+        "full": 3190.28,
+        "full_trades": 24,
+        "pf": 1.676
+      },
+      "ABC": {
+        "oos1": 2906.87,
+        "oos2": -985.23,
+        "oos": 1922.41,
+        "oos_trades": 59,
+        "is": -4464.7,
+        "is_trades": 51,
+        "full": -3232.64,
+        "full_trades": 113,
+        "pf": 0.842
+      }
+    },
+    "Si_CONT": {
+      "A": {
+        "oos1": 0,
+        "oos2": -519.35,
+        "oos": -519.35,
+        "oos_trades": 1,
+        "is": -1689.57,
+        "is_trades": 14,
+        "full": -2208.89,
+        "full_trades": 15,
+        "pf": 0.355
+      },
+      "B": {
+        "oos1": 1352.88,
+        "oos2": 305.34,
+        "oos": 1662.27,
+        "oos_trades": 36,
+        "is": -2815.2,
+        "is_trades": 59,
+        "full": -474.22,
+        "full_trades": 97,
+        "pf": 0.967
+      },
+      "C": {
+        "oos1": -250.09,
+        "oos2": -963.73,
+        "oos": -1213.83,
+        "oos_trades": 4,
+        "is": -878.3,
+        "is_trades": 19,
+        "full": -2275.31,
+        "full_trades": 22,
+        "pf": 0.472
+      },
+      "ABC": {
+        "oos1": 1102.79,
+        "oos2": -139.04,
+        "oos": 967.79,
+        "oos_trades": 39,
+        "is": -2262.93,
+        "is_trades": 64,
+        "full": -799.64,
+        "full_trades": 104,
+        "pf": 0.947
+      }
+    },
+    "UCNY_CONT": {
+      "A": {
+        "oos1": 0,
+        "oos2": 0,
+        "oos": 0,
+        "oos_trades": 0,
+        "is": 0,
+        "is_trades": 0,
+        "full": 0,
+        "full_trades": 0,
+        "pf": null
+      },
+      "B": {
+        "oos1": 0,
+        "oos2": 0,
+        "oos": 0,
+        "oos_trades": 0,
+        "is": 0,
+        "is_trades": 0,
+        "full": 0,
+        "full_trades": 0,
+        "pf": null
+      },
+      "C": {
+        "oos1": 0,
+        "oos2": 0,
+        "oos": 0,
+        "oos_trades": 0,
+        "is": 0,
+        "is_trades": 0,
+        "full": 0,
+        "full_trades": 0,
+        "pf": null
+      },
+      "ABC": {
+        "oos1": 0,
+        "oos2": 0,
+        "oos": 0,
+        "oos_trades": 0,
+        "is": 0,
+        "is_trades": 0,
+        "full": 0,
+        "full_trades": 0,
+        "pf": null
+      }
+    },
+    "VTBR_CONT": {
+      "A": {
+        "oos1": 1148.06,
+        "oos2": -140.7,
+        "oos": 829.43,
+        "oos_trades": 6,
+        "is": 740.37,
+        "is_trades": 1,
+        "full": 1569.8,
+        "full_trades": 7,
+        "pf": 3.343
+      },
+      "B": {
+        "oos1": 2020.4,
+        "oos2": 9788.36,
+        "oos": 12611.68,
+        "oos_trades": 47,
+        "is": -1455.96,
+        "is_trades": 66,
+        "full": 10678.58,
+        "full_trades": 114,
+        "pf": 1.538
+      },
+      "C": {
+        "oos1": 1317.49,
+        "oos2": -421.37,
+        "oos": 718.19,
+        "oos_trades": 14,
+        "is": 263.97,
+        "is_trades": 13,
+        "full": 982.17,
+        "full_trades": 27,
+        "pf": 1.355
+      },
+      "ABC": {
+        "oos1": 2020.4,
+        "oos2": 10031.1,
+        "oos": 12793.97,
+        "oos_trades": 50,
+        "is": -1115.77,
+        "is_trades": 70,
+        "full": 11201.07,
+        "full_trades": 121,
+        "pf": 1.547
+      }
+    },
+    "YDEX_CONT": {
+      "A": {
+        "oos1": 0,
+        "oos2": -471.49,
+        "oos": -471.49,
+        "oos_trades": 3,
+        "is": -1559.95,
+        "is_trades": 8,
+        "full": -2031.43,
+        "full_trades": 11,
+        "pf": 0.172
+      },
+      "B": {
+        "oos1": -2776.55,
+        "oos2": -2327.69,
+        "oos": -3425.81,
+        "oos_trades": 58,
+        "is": -4696.51,
+        "is_trades": 75,
+        "full": -7896.48,
+        "full_trades": 137,
+        "pf": 0.652
+      },
+      "C": {
+        "oos1": -1031.42,
+        "oos2": -315.38,
+        "oos": -1346.8,
+        "oos_trades": 17,
+        "is": -1777.94,
+        "is_trades": 21,
+        "full": -3124.74,
+        "full_trades": 38,
+        "pf": 0.456
+      },
+      "ABC": {
+        "oos1": -3631.8,
+        "oos2": -1512.03,
+        "oos": -3465.38,
+        "oos_trades": 67,
+        "is": -4374.22,
+        "is_trades": 82,
+        "full": -7613.76,
+        "full_trades": 153,
+        "pf": 0.686
+      }
+    }
+  },
+  "selection": {
+    "CNYRUBF": "B",
+    "GLDRUBF": "A",
+    "GAZPF": "ABC",
+    "BRM_CONT": "B",
+    "CNY_CONT": "B",
+    "COCOA_CONT": "B",
+    "Eu_CONT": "B",
+    "GAZR_CONT": "C",
+    "SPYF_CONT": "C",
+    "Si_CONT": "B",
+    "VTBR_CONT": "ABC"
+  },
+  "greedy_oos": {
+    "CNYRUBF": "B",
+    "GLDRUBF": "A",
+    "USDRUBF": "C",
+    "GAZPF": "ABC",
+    "BRM_CONT": "B",
+    "CNY_CONT": "B",
+    "COCOA_CONT": "B",
+    "Eu_CONT": "B",
+    "GAZR_CONT": "C",
+    "GOLDM_CONT": "B",
+    "NASD_CONT": "B",
+    "NGM_CONT": "ABC",
+    "PLZLM_CONT": "B",
+    "RGBI_CONT": "ABC",
+    "ROSN_CONT": "C",
+    "SILVM_CONT": "ABC",
+    "SPYF_CONT": "C",
+    "Si_CONT": "B",
+    "VTBR_CONT": "ABC"
+  }
+}

@@ -25,6 +25,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from bot_a.backtest.breakout_backtest import BreakoutTrade
 from bot_a.backtest.fills import apply_entry_fill, apply_exit_fill, notional_rub
 from bot_a.economics.fees import Tariff, TinkoffFeeCalculator
+from bot_a.engine.multiregime_fsm import regime_machine
 from bot_a.engine.breakout_fsm import (
     Bar,
     BreakoutEvent,
@@ -160,7 +161,7 @@ class SwingBasketRunner:
         ticker = meta.ticker
         self._metas[ticker] = meta
         self._params[ticker] = params
-        self._machines[ticker] = MomentumBreakoutStateMachine(
+        self._machines[ticker] = regime_machine(
             meta,
             params,
             fee_calculator=lambda price, qty, _meta=meta: self._round_trip_fee(_meta, price, qty),
@@ -542,9 +543,10 @@ class SwingBasketRunner:
 
 def basket_from_config(config: Any, tickers: Optional[Iterable[str]] = None) -> List[str]:
     """Список инструментов корзины: явный список → `swingBasket` из конфига → все пресеты."""
+    # Регистр сохраняем: continuous-серии (`Eu_CONT`) привязаны к именам файлов кэша.
     if tickers:
-        return [str(ticker).upper() for ticker in tickers]
+        return [str(ticker) for ticker in tickers]
     configured = getattr(config, "swing_basket", None) or []
     if configured:
-        return [str(ticker).upper() for ticker in configured]
+        return [str(ticker) for ticker in configured]
     return [name for name in config.breakout_names()]

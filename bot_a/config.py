@@ -172,15 +172,27 @@ class AppConfig:
         return str(self.strategy_mode).lower() == "breakout"
 
     def swing_tickers(self) -> list[str]:
-        """Корзина свинга: явный `swingBasket`, иначе все пробойные пресеты."""
-        names = [str(ticker).upper() for ticker in (self.swing_basket or [])]
+        """Корзина свинга: явный `swingBasket`, иначе все пробойные пресеты.
+
+        Регистр сохраняется: continuous-серии (`Eu_CONT`, `BRM_CONT`) — это имена
+        файлов кэша, приводить их к верхнему регистру нельзя.
+        """
+        names = [str(ticker) for ticker in (self.swing_basket or []) if str(ticker).strip()]
         if names:
             return names
         return self.breakout_names()
 
     def breakout(self, name: Optional[str] = None) -> BreakoutParams:
         """Параметры пробойной стратегии v3.0 для инструмента ``name``."""
-        key = (name or self.active_breakout or "").upper()
+        raw = name or self.active_breakout or ""
+        key = raw.upper() if raw else ""
+        if raw and key not in self.breakout_presets:
+            # Пресеты хранятся в верхнем регистре, но continuous-серии (`Eu_CONT`)
+            # в конфиге пишутся с сохранением регистра.
+            for candidate in self.breakout_presets:
+                if candidate.upper() == key:
+                    key = candidate
+                    break
         if not key:
             if not self.breakout_presets:
                 return BreakoutParams()
@@ -459,9 +471,7 @@ class AppConfig:
             strategy_mode=str(raw.get("strategyMode", "pairs") or "pairs").lower(),
             breakout_presets=breakout_presets,
             active_breakout=active_breakout,
-            swing_basket=[
-                str(ticker).upper() for ticker in (raw.get("swingBasket", []) or [])
-            ],
+            swing_basket=[str(ticker) for ticker in (raw.get("swingBasket", []) or [])],
             source_path=source_path,
             base_dir=base_dir,
         )
