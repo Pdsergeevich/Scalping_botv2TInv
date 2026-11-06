@@ -425,6 +425,7 @@ class BreakoutEvent:
     price: Decimal
     reason: Optional[BreakoutExitReason] = None
     note: str = ""
+    conviction: float = 1.0  # v4.2: сила сигнала на входе (0.75…1.35)
     quantity: int = 0  # 0 = вся позиция; для "partial" — сколько контрактов закрыть
 
 
@@ -674,7 +675,28 @@ class MomentumBreakoutStateMachine:
             side=side,
             price=entry_price,
             note=f"{note} atr={atr_points:.4f} stop={stop_price}",
+            conviction=self._conviction_score(bar, style),
         )
+
+    def _conviction_score(self, bar: Bar, style: str) -> float:
+        """Сила сетапа на входе: ER, объёмный всплеск и класс движка (v4.2).
+
+        Все факторы считаются по завершённому бару — заглядывания вперёд нет.
+        Возвращает множитель риска в диапазоне [0.75, 1.35].
+        """
+        snapshot = self._indicators.snapshot
+        if snapshot is None:
+            return 1.0
+        score = 1.0
+        efficiency = float(snapshot.efficiency_ratio)
+        if efficiency >= 0.35:
+            score *= 1.20
+        elif style != "fade" and efficiency < 0.26:
+            score *= 0.80
+        average = max(float(snapshot.volume_avg), 1.0)
+        if float(bar.volume) >= 2.2 * average:
+            score *= 1.20
+        return min(max(score, 0.75), 1.35)
 
     def _bar_close_entry(
         self, bar: Bar, snapshot: IndicatorSnapshot, obi: Optional[float]

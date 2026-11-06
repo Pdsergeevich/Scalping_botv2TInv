@@ -426,6 +426,7 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
         else bool(config.swing_setting("drawdown_throttle", False))
     )
     throttle_start = float(config.swing_setting("throttle_start_pct", 8.0))
+    conviction = bool(config.swing_setting("conviction_sizing", False))
 
     def _params(ticker: str):
         try:
@@ -492,6 +493,7 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
                 max_concurrent_positions=slots,
                 drawdown_throttle=throttle,
                 throttle_start_pct=throttle_start,
+                conviction_sizing=conviction,
             ),
         )
         result = engine.run(data)
@@ -507,6 +509,7 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
             "maxSlots": slots,
             "marginUtilizationPct": utilization,
             "drawdownThrottle": throttle,
+            "convictionSizing": conviction,
             "trades": len(result.trades),
             "netRub": round(result.net_rub, 2),
             "feesRub": round(result.fees_rub, 2),

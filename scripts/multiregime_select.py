@@ -65,8 +65,17 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--risk", type=float, default=1.0)
     parser.add_argument("--min-trades", type=int, default=3)
     parser.add_argument("--no-dedup", action="store_true", help="не сводить базовые активы к одному инструменту")
+    parser.add_argument("--walk-forward-latest", action="store_true",
+                        help="роллинг-отбор на последнюю дату (v4.2): корзина для live/paper")
+    parser.add_argument("--update-config", action="store_true",
+                        help="записать отобранную корзину в appsettings.json")
+    parser.add_argument("--lookback", type=int, default=45, help="трейлинг-окно отбора, дней")
+    parser.add_argument("--top", type=int, default=12, help="сколько пар (инструмент×движки) держать")
     parser.add_argument("--out", default="")
     args = parser.parse_args(argv)
+
+    if args.walk_forward_latest:
+        return _walk_forward_latest(args)
 
     cont = available_continuous()
     tickers = [t for t in PERPETUALS if any((ROOT / "data_cache").glob(f"iss_forts_{t}_*.json"))]
@@ -179,6 +188,57 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(f"  {ticker:<12} семейство {underlying_family(ticker)}")
     print(f"\nконтроль (жадный max OOS, {len(greedy)} инстр.): OOS {greedy_oos:.0f} ₽ / IS {greedy_is:.0f} ₽")
     print(f"сохранено {out}")
+    return 0
+
+
+def _walk_forward_latest(args) -> int:
+    """Ротация на последнюю доступную дату + (опционально) запись в appsettings.json."""
+    import json
+    from datetime import datetime
+
+    from bot_a.backtest.walkforward import build_all_signals, select_basket
+    from bot_a.services.front_contracts import underlying_family
+    from bot_a.utils.time_provider import MSK
+    from breakout_scan import load_candles, load_meta
+    from multiregime_scan import PERPETUALS, available_continuous, v32_params
+
+    cont = available_continuous()
+    tickers = [t for t in PERPETUALS if any((ROOT / "data_cache").glob(f"iss_forts_{t}_*.json"))]
+    tickers += sorted(cont.values())
+    tickers = sorted(set(tickers))
+    candles = {ticker: load_candles(ticker, "2026-04-25", "2026-11-05", args.bars) for ticker in tickers}
+    metas = {ticker: load_meta(ticker) for ticker in tickers}
+    params = {ticker: v32_params(args.bars, True) for ticker in tickers}
+    signals = build_all_signals(metas, params, candles)
+    now_ms = int(datetime(2026, 11, 5, 23, 59, tzinfo=MSK).timestamp() * 1000)
+    basket = select_basket(
+        signals, metas, now_ms, lookback_days=args.lookback, top=args.top,
+        min_pf=1.15, min_trades=3, deduplicate=not args.no_dedup,
+    )
+    print(f"корзина на 05.11.2026 (L={args.lookback}, top={args.top}):")
+    selection = {}
+    for item in basket:
+        selection[item["ticker"]] = item["engine"]
+        print(
+            f"  {item['ticker']:<12} {item['engine']:<4} семейство {underlying_family(item['ticker']):<8} "
+            f"Net {item['net']:>8.0f} ₽  PF {item['pf']:.2f}  сделок {item['trades']}"
+        )
+    if args.update_config:
+        from bot_a.backtest.walkforward import update_appsettings
+
+        update_appsettings(
+            ROOT / "appsettings.json",
+            selection,
+            {
+                "riskPctPerTrade": 0.7,
+                "maxConcurrentPositions": 4,
+                "maxMarginUtilizationPct": 75.0,
+                "drawdownThrottle": True,
+                "throttleStartPct": 5.0,
+                "convictionSizing": True,
+            },
+        )
+        print(f"appsettings.json обновлён: swingBasket = {len(selection)} инструментов")
     return 0
 
 
