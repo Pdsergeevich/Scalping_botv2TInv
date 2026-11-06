@@ -90,7 +90,8 @@ def with_engines(
     if pullback:
         updates.update(
             {"pullback_enabled": True, "pullback_min_er": 0.22, "pullback_stop_atr": 1.5,
-             "pullback_trail_atr": 3.2}
+             "pullback_trail_atr": 3.2, "pullback_require_thrust": True,
+             "pullback_wave_cooldown_bars": 6}
         )
     if fade:
         updates.update(

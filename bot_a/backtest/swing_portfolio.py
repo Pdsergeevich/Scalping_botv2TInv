@@ -50,6 +50,16 @@ class SwingAccountSettings:
     max_margin_utilization_pct: float = 60.0
     max_concurrent_positions: int = 0
     max_contracts_per_trade: int = 0
+    # v4.1: сторож здоровья инструмента (rolling health guard). Всё считается
+    # только по уже закрытым сделкам — заглядывания вперёд нет.
+    health_guard: bool = False
+    rolling_window_trades: int = 8
+    rolling_pf_floor: float = 0.70
+    consecutive_loss_limit: int = 3
+    # v4.1: торможение риска на просадке (только по уже реализованному PnL).
+    drawdown_throttle: bool = False
+    throttle_start_pct: float = 8.0
+    throttle_min_multiplier: float = 0.4
 
 
 @dataclass(slots=True)
@@ -65,6 +75,7 @@ class AccountPosition:
     entry_fee: Decimal
     atr_points: float
     stop_points: float
+    virtual: bool = False  # «виртуальная» сделка при паузе: считается, но не торгуется
 
 
 @dataclass(slots=True)
@@ -79,6 +90,8 @@ class SwingAccountResult:
     rejected_by_margin: int = 0
     rejected_by_risk: int = 0
     rejected_by_slots: int = 0
+    health_pauses: int = 0
+    health_resumes: int = 0
 
     @property
     def net_rub(self) -> float:
@@ -104,6 +117,7 @@ class SwingAccountBacktester:
         self._instruments = list(instruments)
         self._settings = settings or SwingAccountSettings()
         self._fees = TinkoffFeeCalculator(self._settings.tariff)
+        self._risk_multiplier = 1.0
 
     # ------------------------------------------------------------------ издержки
     def _notional(self, meta: InstrumentMetadata, price: Decimal, quantity: int) -> Decimal:
@@ -138,7 +152,7 @@ class SwingAccountBacktester:
         settings = self._settings
         if equity is None:
             equity = float(settings.capital_rub)
-        by_risk = self.risk_quantity(meta, stop_points, equity)
+        by_risk = int(self.risk_quantity(meta, stop_points, equity) * self._risk_multiplier)
         margin_per_contract = float(meta.position_margin_rub(1)) * (
             1.0 + float(settings.margin_safety_buffer_pct) / 100.0
         )
@@ -175,6 +189,12 @@ class SwingAccountBacktester:
             )
             result.per_ticker[ticker] = BreakoutResult(ticker=ticker)
 
+        # v4.1: история последних сделок по инструменту для сторожа здоровья.
+        health: Dict[str, List[float]] = {ticker: [] for ticker in machines}
+        paused: Dict[str, bool] = {ticker: False for ticker in machines}
+        losing_streak: Dict[str, int] = {ticker: 0 for ticker in machines}
+        peak_equity = float(settings.capital_rub)
+
         timeline: List[Tuple[int, int, str, Candle]] = []
         for index, (ticker, candles) in enumerate(sorted(data.items())):
             if ticker not in machines:
@@ -204,6 +224,14 @@ class SwingAccountBacktester:
 
             for event in machine.on_bar(bar):
                 if event.kind == "entry":
+                    if paused.get(ticker):
+                        # Сторож на паузе: сделку не исполняем, но ведём «виртуально»,
+                        # чтобы увидеть первый виртуальный плюс и вернуть инструмент.
+                        virtual = self._open_virtual(meta, machine, event)
+                        if virtual is not None:
+                            open_positions[ticker] = virtual
+                            pending[ticker] = (event, virtual)
+                        continue
                     if (
                         settings.max_concurrent_positions > 0
                         and len(open_positions) >= settings.max_concurrent_positions
@@ -253,6 +281,8 @@ class SwingAccountBacktester:
                     result.trades.append(trade)
                     result.per_ticker[ticker].trades.append(trade)
                     equity += trade.net_rub
+                    peak_equity = max(peak_equity, equity)
+                    self._risk_multiplier = self._throttle_multiplier(equity, peak_equity)
                     margin_used = max(margin_used - share, 0.0)
                     position.quantity -= closed
                     position.margin_rub -= share
@@ -260,6 +290,13 @@ class SwingAccountBacktester:
                     result.equity_curve.append((event.time_ms, equity))
                     continue
                 entry_event, position = pending.pop(ticker)
+                if position.virtual:
+                    self._settle_virtual(
+                        ticker, meta, params_by_ticker[ticker], entry_event, position, event,
+                        settings, health, paused, losing_streak, result,
+                    )
+                    open_positions.pop(ticker, None)
+                    continue
                 exit_price = self._apply_exit_fill(meta, params_by_ticker[ticker], event.price, event.side)
                 exit_fee = self._fees.register_notional(
                     self._notional(meta, exit_price, position.quantity), meta.ticker
@@ -276,9 +313,13 @@ class SwingAccountBacktester:
                 result.trades.append(trade)
                 result.per_ticker[ticker].trades.append(trade)
                 equity += trade.net_rub
+                peak_equity = max(peak_equity, equity)
+                self._risk_multiplier = self._throttle_multiplier(equity, peak_equity)
                 margin_used = max(margin_used - position.margin_rub, 0.0)
                 open_positions.pop(ticker, None)
                 result.equity_curve.append((event.time_ms, equity))
+                if settings.health_guard:
+                    self._track_health(ticker, trade.net_rub, settings, health, paused, losing_streak, result)
 
         # Позиции, оставшиеся к концу данных, закрываются по последнему закрытию.
         for ticker, (_entry_event, position) in list(pending.items()):
@@ -364,6 +405,105 @@ class SwingAccountBacktester:
             atr_points=position.atr_points,
             stop_points=stop_points,
         )
+
+    def _throttle_multiplier(self, equity: float, peak_equity: float) -> float:
+        """Линейное торможение риска на просадке: 1.0 → throttle_min_multiplier.
+
+        Считается только по реализованному PnL, поэтому заглядывания вперёд нет.
+        """
+        settings = self._settings
+        if not settings.drawdown_throttle or peak_equity <= 0:
+            return 1.0
+        drawdown = max(peak_equity - equity, 0.0) / peak_equity * 100.0
+        start = max(float(settings.throttle_start_pct), 0.1)
+        if drawdown <= start:
+            return 1.0
+        span = max(30.0 - start, 1.0)
+        scale = min((drawdown - start) / span, 1.0)
+        floor = max(min(float(settings.throttle_min_multiplier), 1.0), 0.1)
+        return 1.0 - (1.0 - floor) * scale
+
+    # ------------------------------------------------------------------ сторож здоровья
+    def _open_virtual(
+        self,
+        meta: InstrumentMetadata,
+        machine: MomentumBreakoutStateMachine,
+        event: BreakoutEvent,
+    ) -> Optional[AccountPosition]:
+        """Виртуальная позиция на паузе: FSM работает, счёт не трогаем."""
+        position = machine.position
+        if position is None:
+            return None
+        position.quantity = 1
+        position.fee_round_trip_rub = self._round_trip_fee(meta, event.price, 1)
+        return AccountPosition(
+            ticker=meta.ticker,
+            side=event.side,
+            quantity=1,
+            margin_rub=0.0,
+            entry_price=event.price,
+            entry_ms=event.time_ms,
+            entry_fee=ZERO,
+            atr_points=position.atr_points,
+            stop_points=abs(float(position.entry_price - position.initial_stop)),
+            virtual=True,
+        )
+
+    def _settle_virtual(
+        self,
+        ticker: str,
+        meta: InstrumentMetadata,
+        params: BreakoutParams,
+        entry_event: BreakoutEvent,
+        position: AccountPosition,
+        event: BreakoutEvent,
+        settings: SwingAccountSettings,
+        health: Dict[str, List[float]],
+        paused: Dict[str, bool],
+        losing_streak: Dict[str, int],
+        result: SwingAccountResult,
+    ) -> None:
+        """Виртуальный выход: считаем гипотетический PnL, но ничего не списываем."""
+        exit_price = self._apply_exit_fill(meta, params, event.price, event.side)
+        sign = 1 if event.side is BreakoutSide.LONG else -1
+        gross = float((exit_price - entry_event.price) * sign * meta.rub_per_price_unit)
+        fee = float(self._round_trip_fee(meta, exit_price, 1))
+        net = gross - fee
+        if net > 0:
+            paused[ticker] = False
+            losing_streak[ticker] = 0
+            health[ticker].append(net)
+            result.health_resumes += 1
+        else:
+            health[ticker].append(net)
+
+    def _track_health(
+        self,
+        ticker: str,
+        net: float,
+        settings: SwingAccountSettings,
+        health: Dict[str, List[float]],
+        paused: Dict[str, bool],
+        losing_streak: Dict[str, int],
+        result: SwingAccountResult,
+    ) -> None:
+        """Пауза инструмента при 3 убытках подряд или PF < floor на скользящем окне."""
+        history = health[ticker]
+        history.append(net)
+        if len(history) > max(int(settings.rolling_window_trades), 2):
+            history.pop(0)
+        losing_streak[ticker] = losing_streak.get(ticker, 0) + 1 if net <= 0 else 0
+        if paused[ticker]:
+            return
+        window = history[-max(int(settings.rolling_window_trades), 2) :]
+        profits = sum(item for item in window if item > 0)
+        losses = -sum(item for item in window if item <= 0)
+        bad_pf = len(window) >= max(int(settings.rolling_window_trades), 2) and (
+            losses > 0 and profits / losses < float(settings.rolling_pf_floor)
+        )
+        if losing_streak[ticker] >= max(int(settings.consecutive_loss_limit), 1) or bad_pf:
+            paused[ticker] = True
+            result.health_pauses += 1
 
     def _apply_exit_fill(
         self,

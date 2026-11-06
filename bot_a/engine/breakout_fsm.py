@@ -80,11 +80,17 @@ class BreakoutParams:
     pullback_touch_atr: float = 0.30
     pullback_stop_atr: float = 0.5
     pullback_trail_atr: float = 3.2
+    # v4.1: анти-churn — подтверждение импульса и волновой кулдаун после входа/стопа.
+    pullback_require_thrust: bool = True
+    pullback_thrust_min_atr: float = 0.25
+    pullback_wave_cooldown_bars: int = 6
+    pullback_wave_impulse_atr: float = 1.5
     fade_enabled: bool = False
     fade_max_er: float = 0.20
     fade_keltner_atr: float = 2.2
     fade_stop_atr: float = 0.3
-    fade_min_target_fee_ratio: float = 4.0
+    fade_min_target_fee_ratio: float = 5.0
+    fade_rejection_close_ratio: float = 0.25
     fade_max_bars: int = 40
     volume_lookback: int = 20
     volume_multiple: float = 1.5
@@ -439,6 +445,8 @@ class BreakoutCounters:
     chop_skips: int = 0
     pullback_entries: int = 0
     fade_entries: int = 0
+    thrust_skips: int = 0
+    wave_skips: int = 0
     consecutive_stop_days: int = 0
 
     def as_dict(self) -> Dict[str, int]:
@@ -457,6 +465,8 @@ class BreakoutCounters:
             "extensionSkips": self.extension_skips,
             "chopSkips": self.chop_skips,
             "pullbackEntries": self.pullback_entries,
+            "thrustSkips": self.thrust_skips,
+            "waveSkips": self.wave_skips,
             "fadeEntries": self.fade_entries,
         }
 
@@ -503,6 +513,10 @@ class MomentumBreakoutStateMachine:
         # v4.0: предыдущий бар и диапазон откатов для Engine B/C.
         self._prev_bar: Optional[Bar] = None
         self._prev_snapshot: Optional[IndicatorSnapshot] = None
+        # v4.1: волновой кулдаун откатов (сторона, номер бара и цена «блока»).
+        self._pullback_block_side: Optional[BreakoutSide] = None
+        self._pullback_block_until: int = 0
+        self._pullback_block_price: float = 0.0
         self._recent_lows: Deque[float] = deque(maxlen=max(int(params.pullback_lookback_bars), 2))
         self._recent_highs: Deque[float] = deque(maxlen=max(int(params.pullback_lookback_bars), 2))
         self._clearing_minutes = tuple(

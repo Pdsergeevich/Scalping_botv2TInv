@@ -69,6 +69,9 @@ def evaluate(
     utilization: float,
     candles: Dict[str, Dict[str, Sequence[Any]]],
     max_concurrent: int = 0,
+    health_guard: bool = False,
+    throttle: bool = False,
+    throttle_start: float = 8.0,
 ) -> Dict[str, Any]:
     out: Dict[str, Any] = {}
     for period in ("oos", "is", "full"):
@@ -83,6 +86,9 @@ def evaluate(
                 risk_pct_per_trade=risk,
                 max_margin_utilization_pct=utilization,
                 max_concurrent_positions=max_concurrent,
+                health_guard=health_guard,
+                drawdown_throttle=throttle,
+                throttle_start_pct=throttle_start,
             ),
         )
         result = engine.run({ticker: candles[period][ticker] for ticker in tickers})
@@ -101,6 +107,8 @@ def evaluate(
             "rejectedMargin": result.rejected_by_margin,
             "rejectedRisk": result.rejected_by_risk,
             "rejectedSlots": result.rejected_by_slots,
+            "healthPauses": result.health_pauses,
+            "healthResumes": result.health_resumes,
             "perTicker": {t: round(r.net_rub, 2) for t, r in result.per_ticker.items()},
             "perTickerTrades": {t: len(r.trades) for t, r in result.per_ticker.items()},
         }
@@ -142,33 +150,42 @@ def main(argv: Optional[List[str]] = None) -> int:
         f"{'PF':>6} {'Sh':>6} {'DD%':>6} {'год%':>7} {'ГО':>8}",
         flush=True,
     )
-    core = [ticker for ticker in tickers if ticker not in {"GOLDM_CONT", "Eu_CONT", "Si_CONT", "VTBR_CONT"}]
     cases: List[Dict[str, Any]] = [
         {"name": "v3.2 эталон (2 тикера)", "tickers": ["CNYRUBF", "GLDRUBF"],
          "engines": {"CNYRUBF": "BASE", "GLDRUBF": "BASE"}, "risk": 1.0, "util": 60.0,
-         "concurrent": 0},
+         "concurrent": 0, "guard": False},
     ]
-    for risk, util, slots in ((0.5, 75.0, 3), (0.8, 75.0, 3), (1.0, 75.0, 0), (1.0, 75.0, 3), (1.5, 85.0, 3)):
+    for risk, slots, util in ((0.6, 3, 75.0), (0.8, 3, 75.0), (1.0, 3, 80.0), (1.2, 3, 80.0),
+                              (0.8, 4, 75.0), (1.0, 4, 80.0)):
         cases.append(
-            {"name": f"v4.0 все r={risk:.1f}% ГО={util:.0f}% слотов={slots or 'inf'}",
+            {"name": f"v4.1 r={risk:.1f}% слотов={slots}",
              "tickers": tickers, "engines": engines, "risk": risk, "util": util,
-             "concurrent": slots}
+             "concurrent": slots, "guard": False, "throttle": False}
         )
-    for risk, slots in ((0.5, 3), (0.8, 3), (1.0, 3), (1.5, 3), (2.0, 4)):
+    for risk, slots, util, start_pct in ((0.7, 3, 75.0, 5.0), (0.8, 3, 75.0, 5.0),
+                                          (0.9, 3, 80.0, 5.0), (1.0, 3, 80.0, 6.0),
+                                          (0.9, 4, 80.0, 5.0), (1.0, 4, 80.0, 6.0)):
         cases.append(
-            {"name": f"v4.0 ядро r={risk:.1f}% слотов={slots}", "tickers": core,
-             "engines": {ticker: engines[ticker] for ticker in core}, "risk": risk,
-             "util": 85.0, "concurrent": slots}
+            {"name": f"v4.1+throttle r={risk:.1f}% слотов={slots} старт={start_pct:.0f}%",
+             "tickers": tickers, "engines": engines, "risk": risk, "util": util,
+             "concurrent": slots, "guard": False, "throttle": True,
+             "throttle_start": start_pct}
         )
+    cases.append({"name": "v4.1+guard+throttle r=1.0% слотов=4",
+                  "tickers": tickers, "engines": engines, "risk": 1.0, "util": 80.0,
+                  "concurrent": 4, "guard": True, "throttle": True})
 
     for case in cases:
         data = evaluate(
             case["tickers"], case["engines"], base, args.capital, case["risk"], case["util"],
-            candles, case.get("concurrent", 0),
+            candles, case.get("concurrent", 0), case.get("guard", False), case.get("throttle", False),
+            case.get("throttle_start", 8.0),
         )
         report["cases"][case["name"]] = {
             "risk": case["risk"], "utilization": case["util"], "tickers": list(case["tickers"]),
             "concurrent": case.get("concurrent", 0),
+            "guard": case.get("guard", False),
+            "throttle": case.get("throttle", False),
             "engines": case["engines"], "periods": data,
         }
         full = data["full"]

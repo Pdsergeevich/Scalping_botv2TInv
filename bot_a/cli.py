@@ -96,17 +96,30 @@ def build_parser() -> argparse.ArgumentParser:
         help="разрешить перенос позиции через вечернюю сессию и ночь (v3.1)",
     )
     parser.add_argument(
+        "--throttle",
+        dest="throttle",
+        action="store_true",
+        default=None,
+        help="включить торможение риска на просадке для корзины ALL_SWING (v4.1)",
+    )
+    parser.add_argument(
+        "--no-throttle",
+        dest="throttle",
+        action="store_false",
+        help="отключить торможение риска на просадке",
+    )
+    parser.add_argument(
         "--max-slots",
         type=int,
-        default=0,
-        help="максимум одновременных позиций в корзине ALL_SWING (0 = без лимита); v4.0: 3",
+        default=None,
+        help="максимум одновременных позиций в корзине ALL_SWING (по умолчанию из swingPortfolio)",
     )
     parser.add_argument(
         "--margin-utilization",
         dest="margin_utilization",
         type=float,
-        default=60.0,
-        help="максимальная доля капитала под ГО для --ticker ALL_SWING (по умолчанию 60 %%)",
+        default=None,
+        help="максимальная доля капитала под ГО для --ticker ALL_SWING (по умолчанию из swingPortfolio)",
     )
     parser.add_argument(
         "--no-overnight",
@@ -124,8 +137,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--risk-pct",
         dest="risk_pct",
         type=float,
-        default=1.5,
-        help="риск на сделку в %% капитала для --strategy breakout (по умолчанию 1.5)",
+        default=None,
+        help="риск на сделку в %% капитала (по умолчанию из swingPortfolio или 1.5 для одиночного тикера)",
     )
     parser.add_argument("--from", dest="date_from", default=None, help="начало периода (YYYY-MM-DD, MSK)")
     parser.add_argument("--to", dest="date_to", default=None, help="конец периода (YYYY-MM-DD, MSK)")
@@ -394,8 +407,25 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
         logger.error("Корзина свинга пуста: заполните swingBasket или breakoutPresets")
         return 2
     bar_minutes = max(int(getattr(args, "bar_minutes", 1) or 1), 1)
-    capital = float(getattr(args, "capital", 50_000.0))
-    risk = float(getattr(args, "risk_pct", 1.0))
+    capital = float(getattr(args, "capital", 50_000.0) or 50_000.0)
+    # Приоритет: явный флаг CLI → блок swingPortfolio из appsettings → дефолт.
+    risk = float(
+        getattr(args, "risk_pct", None) or config.swing_setting("risk_pct_per_trade", 1.0)
+    )
+    utilization = float(
+        getattr(args, "margin_utilization", None)
+        or config.swing_setting("max_margin_utilization_pct", 60.0)
+    )
+    slots = int(
+        getattr(args, "max_slots", None) or config.swing_setting("max_concurrent_positions", 0) or 0
+    )
+    throttle_flag = getattr(args, "throttle", None)
+    throttle = (
+        bool(throttle_flag)
+        if throttle_flag is not None
+        else bool(config.swing_setting("drawdown_throttle", False))
+    )
+    throttle_start = float(config.swing_setting("throttle_start_pct", 8.0))
 
     def _params(ticker: str):
         try:
@@ -434,7 +464,7 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
         capital,
         risk,
         bar_minutes,
-        getattr(args, "margin_utilization", 60.0),
+        utilization,
     )
     source = IssCandleSource(cache_dir)
 
@@ -458,8 +488,10 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
                 risk_pct_per_trade=risk,
                 tariff=config.fees.tariff,
                 margin_safety_buffer_pct=config.risk.margin_safety_buffer_pct,
-                max_margin_utilization_pct=float(getattr(args, "margin_utilization", 60.0)),
-                max_concurrent_positions=int(getattr(args, "max_slots", 0) or 0),
+                max_margin_utilization_pct=utilization,
+                max_concurrent_positions=slots,
+                drawdown_throttle=throttle,
+                throttle_start_pct=throttle_start,
             ),
         )
         result = engine.run(data)
@@ -472,6 +504,9 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
             "barMinutes": bar_minutes,
             "capital": capital,
             "riskPct": risk,
+            "maxSlots": slots,
+            "marginUtilizationPct": utilization,
+            "drawdownThrottle": throttle,
             "trades": len(result.trades),
             "netRub": round(result.net_rub, 2),
             "feesRub": round(result.fees_rub, 2),
@@ -500,6 +535,32 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
         logger.error("Реальная торговля требует --yes")
         return 2
 
+    # v4.1: `*_CONT` — это склейка для бэктеста; в watch/paper/live торгуем живой
+    # фронт-контракт семейства (карта кэша + живой список ISS как резерв).
+    from bot_a.services.front_contracts import (
+        load_universe,
+        needs_resolution,
+        resolve_swing_tickers,
+    )
+
+    live_map = {ticker: ticker for ticker in tickers}
+    if needs_resolution(tickers):
+        universe = load_universe(cache_dir / "forts_universe.json")
+        mapping = resolve_swing_tickers(tickers, universe)
+        for preset, live in mapping.items():
+            if live is None:
+                logger.error("Не удалось определить живой контракт для %s", preset)
+                return 3
+            live_map[preset] = live
+        resolved = {k: v for k, v in live_map.items() if k != v}
+        if resolved:
+            logger.info(
+                "Свинг-корзина: continuous → живой контракт: %s",
+                ", ".join(f"{k}→{v}" for k, v in resolved.items()),
+            )
+        tickers = [live_map[ticker] for ticker in tickers]
+        metas = {live_map[preset]: meta for preset, meta in metas.items()}
+
     warmup_days = max(int(getattr(args, "days", 10) or 10), 1)
     now_ms = int(datetime.now(tz=MSK).timestamp() * 1000)
     state_path = config.path(config.storage.state_dir) / "swing_positions.json"
@@ -514,7 +575,8 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
             margin_safety_buffer_pct=config.risk.margin_safety_pct
             if hasattr(config.risk, "margin_safety_pct")
             else config.risk.margin_safety_buffer_pct,
-            max_margin_utilization_pct=float(getattr(args, "margin_utilization", 60.0)),
+            max_margin_utilization_pct=utilization,
+            max_concurrent_positions=slots,
             bar_minutes=bar_minutes,
             poll_ms=int(args.record_interval_ms),
             state_path=state_path,
@@ -649,7 +711,7 @@ async def _dispatch_breakout(args: argparse.Namespace, config: AppConfig, logger
         return 3
     settings = BreakoutSettings(
         capital_rub=float(getattr(args, "capital", 50000.0)),
-        risk_pct_per_trade=float(getattr(args, "risk_pct", 1.5)),
+        risk_pct_per_trade=float(getattr(args, "risk_pct", None) or 1.5),
         tariff=config.fees.tariff,
         margin_safety_buffer_pct=config.risk.margin_safety_buffer_pct,
     )

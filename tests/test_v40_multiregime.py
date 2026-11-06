@@ -30,6 +30,10 @@ def multi_params(**overrides) -> BreakoutParams:
         fade_max_er=0.20,
         pullback_stop_atr=1.5,
         pullback_trail_atr=3.2,
+        # В тестах v4.0 проверяется именно правило касания EMA20; фильтр импульса
+        # и волновой кулдаун (v4.1) тестируются отдельно в test_v41_multiregime.py.
+        pullback_require_thrust=False,
+        pullback_wave_cooldown_bars=0,
         fade_keltner_atr=2.2,
         fade_stop_atr=1.5,
         fade_min_target_fee_ratio=2.0,

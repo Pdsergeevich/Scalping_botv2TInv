@@ -135,6 +135,15 @@ def _align_stat_cadence(params: StrategyParams, seconds: float) -> StrategyParam
     return replace(params, stat_sample_interval_seconds=float(seconds))
 
 
+def _camel(name: str) -> str:
+    head, *rest = name.split("_")
+    return head + "".join(part.title() for part in rest)
+
+
+def _snake(name: str) -> str:
+    return "".join(f"_{char.lower()}" if char.isupper() else char for char in name)
+
+
 @dataclass(frozen=True, slots=True)
 class AppConfig:
     t_invest: TInvestSettings = field(default_factory=TInvestSettings)
@@ -150,6 +159,7 @@ class AppConfig:
     breakout_presets: Dict[str, BreakoutParams] = field(default_factory=dict)
     active_breakout: str = ""
     swing_basket: list = field(default_factory=list)
+    swing_portfolio: Dict[str, object] = field(default_factory=dict)
     source_path: Optional[str] = None
     base_dir: str = "."
 
@@ -170,6 +180,14 @@ class AppConfig:
 
     def is_breakout(self) -> bool:
         return str(self.strategy_mode).lower() == "breakout"
+
+    def swing_setting(self, key: str, default):
+        """Значение из блока `swingPortfolio` (camelCase или snake_case)."""
+        block = self.swing_portfolio or {}
+        for name in (key, _camel(key), _snake(key)):
+            if name in block:
+                return block[name]
+        return default
 
     def swing_tickers(self) -> list[str]:
         """Корзина свинга: явный `swingBasket`, иначе все пробойные пресеты.
@@ -472,6 +490,7 @@ class AppConfig:
             breakout_presets=breakout_presets,
             active_breakout=active_breakout,
             swing_basket=[str(ticker) for ticker in (raw.get("swingBasket", []) or [])],
+            swing_portfolio=dict(raw.get("swingPortfolio", {}) or {}),
             source_path=source_path,
             base_dir=base_dir,
         )

@@ -35,6 +35,7 @@ from bot_a.engine.breakout_fsm import BreakoutParams  # noqa: E402
 from breakout_scan import load_candles, load_meta  # noqa: E402
 from breakout_swing_scan import PERIODS  # noqa: E402
 from multiregime_scan import PERIODS as _SCAN_PERIODS  # noqa: E402,F401
+from bot_a.services.front_contracts import deduplicate, underlying_family  # noqa: E402
 from multiregime_scan import available_continuous, v32_params, with_engines  # noqa: E402
 
 PERPETUALS = ("CNYRUBF", "GLDRUBF", "USDRUBF", "EURRUBF", "IMOEXF", "GAZPF")
@@ -63,6 +64,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--capital", type=float, default=50_000.0)
     parser.add_argument("--risk", type=float, default=1.0)
     parser.add_argument("--min-trades", type=int, default=3)
+    parser.add_argument("--no-dedup", action="store_true", help="не сводить базовые активы к одному инструменту")
     parser.add_argument("--out", default="")
     args = parser.parse_args(argv)
 
@@ -135,6 +137,14 @@ def main(argv: Optional[List[str]] = None) -> int:
         if candidates:
             selection[ticker] = max(candidates, key=lambda item: item[1]["oos"])[0]
 
+    # (3) Дедупликация базовых активов (v4.1): на семейство — один инструмент,
+    #     иначе перпетуал и квартальная склейка делят слоты и коррелируют ~1.
+    raw_selection = dict(selection)
+    if not args.no_dedup and selection:
+        best = {ticker: table[ticker][engine]["oos"] for ticker, engine in selection.items()}
+        kept = deduplicate(best, keep_order=list(selection))
+        selection = {ticker: selection[ticker] for ticker in kept.values() if ticker in selection}
+
     print("\nустойчивый отбор (обе половины OOS в плюсе → слепой IS):")
     oos_sum = is_sum = 0.0
     for ticker, engine in selection.items():
@@ -154,6 +164,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "min_trades": args.min_trades,
         "table": table,
         "selection": selection,
+        "raw_selection": raw_selection,
         "greedy_oos": greedy,
     }
     out = Path(args.out or f"reports/forts_v40_selection_{args.bars}m.json")
@@ -161,6 +172,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     out.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     greedy_oos = sum(table[t][e]["oos"] for t, e in greedy.items())
     greedy_is = sum(table[t][e]["is"] for t, e in greedy.items())
+    if not args.no_dedup:
+        dropped = sorted(set(raw_selection) - set(selection))
+        print("\nдедупликация базовых активов: убраны " + (", ".join(dropped) if dropped else "—"))
+        for ticker in selection:
+            print(f"  {ticker:<12} семейство {underlying_family(ticker)}")
     print(f"\nконтроль (жадный max OOS, {len(greedy)} инстр.): OOS {greedy_oos:.0f} ₽ / IS {greedy_is:.0f} ₽")
     print(f"сохранено {out}")
     return 0

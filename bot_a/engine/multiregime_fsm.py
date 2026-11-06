@@ -98,12 +98,18 @@ class MultiRegimeStateMachine(MomentumBreakoutStateMachine):
         touch = params.pullback_touch_atr * atr
         trend_up = close > ema_slow and ema_fast >= ema_slow
         trend_down = close < ema_slow and ema_fast <= ema_slow
+        previous = self._prev_bar
         if trend_up and float(bar.low) <= ema_fast + touch:
+            if previous is not None and not self._pullback_thrust_ok(bar, atr, BreakoutSide.LONG):
+                return None
+            if not self._pullback_wave_ok(bar, atr, BreakoutSide.LONG):
+                return None
             swing_low = min(self._recent_lows) if self._recent_lows else float(bar.low)
             stop = dec(min(swing_low, float(bar.low)) - params.pullback_stop_atr * atr)
             if stop >= bar.close:
                 stop = dec(close - max(params.pullback_stop_atr, 0.5) * atr)
             self.counters.pullback_entries += 1
+            self._arm_pullback_block(BreakoutSide.LONG, bar)
             return self._open_position(
                 bar,
                 BreakoutSide.LONG,
@@ -115,11 +121,16 @@ class MultiRegimeStateMachine(MomentumBreakoutStateMachine):
                 trail_mult=params.pullback_trail_atr,
             )
         if trend_down and float(bar.high) >= ema_fast - touch:
+            if previous is not None and not self._pullback_thrust_ok(bar, atr, BreakoutSide.SHORT):
+                return None
+            if not self._pullback_wave_ok(bar, atr, BreakoutSide.SHORT):
+                return None
             swing_high = max(self._recent_highs) if self._recent_highs else float(bar.high)
             stop = dec(max(swing_high, float(bar.high)) + params.pullback_stop_atr * atr)
             if stop <= bar.close:
                 stop = dec(close + max(params.pullback_stop_atr, 0.5) * atr)
             self.counters.pullback_entries += 1
+            self._arm_pullback_block(BreakoutSide.SHORT, bar)
             return self._open_position(
                 bar,
                 BreakoutSide.SHORT,
@@ -131,6 +142,50 @@ class MultiRegimeStateMachine(MomentumBreakoutStateMachine):
                 trail_mult=params.pullback_trail_atr,
             )
         return None
+
+    def _pullback_thrust_ok(self, bar: Bar, atr: float, side: BreakoutSide) -> bool:
+        """Подтверждение разворота: пробой экстремума предыдущего бара ИЛИ сильное тело.
+
+        Без этого вход срабатывает на каждом баре медленного дрейфа и превращается
+        в серию стопов с полной комиссией (главный источник churn в v4.0).
+        """
+        params = self._p
+        if not params.pullback_require_thrust:
+            return True
+        previous = self._prev_bar
+        close = float(bar.close)
+        body = close - float(bar.open)
+        sign = 1.0 if side is BreakoutSide.LONG else -1.0
+        if previous is not None:
+            broke = close > float(previous.high) if side is BreakoutSide.LONG else close < float(previous.low)
+            if broke:
+                return True
+        strong_close = (
+            bar.close_position >= 1.0 - 0.35 if side is BreakoutSide.LONG else bar.close_position <= 0.35
+        )
+        if strong_close and sign * body >= params.pullback_thrust_min_atr * atr:
+            return True
+        self.counters.thrust_skips += 1
+        return False
+
+    def _pullback_wave_ok(self, bar: Bar, atr: float, side: BreakoutSide) -> bool:
+        """Волновой кулдаун: не более одного отката на волну в одну сторону."""
+        params = self._p
+        if self._pullback_block_side is None or self._pullback_block_side is not side:
+            return True
+        if self._bar_index >= self._pullback_block_until:
+            return True
+        sign = 1.0 if side is BreakoutSide.LONG else -1.0
+        impulse = sign * (float(bar.close) - self._pullback_block_price)
+        if impulse >= params.pullback_wave_impulse_atr * atr:
+            return True
+        self.counters.wave_skips += 1
+        return False
+
+    def _arm_pullback_block(self, side: BreakoutSide, bar: Bar) -> None:
+        self._pullback_block_side = side
+        self._pullback_block_until = self._bar_index + max(int(self._p.pullback_wave_cooldown_bars), 0)
+        self._pullback_block_price = float(bar.close)
 
     # ------------------------------------------------------------------ Engine C
     def _fade_entry(
@@ -157,7 +212,11 @@ class MultiRegimeStateMachine(MomentumBreakoutStateMachine):
         if fee <= 0 or rub <= 0:
             return None
         # Шорт: вынесли выше верхней полосы и закрылись обратно внутрь (отбой).
-        if float(bar.high) > upper and close < upper and bar.close_position <= params.close_in_range:
+        if (
+            float(bar.high) > upper
+            and close < upper
+            and bar.close_position <= params.fade_rejection_close_ratio
+        ):
             target = dec(center)
             expected = (close - float(target)) * rub
             if expected / fee < params.fade_min_target_fee_ratio:
@@ -175,7 +234,11 @@ class MultiRegimeStateMachine(MomentumBreakoutStateMachine):
                 target_price=target,
             )
         # Лонг: вынесли ниже нижней полосы и закрылись обратно внутрь.
-        if float(bar.low) < lower and close > lower and bar.close_position >= 1.0 - params.close_in_range:
+        if (
+            float(bar.low) < lower
+            and close > lower
+            and bar.close_position >= 1.0 - params.fade_rejection_close_ratio
+        ):
             target = dec(center)
             expected = (float(target) - close) * rub
             if expected / fee < params.fade_min_target_fee_ratio:
@@ -252,6 +315,20 @@ class MultiRegimeStateMachine(MomentumBreakoutStateMachine):
             return events
         position.update_extremes(bar)
         return events
+
+    # ------------------------------------------------------------------ закрытие
+    def _close(
+        self,
+        position,
+        price,
+        time_ms: int,
+        reason,
+        bar: Bar,
+    ):
+        """После выхода из отката волновой кулдаун начинается заново."""
+        if getattr(position, "style", "trend") == "pullback":
+            self._arm_pullback_block(position.side, bar)
+        return super()._close(position, price, time_ms, reason, bar)
 
 
 def regime_machine(
