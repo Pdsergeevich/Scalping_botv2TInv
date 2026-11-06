@@ -149,6 +149,7 @@ class AppConfig:
     strategy_mode: str = "pairs"
     breakout_presets: Dict[str, BreakoutParams] = field(default_factory=dict)
     active_breakout: str = ""
+    swing_basket: list = field(default_factory=list)
     source_path: Optional[str] = None
     base_dir: str = "."
 
@@ -169,6 +170,13 @@ class AppConfig:
 
     def is_breakout(self) -> bool:
         return str(self.strategy_mode).lower() == "breakout"
+
+    def swing_tickers(self) -> list[str]:
+        """Корзина свинга: явный `swingBasket`, иначе все пробойные пресеты."""
+        names = [str(ticker).upper() for ticker in (self.swing_basket or [])]
+        if names:
+            return names
+        return self.breakout_names()
 
     def breakout(self, name: Optional[str] = None) -> BreakoutParams:
         """Параметры пробойной стратегии v3.0 для инструмента ``name``."""
@@ -451,6 +459,9 @@ class AppConfig:
             strategy_mode=str(raw.get("strategyMode", "pairs") or "pairs").lower(),
             breakout_presets=breakout_presets,
             active_breakout=active_breakout,
+            swing_basket=[
+                str(ticker).upper() for ticker in (raw.get("swingBasket", []) or [])
+            ],
             source_path=source_path,
             base_dir=base_dir,
         )

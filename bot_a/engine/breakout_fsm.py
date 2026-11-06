@@ -46,6 +46,8 @@ class BreakoutExitReason(str, Enum):
     HARD_STOP = "HardStop"
     TRAIL_STOP = "TrailStop"
     BREAKEVEN_STOP = "BreakevenStop"
+    SOFT_STOP = "SoftStop"
+    PARTIAL = "Partial"
     FAILED_BREAKOUT = "FailedBreakout"
     TAKE_PROFIT = "TakeProfit"
     SESSION_CLOSE = "SessionClose"
@@ -66,6 +68,10 @@ class BreakoutParams:
     max_relative_squeeze: float = 0.0
     ema_fast_bars: int = 20
     ema_slow_bars: int = 90
+    # --- фильтр «пилы» (v3.2) ---
+    efficiency_ratio_bars: int = 20
+    min_efficiency_ratio: float = 0.0
+    min_ema_slope_atr: float = 0.0
     volume_lookback: int = 20
     volume_multiple: float = 1.5
     close_in_range: float = 0.30
@@ -94,6 +100,15 @@ class BreakoutParams:
     breakeven_trigger_atr: float = 1.2
     breakeven_fee_multiple: float = 1.5
     breakeven_lock_atr: float = 0.0
+    # Tier-1 «мягкий» стоп (v3.2): при MFE >= soft_trigger стоп подтягивается к
+    # soft_stop_atr (0 = безубыток, отрицательное = «чуть ниже входа»).
+    soft_breakeven_trigger_atr: float = 0.0
+    soft_stop_atr: float = 0.0
+    # Частичная фиксация (v3.2): на MFE >= scale_out_atr закрыть долю позиции,
+    # остаток ведём с breakeven-стопом на scale_out_stop_atr (сохраняет тренд).
+    scale_out_atr: float = 0.0
+    scale_out_fraction: float = 0.5
+    scale_out_stop_atr: float = 0.0
     trail_trigger_atr: float = 1.8
     trail_atr_multiple: float = 2.0
     take_profit_atr: float = 5.0
@@ -216,6 +231,8 @@ class IndicatorSnapshot:
     volume_avg: float = 0.0
     squeeze_ratio: float = 0.0
     median_width: float = 0.0
+    efficiency_ratio: float = 0.0
+    ema_slope_atr: float = 0.0
 
 
 class BreakoutIndicators:
@@ -228,6 +245,8 @@ class BreakoutIndicators:
         self._lows: Deque[float] = deque(maxlen=params.donchian_bars)
         self._widths: Deque[float] = deque(maxlen=params.squeeze_median_bars)
         self._volumes: Deque[float] = deque(maxlen=params.volume_lookback)
+        self._closes: Deque[float] = deque(maxlen=max(params.efficiency_ratio_bars + 1, 2))
+        self._ema_slope_history: Deque[float] = deque(maxlen=12)
         self._atr: Optional[float] = None
         self._ema_fast: Optional[float] = None
         self._ema_slow: Optional[float] = None
@@ -269,6 +288,9 @@ class BreakoutIndicators:
         self._prev_close = close
         volume_avg = (sum(self._volumes) / len(self._volumes)) if self._volumes else 0.0
         self._volumes.append(float(bar.volume))
+        self._closes.append(close)
+        efficiency_ratio = _efficiency_ratio(self._closes)
+        self._ema_slope_history.append(float(self._ema_slow or 0.0))
         # Donchian считается по ПРЕДЫДУЩИМ барам: пробой фиксируем относительно него.
         donchian_high = max(self._highs) if len(self._highs) >= self._p.donchian_bars else 0.0
         donchian_low = min(self._lows) if len(self._lows) >= self._p.donchian_bars else 0.0
@@ -301,8 +323,29 @@ class BreakoutIndicators:
             volume_avg=volume_avg,
             squeeze_ratio=squeeze,
             median_width=median_width,
+            efficiency_ratio=efficiency_ratio,
+            ema_slope_atr=_ema_slope_atr(self._ema_slope_history, atr_points),
         )
         return self._snapshot
+
+
+def _efficiency_ratio(closes: Deque[float]) -> float:
+    """Kaufman ER: |C_t − C_{t−M}| / Σ|C_i − C_{i−1}| (0 = пила, 1 = чистый тренд)."""
+    if len(closes) < 3:
+        return 0.0
+    values = list(closes)
+    path = sum(abs(values[index] - values[index - 1]) for index in range(1, len(values)))
+    if path <= 1e-12:
+        return 0.0
+    return abs(values[-1] - values[0]) / path
+
+
+def _ema_slope_atr(history: Deque[float], atr_points: float, lookback: int = 10) -> float:
+    """Наклон EMA_slow за ``lookback`` баров в единицах ATR (0 = флэт)."""
+    if atr_points <= 1e-12 or len(history) < 2:
+        return 0.0
+    past = history[0] if len(history) < lookback else history[len(history) - 1 - lookback]
+    return abs(history[-1] - past) / atr_points
 
 
 def _median(values: Deque[float]) -> float:
@@ -331,6 +374,8 @@ class BreakoutPosition:
     max_price: Decimal = Decimal(0)
     min_price: Decimal = Decimal(0)
     breakeven_done: bool = False
+    soft_stop_done: bool = False
+    scale_out_done: bool = False
     trail_active: bool = False
     entry_bar_index: int = 0
 
@@ -351,12 +396,13 @@ class BreakoutPosition:
 class BreakoutEvent:
     """Событие стратегии для исполнителя."""
 
-    kind: str  # "entry" | "exit"
+    kind: str  # "entry" | "exit" | "partial"
     time_ms: int
     side: BreakoutSide
     price: Decimal
     reason: Optional[BreakoutExitReason] = None
     note: str = ""
+    quantity: int = 0  # 0 = вся позиция; для "partial" — сколько контрактов закрыть
 
 
 @dataclass(slots=True)
@@ -373,6 +419,7 @@ class BreakoutCounters:
     window_skips: int = 0
     cooldown_skips: int = 0
     extension_skips: int = 0
+    chop_skips: int = 0
     consecutive_stop_days: int = 0
 
     def as_dict(self) -> Dict[str, int]:
@@ -389,6 +436,7 @@ class BreakoutCounters:
             "windowSkips": self.window_skips,
             "cooldownSkips": self.cooldown_skips,
             "extensionSkips": self.extension_skips,
+            "chopSkips": self.chop_skips,
         }
 
 
@@ -519,6 +567,14 @@ class MomentumBreakoutStateMachine:
             return "squeeze"
         if snapshot.ema_slow <= 0:
             return "trend"
+        # v3.2: фильтр «пилы». Если рынок болтается без направленного движения
+        # (ER ≈ 0) и EMA90 стоит на месте, пробой канала — почти всегда ложный.
+        if params.min_efficiency_ratio > 0 and snapshot.efficiency_ratio < params.min_efficiency_ratio:
+            self.counters.chop_skips += 1
+            return "chop"
+        if params.min_ema_slope_atr > 0 and snapshot.ema_slope_atr < params.min_ema_slope_atr:
+            self.counters.chop_skips += 1
+            return "chop"
         fair_fee = self._fee_round_trip(bar.close, 1)
         if fair_fee <= 0 or snapshot.atr_rub / float(fair_fee) < params.min_atr_to_fee_ratio:
             self.counters.fee_skips += 1
@@ -743,6 +799,67 @@ class MomentumBreakoutStateMachine:
                 candidate = position.min_price + distance
                 if position.stop_price <= 0 or candidate < position.stop_price:
                     position.stop_price = candidate
+        # 1b) Tier-1 (v3.2): «мягкий» стоп. Летний ложный пробой успевает уйти на
+        #     +1.6…2.2 ATR и разворачивается в полный −2 ATR стоп; здесь мы не даём
+        #     прибыли испариться: при MFE >= soft_trigger стоп встаёт на soft_stop_atr
+        #     (0 = безубыток, отрицательное значение = чуть ниже входа).
+        if params.soft_breakeven_trigger_atr > 0 and atr > 0:
+            if position.mfe_points >= params.soft_breakeven_trigger_atr * atr:
+                offset = dec(params.soft_stop_atr * atr)
+                candidate = (
+                    position.entry_price + offset
+                    if position.side is BreakoutSide.LONG
+                    else position.entry_price - offset
+                )
+                if position.side is BreakoutSide.LONG and candidate > position.stop_price:
+                    position.stop_price = candidate
+                    position.soft_stop_done = True
+                elif position.side is BreakoutSide.SHORT and (
+                    position.stop_price <= 0 or candidate < position.stop_price
+                ):
+                    position.stop_price = candidate
+                    position.soft_stop_done = True
+        # 1c) Частичная фиксация (v3.2): закрываем долю позиции на MFE >= scaleOutAtr,
+        #     остаток продолжаем вести трейлом (в отличие от мягкого стопа, который
+        #     закрывает всё и теряет тренд).
+        if (
+            params.scale_out_atr > 0
+            and not position.scale_out_done
+            and atr > 0
+            and position.mfe_points >= params.scale_out_atr * atr
+        ):
+            fraction = min(max(float(params.scale_out_fraction), 0.0), 1.0)
+            quantity = int(round(position.quantity * fraction))
+            quantity = max(quantity, 1) if position.quantity > 1 else position.quantity
+            if quantity < position.quantity:
+                position.scale_out_done = True
+                offset = dec(params.scale_out_stop_atr * atr)
+                candidate = (
+                    position.entry_price + offset
+                    if position.side is BreakoutSide.LONG
+                    else position.entry_price - offset
+                )
+                if position.side is BreakoutSide.LONG and candidate > position.stop_price:
+                    position.stop_price = candidate
+                elif position.side is BreakoutSide.SHORT and (
+                    position.stop_price <= 0 or candidate < position.stop_price
+                ):
+                    position.stop_price = candidate
+                target = position.entry_price + dec(params.scale_out_atr * atr) * (
+                    Decimal(1) if position.side is BreakoutSide.LONG else Decimal(-1)
+                )
+                events.append(
+                    BreakoutEvent(
+                        kind="partial",
+                        time_ms=bar.time_ms,
+                        side=position.side,
+                        price=target,
+                        reason=BreakoutExitReason.PARTIAL,
+                        note=f"scale_out frac={fraction:.2f} mfe={position.mfe_points:.4f}",
+                        quantity=quantity,
+                    )
+                )
+                position.quantity -= quantity
         # 2) Breakeven-ratchet: после `breakevenTriggerAtr` прибыли стоп уходит
         #    минимум за комиссию, а при `breakevenLockAtr > 0` — ещё и за долю ATR.
         if (
@@ -789,9 +906,13 @@ class MomentumBreakoutStateMachine:
                     BreakoutExitReason.BREAKEVEN_STOP
                     if position.breakeven_done and position.mfe_points < params.trail_trigger_atr * atr
                     else (
-                        BreakoutExitReason.TRAIL_STOP
-                        if position.trail_active
-                        else BreakoutExitReason.HARD_STOP
+                        BreakoutExitReason.SOFT_STOP
+                        if position.soft_stop_done and not position.trail_active
+                        else (
+                            BreakoutExitReason.TRAIL_STOP
+                            if position.trail_active
+                            else BreakoutExitReason.HARD_STOP
+                        )
                     )
                 )
                 events.append(self._close(position, fill, bar.time_ms, reason, bar))
@@ -880,6 +1001,7 @@ class MomentumBreakoutStateMachine:
             BreakoutExitReason.HARD_STOP,
             BreakoutExitReason.TRAIL_STOP,
             BreakoutExitReason.BREAKEVEN_STOP,
+            BreakoutExitReason.SOFT_STOP,
         ):
             self._consecutive_stops += 1
             self._cooldown_until_ms = time_ms + int(self._p.cooldown_minutes) * 60_000

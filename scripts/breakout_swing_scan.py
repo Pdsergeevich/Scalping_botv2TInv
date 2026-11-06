@@ -46,8 +46,8 @@ from breakout_scan import load_candles, load_meta  # noqa: E402
 DEFAULT_TICKERS = ("CNYRUBF", "GLDRUBF", "NGZ6", "SVZ6", "USDRUBF")
 PERIODS = {
     "oos": ("2026-04-25", "2026-07-25"),
-    "is": ("2026-07-25", "2026-11-06"),
-    "full": ("2026-04-25", "2026-11-06"),
+    "is": ("2026-07-25", "2026-11-05"),
+    "full": ("2026-04-25", "2026-11-05"),
 }
 SWING_WINDOWS = "10:15-13:45,14:10-18:35,19:10-22:30"
 INTRADAY_WINDOWS = "10:15-13:45,14:10-18:20"

@@ -127,7 +127,7 @@ class BreakoutPaperState:
         }
 
 
-def _imbalance(book: OrderBookSnapshot, depth: int = 5, decay: float = 0.5) -> float:
+def imbalance(book: OrderBookSnapshot, depth: int = 5, decay: float = 0.5) -> float:
     bid = 0.0
     ask = 0.0
     for index, level in enumerate(book.bids[:depth]):
@@ -138,7 +138,7 @@ def _imbalance(book: OrderBookSnapshot, depth: int = 5, decay: float = 0.5) -> f
     return (bid - ask) / total if total > 0 else 0.0
 
 
-def _microprice(book: OrderBookSnapshot, depth: int = 5, decay: float = 0.5) -> Optional[Decimal]:
+def microprice(book: OrderBookSnapshot, depth: int = 5, decay: float = 0.5) -> Optional[Decimal]:
     if not book.has_two_sided_book:
         return book.last_price
     bid_volume = sum(
@@ -238,10 +238,10 @@ class BreakoutLiveWorker:
         return summary
 
     def on_book(self, book: OrderBookSnapshot) -> None:
-        price = _microprice(book)
+        price = microprice(book)
         if price is None or price <= 0:
             return
-        obi = _imbalance(book)
+        obi = imbalance(book)
         self._obi_samples.append(obi)
         if len(self._obi_samples) > 60:
             self._obi_samples.pop(0)

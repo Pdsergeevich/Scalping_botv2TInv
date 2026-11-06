@@ -30,6 +30,7 @@ state/
 recordings/
 *.jsonl
 *.jsonl.gz
+reports/swing_basket_*.json
 
 # --- кэш свечей MOEX ISS: 400+ МБ, скачивается заново ---
 data_cache/

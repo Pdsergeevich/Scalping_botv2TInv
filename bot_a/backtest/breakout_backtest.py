@@ -335,6 +335,10 @@ class BreakoutBacktester:
                     continue
                 if pending is None:
                     continue
+                if event.kind == "partial":
+                    result.trades.append(self._close_partial(pending, event))
+                    pending = self._reduce_pending(pending, event.quantity)
+                    continue
                 result.trades.append(self._close_pending(pending, event))
                 pending = None
         if pending is not None and machine.position is not None and bars:
@@ -410,6 +414,46 @@ class BreakoutBacktester:
             return fill, fill - distance
         fill = price - self._slippage
         return fill, fill + distance
+
+    def _close_partial(
+        self, pending: Tuple[BreakoutEvent, int, Decimal, float, int], event: BreakoutEvent
+    ) -> BreakoutTrade:
+        """Частичная фиксация: закрываем ``event.quantity`` контрактов из позиции."""
+        entry_event, quantity, entry_fee, atr_points, entry_ms = pending
+        closed = max(min(int(event.quantity), quantity), 1)
+        share = entry_fee * Decimal(closed) / Decimal(quantity)
+        exit_price = self._apply_exit_fill(event.price, event.side)
+        exit_fee = self._fees.register_notional(self._notional(exit_price, closed))
+        sign = Decimal(1) if event.side is BreakoutSide.LONG else Decimal(-1)
+        gross = float(
+            (exit_price - entry_event.price) * sign * self._meta.rub_per_price_unit * Decimal(closed)
+        )
+        fees = float(share + exit_fee)
+        return BreakoutTrade(
+            ticker=self._meta.ticker,
+            side=event.side,
+            quantity=closed,
+            entry_ms=entry_event.time_ms,
+            exit_ms=event.time_ms,
+            entry_price=entry_event.price,
+            exit_price=exit_price,
+            gross_rub=gross,
+            fees_rub=fees,
+            net_rub=gross - fees,
+            reason=event.reason or BreakoutExitReason.PARTIAL,
+            atr_points=atr_points,
+            mfe_points=_float_after(event.note, "mfe="),
+            hold_minutes=(event.time_ms - entry_ms) / 60_000.0,
+        )
+
+    @staticmethod
+    def _reduce_pending(
+        pending: Tuple[BreakoutEvent, int, Decimal, float, int], closed: int
+    ) -> Tuple[BreakoutEvent, int, Decimal, float, int]:
+        entry_event, quantity, entry_fee, atr_points, entry_ms = pending
+        remaining = max(quantity - max(int(closed), 1), 0)
+        share = entry_fee * Decimal(remaining) / Decimal(quantity) if quantity else ZERO
+        return (entry_event, remaining, share, atr_points, entry_ms)
 
     def _apply_exit_fill(self, price: Decimal, side: BreakoutSide) -> Decimal:
         return price - self._slippage if side is BreakoutSide.LONG else price + self._slippage

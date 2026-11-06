@@ -1,0 +1,425 @@
+{
+  "CNY+GLD/isolated r=1.5": {
+    "oos": {
+      "net": 2334.59,
+      "pf": 2.401,
+      "trades": 15,
+      "sharpe": 4.06,
+      "dd": 2.4,
+      "monthly": {
+        "2026-04": 1991.26,
+        "2026-05": -892.84,
+        "2026-06": 1142.68,
+        "2026-07": 93.49
+      }
+    },
+    "is": {
+      "net": 2685.5,
+      "pf": 2.425,
+      "trades": 15,
+      "sharpe": 3.65,
+      "dd": 1.68,
+      "monthly": {
+        "2026-08": -293.13,
+        "2026-09": -31.36,
+        "2026-10": 3235.88,
+        "2026-11": -225.88
+      }
+    },
+    "full": {
+      "net": 5020.09,
+      "pf": 2.414,
+      "trades": 30,
+      "sharpe": 3.8,
+      "dd": 2.4,
+      "monthly": {
+        "2026-04": 1991.26,
+        "2026-05": -892.84,
+        "2026-06": 1142.68,
+        "2026-07": 93.49,
+        "2026-08": -293.13,
+        "2026-09": -31.36,
+        "2026-10": 3235.88,
+        "2026-11": -225.88
+      }
+    }
+  },
+  "CNY+GLD/shared r=1 u=60": {
+    "oos": {
+      "net": 3448.79,
+      "pf": 2.43,
+      "trades": 15,
+      "maxMargin": 22220.0,
+      "rejectedMargin": 0,
+      "rejectedRisk": 0,
+      "perTicker": {
+        "CNYRUBF": 240.0,
+        "GLDRUBF": 3208.79
+      },
+      "perTickerTrades": {
+        "CNYRUBF": 4,
+        "GLDRUBF": 11
+      },
+      "sharpe": 4.21,
+      "dd": 3.52,
+      "monthly": {
+        "2026-04": 2763.48,
+        "2026-05": -1306.73,
+        "2026-06": 1859.32,
+        "2026-07": 132.73
+      }
+    },
+    "is": {
+      "net": 3558.53,
+      "pf": 2.34,
+      "trades": 15,
+      "maxMargin": 29651.0,
+      "rejectedMargin": 0,
+      "rejectedRisk": 0,
+      "perTicker": {
+        "CNYRUBF": 2072.69,
+        "GLDRUBF": 1485.83
+      },
+      "perTickerTrades": {
+        "CNYRUBF": 8,
+        "GLDRUBF": 7
+      },
+      "sharpe": 3.53,
+      "dd": 2.33,
+      "monthly": {
+        "2026-08": -434.93,
+        "2026-09": -66.37,
+        "2026-10": 4411.2,
+        "2026-11": -351.37
+      }
+    },
+    "full": {
+      "net": 7129.83,
+      "pf": 2.356,
+      "trades": 30,
+      "maxMargin": 30886.0,
+      "rejectedMargin": 0,
+      "rejectedRisk": 0,
+      "perTicker": {
+        "CNYRUBF": 2475.23,
+        "GLDRUBF": 4654.6
+      },
+      "perTickerTrades": {
+        "CNYRUBF": 12,
+        "GLDRUBF": 18
+      },
+      "sharpe": 3.79,
+      "dd": 3.52,
+      "monthly": {
+        "2026-04": 2763.48,
+        "2026-05": -1306.73,
+        "2026-06": 1859.32,
+        "2026-07": 132.73,
+        "2026-08": -475.68,
+        "2026-09": -57.02,
+        "2026-10": 4590.21,
+        "2026-11": -376.47
+      }
+    }
+  },
+  "CNY+GLD+USD/isolated r=1.5": {
+    "oos": {
+      "net": 1787.47,
+      "pf": 2.712,
+      "trades": 15,
+      "sharpe": 4.48,
+      "dd": 1.49,
+      "monthly": {
+        "2026-04": 1414.28,
+        "2026-05": -551.31,
+        "2026-06": 850.63,
+        "2026-07": 73.87
+      }
+    },
+    "is": {
+      "net": 2530.67,
+      "pf": 2.695,
+      "trades": 17,
+      "sharpe": 3.39,
+      "dd": 1.09,
+      "monthly": {
+        "2026-08": -181.84,
+        "2026-09": -82.28,
+        "2026-10": 2945.38,
+        "2026-11": -150.59
+      }
+    },
+    "full": {
+      "net": 4318.15,
+      "pf": 2.702,
+      "trades": 32,
+      "sharpe": 3.64,
+      "dd": 1.49,
+      "monthly": {
+        "2026-04": 1414.28,
+        "2026-05": -551.31,
+        "2026-06": 850.63,
+        "2026-07": 73.87,
+        "2026-08": -181.84,
+        "2026-09": -82.28,
+        "2026-10": 2945.38,
+        "2026-11": -150.59
+      }
+    }
+  },
+  "CNY+GLD+USD/shared r=1 u=60": {
+    "oos": {
+      "net": 5464.41,
+      "pf": 2.966,
+      "trades": 18,
+      "maxMargin": 29603.0,
+      "rejectedMargin": 0,
+      "rejectedRisk": 0,
+      "perTicker": {
+        "CNYRUBF": 240.0,
+        "GLDRUBF": 3228.02,
+        "USDRUBF": 1996.39
+      },
+      "perTickerTrades": {
+        "CNYRUBF": 4,
+        "GLDRUBF": 11,
+        "USDRUBF": 3
+      },
+      "sharpe": 4.78,
+      "dd": 4.26,
+      "monthly": {
+        "2026-04": 2763.48,
+        "2026-05": -1674.82,
+        "2026-06": 4084.74,
+        "2026-07": 291.01
+      }
+    },
+    "is": {
+      "net": 2601.06,
+      "pf": 1.616,
+      "trades": 24,
+      "maxMargin": 30208.0,
+      "rejectedMargin": 3,
+      "rejectedRisk": 0,
+      "perTicker": {
+        "CNYRUBF": 2097.79,
+        "GLDRUBF": 1276.74,
+        "USDRUBF": -773.47
+      },
+      "perTickerTrades": {
+        "CNYRUBF": 8,
+        "GLDRUBF": 7,
+        "USDRUBF": 9
+      },
+      "sharpe": 2.19,
+      "dd": 3.92,
+      "monthly": {
+        "2026-07": -373.9,
+        "2026-08": -855.18,
+        "2026-09": 321.42,
+        "2026-10": 3834.99,
+        "2026-11": -326.27
+      }
+    },
+    "full": {
+      "net": 8204.62,
+      "pf": 2.08,
+      "trades": 42,
+      "maxMargin": 32120.0,
+      "rejectedMargin": 3,
+      "rejectedRisk": 0,
+      "perTicker": {
+        "CNYRUBF": 2624.61,
+        "GLDRUBF": 4620.12,
+        "USDRUBF": 959.89
+      },
+      "perTickerTrades": {
+        "CNYRUBF": 12,
+        "GLDRUBF": 18,
+        "USDRUBF": 12
+      },
+      "sharpe": 3.28,
+      "dd": 4.3,
+      "monthly": {
+        "2026-04": 2763.48,
+        "2026-05": -1674.82,
+        "2026-06": 4084.74,
+        "2026-07": -82.93,
+        "2026-08": -926.43,
+        "2026-09": 277.06,
+        "2026-10": 4139.98,
+        "2026-11": -376.47
+      }
+    }
+  },
+  "CNY+GLD+USD/shared r=0.75 u=80": {
+    "oos": {
+      "net": 2460.42,
+      "pf": 2.416,
+      "trades": 15,
+      "maxMargin": 16048.0,
+      "rejectedMargin": 0,
+      "rejectedRisk": 3,
+      "perTicker": {
+        "CNYRUBF": 160.11,
+        "GLDRUBF": 2300.31,
+        "USDRUBF": 0
+      },
+      "perTickerTrades": {
+        "CNYRUBF": 4,
+        "GLDRUBF": 11,
+        "USDRUBF": 0
+      },
+      "sharpe": 4.19,
+      "dd": 2.54,
+      "monthly": {
+        "2026-04": 1973.91,
+        "2026-05": -945.98,
+        "2026-06": 1338.99,
+        "2026-07": 93.49
+      }
+    },
+    "is": {
+      "net": 3686.96,
+      "pf": 2.304,
+      "trades": 23,
+      "maxMargin": 37262.0,
+      "rejectedMargin": 0,
+      "rejectedRisk": 2,
+      "perTicker": {
+        "CNYRUBF": 1619.53,
+        "GLDRUBF": 1038.58,
+        "USDRUBF": 1028.85
+      },
+      "perTickerTrades": {
+        "CNYRUBF": 8,
+        "GLDRUBF": 7,
+        "USDRUBF": 8
+      },
+      "sharpe": 3.33,
+      "dd": 1.83,
+      "monthly": {
+        "2026-07": -373.9,
+        "2026-08": 8.88,
+        "2026-09": 356.42,
+        "2026-10": 3946.53,
+        "2026-11": -250.98
+      }
+    },
+    "full": {
+      "net": 6372.87,
+      "pf": 2.374,
+      "trades": 38,
+      "maxMargin": 38622.0,
+      "rejectedMargin": 0,
+      "rejectedRisk": 5,
+      "perTicker": {
+        "CNYRUBF": 1767.72,
+        "GLDRUBF": 3576.33,
+        "USDRUBF": 1028.81
+      },
+      "perTickerTrades": {
+        "CNYRUBF": 12,
+        "GLDRUBF": 18,
+        "USDRUBF": 8
+      },
+      "sharpe": 3.54,
+      "dd": 2.54,
+      "monthly": {
+        "2026-04": 1973.91,
+        "2026-05": -945.98,
+        "2026-06": 1338.99,
+        "2026-07": -280.44,
+        "2026-08": 9.59,
+        "2026-09": 356.42,
+        "2026-10": 4196.45,
+        "2026-11": -276.08
+      }
+    }
+  },
+  "CNY+GLD+USD/shared r=1.5 u=80": {
+    "oos": {
+      "net": 7426.57,
+      "pf": 2.823,
+      "trades": 18,
+      "maxMargin": 38622.0,
+      "rejectedMargin": 0,
+      "rejectedRisk": 0,
+      "perTicker": {
+        "CNYRUBF": 420.26,
+        "GLDRUBF": 4851.64,
+        "USDRUBF": 2154.67
+      },
+      "perTickerTrades": {
+        "CNYRUBF": 4,
+        "GLDRUBF": 11,
+        "USDRUBF": 3
+      },
+      "sharpe": 4.74,
+      "dd": 6.07,
+      "monthly": {
+        "2026-04": 4130.02,
+        "2026-05": -2337.16,
+        "2026-06": 5090.94,
+        "2026-07": 542.77
+      }
+    },
+    "is": {
+      "net": 2743.47,
+      "pf": 1.439,
+      "trades": 24,
+      "maxMargin": 38292.0,
+      "rejectedMargin": 3,
+      "rejectedRisk": 0,
+      "perTicker": {
+        "CNYRUBF": 2440.64,
+        "GLDRUBF": 931.26,
+        "USDRUBF": -628.43
+      },
+      "perTickerTrades": {
+        "CNYRUBF": 8,
+        "GLDRUBF": 7,
+        "USDRUBF": 9
+      },
+      "sharpe": 1.77,
+      "dd": 5.36,
+      "monthly": {
+        "2026-07": -747.79,
+        "2026-08": -837.46,
+        "2026-09": 31.65,
+        "2026-10": 4824.13,
+        "2026-11": -527.05
+      }
+    },
+    "full": {
+      "net": 8247.96,
+      "pf": 1.712,
+      "trades": 42,
+      "maxMargin": 43787.0,
+      "rejectedMargin": 2,
+      "rejectedRisk": 0,
+      "perTicker": {
+        "CNYRUBF": 3538.41,
+        "GLDRUBF": 2886.59,
+        "USDRUBF": 1822.96
+      },
+      "perTickerTrades": {
+        "CNYRUBF": 12,
+        "GLDRUBF": 17,
+        "USDRUBF": 13
+      },
+      "sharpe": 2.76,
+      "dd": 7.31,
+      "monthly": {
+        "2026-04": 4130.02,
+        "2026-05": -2337.16,
+        "2026-06": 5090.94,
+        "2026-07": -205.09,
+        "2026-08": -1629.56,
+        "2026-09": 168.49,
+        "2026-10": 3607.57,
+        "2026-11": -577.25
+      }
+    }
+  }
+}

@@ -90,6 +90,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="разрешить перенос позиции через вечернюю сессию и ночь (v3.1)",
     )
     parser.add_argument(
+        "--margin-utilization",
+        dest="margin_utilization",
+        type=float,
+        default=60.0,
+        help="максимальная доля капитала под ГО для --ticker ALL_SWING (по умолчанию 60 %%)",
+    )
+    parser.add_argument(
         "--no-overnight",
         dest="overnight",
         action="store_false",
@@ -354,6 +361,230 @@ async def _run_all_active(args: argparse.Namespace, config: AppConfig, logger) -
     return 0
 
 
+async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, logger) -> int:
+    """`--ticker ALL_SWING`: корзина свинга с общим счётом и общей маржой (v3.2)."""
+    from bot_a.backtest.breakout_backtest import aggregate, portfolio_curve
+    from bot_a.backtest.swing_portfolio import (
+        SwingAccountBacktester,
+        SwingAccountSettings,
+    )
+    from bot_a.engine.breakout_fsm import Bar
+    from bot_a.services.iss_quotes import IssQuoteSource
+    from bot_a.services.swing_runner import (
+        SwingBasketRunner,
+        SwingBasketSettings,
+        basket_from_config,
+    )
+    from bot_a.utils.time_provider import MSK
+
+    tickers = basket_from_config(config)
+    if not tickers:
+        logger.error("Корзина свинга пуста: заполните swingBasket или breakoutPresets")
+        return 2
+    bar_minutes = max(int(getattr(args, "bar_minutes", 1) or 1), 1)
+    capital = float(getattr(args, "capital", 50_000.0))
+    risk = float(getattr(args, "risk_pct", 1.0))
+
+    def _params(ticker: str):
+        params = config.breakout(ticker) if ticker in config.breakout_names() else None
+        if params is None:
+            from bot_a.engine.breakout_fsm import BreakoutParams
+
+            params = BreakoutParams()
+        overrides = {}
+        if getattr(args, "entry_mode", None):
+            overrides["entry_mode"] = args.entry_mode
+        if getattr(args, "overnight", None) is not None:
+            overrides["allow_overnight_hold"] = bool(args.overnight)
+            overrides["close_losers_before_clearing"] = bool(args.overnight)
+        return params.overrides(**overrides) if overrides else params
+
+    metas = {}
+    for ticker in tickers:
+        try:
+            metas[ticker] = await asyncio.to_thread(fetch_futures_metadata, ticker)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("Метаданные фьючерса %s недоступны: %s", ticker, exc)
+            return 3
+    logger.info(
+        "Свинг-корзина %s: капитал %.0f ₽ (общий), риск %.2f %% на сделку, бары %d мин, "
+        "утилизация ГО ≤ %.0f %%",
+        ", ".join(tickers),
+        capital,
+        risk,
+        bar_minutes,
+        getattr(args, "margin_utilization", 60.0),
+    )
+    source = IssCandleSource(config.path(config.storage.data_cache_dir))
+
+    if args.mode == "backtest":
+        start_ms, end_ms = _parse_period(args)
+        if end_ms is None:
+            end_ms = int(datetime.now(tz=MSK).timestamp() * 1000)
+        if start_ms is None:
+            start_ms = end_ms - int(args.days) * 86_400_000
+        data = {}
+        for ticker, meta in metas.items():
+            candles = await source.get_candles(meta, start_ms, end_ms, "1min")
+            data[ticker] = _resample_if_needed(candles, bar_minutes)
+        engine = SwingAccountBacktester(
+            [(metas[ticker], _params(ticker)) for ticker in tickers],
+            SwingAccountSettings(
+                capital_rub=capital,
+                risk_pct_per_trade=risk,
+                tariff=config.fees.tariff,
+                margin_safety_buffer_pct=config.risk.margin_safety_buffer_pct,
+                max_margin_utilization_pct=float(getattr(args, "margin_utilization", 60.0)),
+            ),
+        )
+        result = engine.run(data)
+        curve = portfolio_curve(list(result.per_ticker.values()), capital)
+        profits = sum(t.net_rub for t in result.trades if t.net_rub > 0)
+        losses = -sum(t.net_rub for t in result.trades if t.net_rub <= 0)
+        summary = {
+            "mode": "ALL_SWING",
+            "tickers": tickers,
+            "barMinutes": bar_minutes,
+            "capital": capital,
+            "riskPct": risk,
+            "trades": len(result.trades),
+            "netRub": round(result.net_rub, 2),
+            "feesRub": round(result.fees_rub, 2),
+            "profitFactor": None if losses <= 0 else round(profits / losses, 3),
+            "maxMarginUsed": round(result.max_margin_used, 0),
+            "rejectedByMargin": result.rejected_by_margin,
+            "rejectedByRisk": result.rejected_by_risk,
+            "curve": curve,
+            "perTicker": {
+                ticker: block.summary(capital) for ticker, block in result.per_ticker.items()
+            },
+        }
+        print(json.dumps(summary, ensure_ascii=False, indent=2) if args.json else _render_basket(summary))
+        if not args.no_report:
+            stem = args.report_stem or f"swing_basket_{datetime.now():%Y%m%d_%H%M%S}"
+            path = config.path(config.storage.reports_dir) / f"{stem}.json"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+            logger.info("Отчёт корзины сохранён: %s", path)
+        return 0
+
+    if args.mode not in ("watch", "paper", "live"):
+        logger.error("ALL_SWING поддерживает --mode backtest, watch, paper, live")
+        return 2
+    if args.mode == "live" and not args.yes:
+        logger.error("Реальная торговля требует --yes")
+        return 2
+
+    warmup_days = max(int(getattr(args, "days", 10) or 10), 1)
+    now_ms = int(datetime.now(tz=MSK).timestamp() * 1000)
+    state_path = config.path(config.storage.state_dir) / "swing_positions.json"
+    journal = config.path(config.storage.reports_dir) / (
+        f"swing_basket_{datetime.now():%Y%m%d_%H%M%S}.jsonl"
+    )
+    runner = SwingBasketRunner(
+        [(metas[ticker], _params(ticker)) for ticker in tickers],
+        SwingBasketSettings(
+            capital_rub=capital,
+            risk_pct_per_trade=risk,
+            margin_safety_buffer_pct=config.risk.margin_safety_pct
+            if hasattr(config.risk, "margin_safety_pct")
+            else config.risk.margin_safety_buffer_pct,
+            max_margin_utilization_pct=float(getattr(args, "margin_utilization", 60.0)),
+            bar_minutes=bar_minutes,
+            poll_ms=int(args.record_interval_ms),
+            state_path=state_path,
+            journal_path=None if args.no_report else journal,
+            tariff=config.fees.tariff,
+            dry_run=args.mode != "live",
+        ),
+        logger=logger,
+    )
+    warmup: dict = {}
+    for ticker, meta in metas.items():
+        candles = await source.get_candles(meta, now_ms - warmup_days * 86_400_000, now_ms, "1min")
+        bars = _resample_if_needed(candles, bar_minutes)
+        warmup[ticker] = [
+            Bar(
+                time_ms=candle.time_ms,
+                open=candle.open,
+                high=candle.high,
+                low=candle.low,
+                close=candle.close,
+                volume=int(candle.volume),
+            )
+            for candle in bars
+        ]
+    runner.warmup(warmup)
+    runner.restore()
+    stop = asyncio.Event()
+    _install_stop_handler(stop)
+    token = config.t_invest.resolve_token(config.base_dir)
+    clients: dict = {}
+    if token:
+        from bot_a.broker.tinkoff_rest_client import TInvestRestClient
+
+        client = TInvestRestClient(
+            token, config.t_invest.app_name, timeout=config.t_invest.request_timeout_seconds
+        )
+        clients = {ticker: client for ticker in tickers}
+        logger.info("Свинг-корзина: стакан из T-Invest REST")
+    else:
+        clients = {
+            ticker: IssQuoteSource(
+                metas[ticker], depth=5, timeout=config.t_invest.request_timeout_seconds
+            )
+            for ticker in tickers
+        }
+        logger.info("Свинг-корзина: стакан из MOEX ISS (без токена)")
+    summary = await runner.run(clients, duration_seconds=args.duration, stop_event=stop)
+    runner.save_state()
+    print(json.dumps(summary, ensure_ascii=False, indent=2) if args.json else _render_basket_live(summary))
+    return 0
+
+
+def _resample_if_needed(candles, bar_minutes: int):
+    if bar_minutes > 1:
+        return resample_candles(candles, bar_minutes)
+    return candles
+
+
+def _render_basket(summary: dict) -> str:
+    pf = summary.get("profitFactor")
+    curve = summary.get("curve", {})
+    lines = [
+        f"=== Свинг-корзина (бэктест): {', '.join(summary['tickers'])} ===",
+        f"Бары {summary['barMinutes']} мин, капитал {summary['capital']:.0f} ₽ (общий), "
+        f"риск {summary['riskPct']:.2f} % на сделку",
+        f"Сделок: {summary['trades']}  Net: {summary['netRub']:+.2f} ₽  "
+        f"комиссии: {summary['feesRub']:.2f} ₽",
+        f"PF: {pf if pf is not None else 'н/д'}  Sharpe: {curve.get('sharpe')}  "
+        f"Max DD: {curve.get('maxDrawdownRub', 0):.2f} ₽ ({curve.get('maxDrawdownPct', 0):.2f} %)",
+        f"Пиковое ГО: {summary['maxMarginUsed']:.0f} ₽  "
+        f"отказов по ГО: {summary['rejectedByMargin']}  по риску: {summary['rejectedByRisk']}",
+    ]
+    for ticker, block in sorted(summary["perTicker"].items()):
+        lines.append(
+            f"  {ticker:<9} сделок {block['trades']:>3} net {block['netRub']:>+9.2f} ₽ "
+            f"PF {block['profitFactor']} WR {float(block['winRate']) * 100:.0f}%"
+        )
+    return "\n".join(lines)
+
+
+def _render_basket_live(summary: dict) -> str:
+    lines = [
+        f"=== Свинг-корзина ({'watch' if summary['dryRun'] else 'paper/live'}) ===",
+        f"Счёт: капитал {summary['capital']:.0f} ₽ → эквити {summary['equity']:.2f} ₽",
+        f"Реализовано: {summary['realizedRub']:+.2f} ₽  комиссии: {summary['feesRub']:.2f} ₽  "
+        f"сделок: {summary['trades']}  занято ГО: {summary['marginUsed']:.0f} ₽",
+    ]
+    for ticker, position in summary.get("openPositions", {}).items():
+        lines.append(
+            f"  {ticker}: {position['side']} {position['quantity']} по {position['entryPrice']} "
+            f"(стоп {position['stopPrice']}, MFE {position['mfePoints']})"
+        )
+    return "\n".join(lines)
+
+
 async def _dispatch_breakout(args: argparse.Namespace, config: AppConfig, logger) -> int:
     """`--strategy breakout` (v3.0): пробой сжатия волатильности на FORTS."""
     from bot_a.backtest.breakout_backtest import BreakoutBacktester, BreakoutSettings
@@ -363,6 +594,8 @@ async def _dispatch_breakout(args: argparse.Namespace, config: AppConfig, logger
     from bot_a.utils.time_provider import MSK
 
     ticker = str(args.ticker or config.active_breakout or "").upper()
+    if ticker == "ALL_SWING":
+        return await _dispatch_swing_basket(args, config, logger)
     if not ticker:
         logger.error(
             "Не задан инструмент: укажите --ticker (например CNYRUBF) или activeBreakout в конфиге"

@@ -15,6 +15,7 @@ from typing import Any, Dict, Optional
 
 from bot_a.models.domain import InstrumentMetadata, OrderBookLevel, OrderBookSnapshot
 from bot_a.utils.quotation import dec
+from bot_a.utils.time_provider import MSK
 
 ISS_BASE = "https://iss.moex.com/iss"
 
@@ -68,11 +69,12 @@ def _parse(meta: InstrumentMetadata, payload: Dict[str, Any], depth: int) -> Opt
 
 
 def _msk_stamp_to_ms(stamp: str) -> int:
+    """``"14:05:12"`` из ISS — это MSK (не UTC), иначе время уезжает на +3 часа."""
     try:
         hour, minute, second = (int(part) for part in stamp.split(":")[:3])
     except (ValueError, TypeError):
         return 0
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=MSK)
     return int(now.replace(hour=hour, minute=minute, second=second, microsecond=0).timestamp() * 1000)
 
 

@@ -133,7 +133,11 @@ class IssCandleSource:
                 break
             index = {name: position for position, name in enumerate(columns)}
             for row in rows:
-                begin = datetime.fromisoformat(row[index["begin"]]).replace(tzinfo=timezone.utc)
+                # ISS отдаёт `begin` во **времени Москвы** (документация MOEX).
+                # До v3.2 здесь стоял `tzinfo=utc`, из-за чего все бары (и FORTS, и TQBR)
+                # уезжали на +3 часа: сессия 10:00–18:40 MSK выглядела как 13:00–21:59,
+                # а вечерняя сессия FORTS (до 23:50) попадала в следующий календарный день.
+                begin = datetime.fromisoformat(row[index["begin"]]).replace(tzinfo=MSK)
                 candles.append(
                     {
                         "time": int(begin.timestamp() * 1000),
@@ -282,8 +286,10 @@ class IssRecordingService:
 
     @staticmethod
     def _msk_time_to_ms(stamp: str) -> int:
+        """``"14:05:12"`` (MSK) → epoch ms. Раньше час подставлялся в UTC-момент,
+        из-за чего стакан и сделки уезжали на +3 часа относительно свечей."""
         try:
-            moment = datetime.now(tz=timezone.utc)
+            moment = datetime.now(tz=MSK)
             hour, minute, second = (int(part) for part in stamp.split(":")[:3])
             return int(
                 moment.replace(hour=hour, minute=minute, second=second, microsecond=0).timestamp() * 1000
