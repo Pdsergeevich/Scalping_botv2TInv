@@ -70,6 +70,18 @@ class BreakoutParams:
     max_relative_squeeze: float = 0.0
     ema_fast_bars: int = 20
     ema_slow_bars: int = 90
+    # v4.5: макро-тренд на старшем горизонте. EMA90 на 30m — это всего ~2 дня,
+    # поэтому на откате макро-тренда EMA20 пересекает EMA90 прямо у дна и движки A/B
+    # шортят низ восходящего тренда. `htf_ema_bars = 240` ≈ 9 торговых дней,
+    # `360` ≈ 13.5. 0 = фильтр выключен.
+    htf_ema_bars: int = 0
+    htf_slope_bars: int = 10
+    htf_slope_tolerance_atr: float = 0.05
+    # Контр-макро входы разрешаются только при очень сильном ER (импульс важнее тренда).
+    htf_counter_er_override: float = 0.40
+    # v4.5: считать комиссию от сырой цены (price − adj). False воспроизводит
+    # поведение v4.4 — нужно только для абляции.
+    fee_on_raw_price: bool = True
     # --- фильтр «пилы» (v3.2) ---
     efficiency_ratio_bars: int = 20
     min_efficiency_ratio: float = 0.0
@@ -231,6 +243,8 @@ class Bar:
     low: Decimal
     close: Decimal
     volume: int
+    # v4.5: сдвиг back-adjustment continuous-серии (сырая цена = price − adj).
+    adj: float = 0.0
 
     @property
     def range(self) -> Decimal:
@@ -257,6 +271,8 @@ class IndicatorSnapshot:
     atr_rub: float = 0.0
     ema_fast: float = 0.0
     ema_slow: float = 0.0
+    ema_htf: float = 0.0
+    ema_htf_slope: float = 0.0  # пунктов за `htf_slope_bars` баров
     volume_avg: float = 0.0
     squeeze_ratio: float = 0.0
     median_width: float = 0.0
@@ -279,9 +295,14 @@ class BreakoutIndicators:
         self._atr: Optional[float] = None
         self._ema_fast: Optional[float] = None
         self._ema_slow: Optional[float] = None
+        self._ema_htf: Optional[float] = None
+        self._ema_htf_history: Deque[float] = deque(maxlen=max(int(params.htf_slope_bars), 2) + 1)
         self._prev_close: Optional[float] = None
         self._alpha_fast = 2.0 / (params.ema_fast_bars + 1.0)
         self._alpha_slow = 2.0 / (params.ema_slow_bars + 1.0)
+        self._alpha_htf = (
+            2.0 / (params.htf_ema_bars + 1.0) if int(params.htf_ema_bars) > 0 else 0.0
+        )
         self._bars = 0
         self._snapshot = IndicatorSnapshot()
 
@@ -314,6 +335,13 @@ class BreakoutIndicators:
         self._ema_slow = (
             close if self._ema_slow is None else self._ema_slow + self._alpha_slow * (close - self._ema_slow)
         )
+        if self._alpha_htf > 0:
+            self._ema_htf = (
+                close
+                if self._ema_htf is None
+                else self._ema_htf + self._alpha_htf * (close - self._ema_htf)
+            )
+            self._ema_htf_history.append(float(self._ema_htf))
         self._prev_close = close
         volume_avg = (sum(self._volumes) / len(self._volumes)) if self._volumes else 0.0
         self._volumes.append(float(bar.volume))
@@ -349,6 +377,12 @@ class BreakoutIndicators:
             atr_rub=atr_points * float(self._rub_per_point),
             ema_fast=float(self._ema_fast or 0.0),
             ema_slow=float(self._ema_slow or 0.0),
+            ema_htf=float(self._ema_htf or 0.0),
+            ema_htf_slope=(
+                (self._ema_htf_history[-1] - self._ema_htf_history[0])
+                if len(self._ema_htf_history) >= 2
+                else 0.0
+            ),
             volume_avg=volume_avg,
             squeeze_ratio=squeeze,
             median_width=median_width,
@@ -463,6 +497,7 @@ class BreakoutCounters:
     fade_entries: int = 0
     thrust_skips: int = 0
     wave_skips: int = 0
+    macro_skips: int = 0  # v4.5: вход против макро-тренда EMA_HTF
     consecutive_stop_days: int = 0
 
     def as_dict(self) -> Dict[str, int]:
@@ -483,6 +518,7 @@ class BreakoutCounters:
             "pullbackEntries": self.pullback_entries,
             "thrustSkips": self.thrust_skips,
             "waveSkips": self.wave_skips,
+            "macroSkips": self.macro_skips,
             "fadeEntries": self.fade_entries,
         }
 
@@ -542,6 +578,49 @@ class MomentumBreakoutStateMachine:
         )
 
     # ------------------------------------------------------------------ оценка издержек
+    def _raw_price(self, price: Decimal, bar: Optional[Bar] = None) -> Decimal:
+        """Сырая (не back-adjusted) цена для комиссии и ГО (v4.5).
+
+        `*_CONT` сдвинуты на накопленный спред ролла; если считать комиссию от
+        сдвинутой цены, гейты `ATR / Fee` и `Target / Fee` врут в разы на сериях
+        с большим `adj` (`SBRF`, `LKOH`, `Si`, `Eu`).
+        """
+        if not self._p.fee_on_raw_price:
+            return price
+        shift = float(getattr(bar, "adj", 0.0) or 0.0) if bar is not None else 0.0
+        raw = price - dec(shift) if shift else price
+        step = dec(self._meta.min_price_increment)
+        return raw if raw > step else step
+
+    def _macro_ok(
+        self, bar: Bar, snapshot: IndicatorSnapshot, side: BreakoutSide
+    ) -> bool:
+        """Макро-фильтр v4.5: не входим против старшего тренда без сильного импульса.
+
+        `htfEmaBars = 0` — фильтр выключен. Иначе LONG требует `close > EMA_HTF`
+        и неподающего EMA_HTF; SHORT — зеркально. Контр-макро вход разрешён, только
+        если `ER_20 >= htfCounterErOverride` (импульс сильнее макро-контекста).
+        """
+        params = self._p
+        if int(params.htf_ema_bars) <= 0 or snapshot.ema_htf <= 0:
+            return True
+        close = float(bar.close)
+        tolerance = float(params.htf_slope_tolerance_atr) * max(snapshot.atr_points, 0.0)
+        slope = float(snapshot.ema_htf_slope)
+        if side is BreakoutSide.LONG:
+            aligned = close > snapshot.ema_htf and slope >= -tolerance
+        else:
+            aligned = close < snapshot.ema_htf and slope <= tolerance
+        if aligned:
+            return True
+        if (
+            params.htf_counter_er_override > 0
+            and snapshot.efficiency_ratio >= params.htf_counter_er_override
+        ):
+            return True
+        self.counters.macro_skips += 1
+        return False
+
     def _fee_round_trip(self, price: Decimal, quantity: int) -> Decimal:
         if self._fee_calculator is not None:
             return self._fee_calculator(price, quantity)
@@ -635,7 +714,7 @@ class MomentumBreakoutStateMachine:
         if params.min_ema_slope_atr > 0 and snapshot.ema_slope_atr < params.min_ema_slope_atr:
             self.counters.chop_skips += 1
             return "chop"
-        fair_fee = self._fee_round_trip(bar.close, 1)
+        fair_fee = self._fee_round_trip(self._raw_price(bar.close, bar), 1)
         if fair_fee <= 0 or snapshot.atr_rub / float(fair_fee) < params.min_atr_to_fee_ratio:
             self.counters.fee_skips += 1
             return "fee"
@@ -673,7 +752,7 @@ class MomentumBreakoutStateMachine:
             atr_points=atr_points,
             stop_price=stop_price,
             initial_stop=stop_price,
-            fee_round_trip_rub=self._fee_round_trip(entry_price, 1),
+            fee_round_trip_rub=self._fee_round_trip(self._raw_price(entry_price, bar), 1),
             max_price=entry_price if side is BreakoutSide.LONG else Decimal(0),
             min_price=entry_price if side is BreakoutSide.SHORT else Decimal(0),
             entry_bar_index=self._bar_index,
@@ -746,6 +825,8 @@ class MomentumBreakoutStateMachine:
             if obi is not None and obi < params.obi_long_threshold:
                 self.counters.obi_skips += 1
                 return None
+            if not self._macro_ok(bar, snapshot, BreakoutSide.LONG):
+                return None
             side = BreakoutSide.LONG
         elif short_break and close < snapshot.ema_slow and snapshot.ema_fast <= snapshot.ema_slow:
             if not volume_ok:
@@ -756,6 +837,8 @@ class MomentumBreakoutStateMachine:
                 return None
             if obi is not None and obi > params.obi_short_threshold:
                 self.counters.obi_skips += 1
+                return None
+            if not self._macro_ok(bar, snapshot, BreakoutSide.SHORT):
                 return None
             side = BreakoutSide.SHORT
         else:
@@ -830,7 +913,7 @@ class MomentumBreakoutStateMachine:
             and snapshot.channel_width > params.max_relative_squeeze * snapshot.median_width
         ):
             return None
-        fair_fee = self._fee_round_trip(bar.close, 1)
+        fair_fee = self._fee_round_trip(self._raw_price(bar.close, bar), 1)
         if fair_fee <= 0 or snapshot.atr_rub / float(fair_fee) < params.min_atr_to_fee_ratio:
             return None
         close = float(bar.close)
@@ -850,11 +933,17 @@ class MomentumBreakoutStateMachine:
                 self.counters.wick_skips += 1
                 self._armed_side = None
                 return None
+            if not self._macro_ok(bar, snapshot, BreakoutSide.LONG):
+                self._armed_side = None
+                return None
             self._armed_side = BreakoutSide.LONG
             self._armed_trigger = dec(snapshot.donchian_high) + buffer_points
         elif close < snapshot.ema_slow and snapshot.ema_fast <= snapshot.ema_slow:
             if bar.close_position > params.close_in_range:
                 self.counters.wick_skips += 1
+                self._armed_side = None
+                return None
+            if not self._macro_ok(bar, snapshot, BreakoutSide.SHORT):
                 self._armed_side = None
                 return None
             self._armed_side = BreakoutSide.SHORT
@@ -964,9 +1053,9 @@ class MomentumBreakoutStateMachine:
             else:
                 position.stall_bars_seen += 1
             if position.stall_bars_seen >= params.stall_bars:
-                offset = self._fee_round_trip(bar.close, position.quantity) * dec(
-                    params.breakeven_fee_multiple
-                )
+                offset = self._fee_round_trip(
+                    self._raw_price(bar.close, bar), position.quantity
+                ) * dec(params.breakeven_fee_multiple)
                 offset /= max(dec(self._meta.rub_per_price_unit), Decimal(1)) * Decimal(
                     max(int(position.quantity), 1)
                 )
@@ -993,9 +1082,9 @@ class MomentumBreakoutStateMachine:
             not position.breakeven_done
             and position.mfe_points >= params.breakeven_trigger_atr * atr
         ):
-            offset = self._fee_round_trip(bar.close, position.quantity) * dec(
-                params.breakeven_fee_multiple
-            )
+            offset = self._fee_round_trip(
+                self._raw_price(bar.close, bar), position.quantity
+            ) * dec(params.breakeven_fee_multiple)
             offset /= max(dec(self._meta.rub_per_price_unit), Decimal(1)) * Decimal(
                 max(int(position.quantity), 1)
             )

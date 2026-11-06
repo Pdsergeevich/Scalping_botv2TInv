@@ -72,6 +72,7 @@ class Signal:
     family: str = ""
     free_ms: int = 0  # когда стоп ушёл в прибыль (0 = не дошло до breakeven)
     adj: float = 0.0  # v4.4: сдвиг back-adjustment (сырая цена = price − adj)
+    er: float = 0.0  # v4.5: ER_20 на входе (сила импульса для conviction-тиров)
     rank: int = 0  # место в корзине на момент входа (1 = лидер)
     basket_pf: float = 0.0  # трейлинг-PF пары на момент отбора
     pair_trades: int = 0  # сделок пары в трейлинг-окне
@@ -110,12 +111,13 @@ def build_signals(
             low=candle.low,
             close=candle.close,
             volume=int(candle.volume),
+            adj=float(getattr(candle, "adj", 0.0) or 0.0),
         )
         # Метку «стоп ушёл в прибыль» ставим на баре, следующем за ратчетом (без заглядывания вперёд).
         if opened is not None and opened[3] == 0:
             position_now = machine.position
             if position_now is not None and position_now.breakeven_done:
-                opened = (opened[0], opened[1], opened[2], bar.time_ms, opened[4])
+                opened = (opened[0], opened[1], opened[2], bar.time_ms, opened[4], opened[5])
         events = list(machine.on_bar(bar))
         if barriers and bar.time_ms in barriers and machine.position is not None:
             forced = machine.force_close(bar, BreakoutExitReason.ROLL, price=bar.open)
@@ -128,11 +130,13 @@ def build_signals(
                     continue
                 fill = event.price + slip if event.side is BreakoutSide.LONG else event.price - slip
                 stop_points = abs(float(position.entry_price - position.initial_stop))
-                opened = (event, fill, stop_points, 0, float(candle.adj or 0.0))
+                snapshot_now = getattr(machine, "_indicators", None)
+                er_now = float(getattr(getattr(snapshot_now, "snapshot", None), "efficiency_ratio", 0.0) or 0.0)
+                opened = (event, fill, stop_points, 0, float(candle.adj or 0.0), er_now)
                 continue
             if event.kind != "exit" or opened is None:
                 continue
-            entry_event, entry_fill, stop_points, _free, adj = opened
+            entry_event, entry_fill, stop_points, _free, adj, er = opened
             exit_fill = event.price - slip if event.side is BreakoutSide.LONG else event.price + slip
             signals.append(
                 Signal(
@@ -149,6 +153,7 @@ def build_signals(
                     family=underlying_family(meta.ticker),
                     free_ms=_free,
                     adj=adj,
+                    er=er,
                 )
             )
             opened = None
@@ -229,8 +234,15 @@ def select_basket(
     core_min_pf: float = 1.15,
     satellite_min_pf: float = 0.0,
     exclude_tickers: Sequence[str] = (),
+    recent_days: int = 0,
+    recent_min_pf: float = 1.10,
 ) -> List[Dict[str, Any]]:
-    """Кандидаты на трейлинг-окне `[at_ms − L, at_ms)`: устойчивость + дедуп + Top-M."""
+    """Кандидаты на трейлинг-окне `[at_ms − L, at_ms)`: устойчивость + дедуп + Top-M.
+
+    `recent_days > 0` включает **ресенси-гард (v4.5)**: пара должна быть живой в
+    последние `recent_days` дней окна. Инструмент, отработавший 30 дней и умерший
+    в последние две недели, занимал слот в сентябре–октябре и приносил убыток.
+    """
     start_ms = at_ms - int(lookback_days) * 86_400_000
     middle_ms = (start_ms + at_ms) // 2
     scored: List[Dict[str, Any]] = []
@@ -258,6 +270,10 @@ def select_basket(
             required_pf = max(required_pf, satellite_min_pf)
         if full["pf"] < required_pf:
             continue
+        if recent_days > 0:
+            recent = _window_stats(series, at_ms - int(recent_days) * 86_400_000, at_ms, meta)
+            if recent["trades"] > 0 and recent["net"] < 0 and recent["pf"] < recent_min_pf:
+                continue
         scored.append(
             {
                 "ticker": ticker,
@@ -265,6 +281,11 @@ def select_basket(
                 "net": full["net"],
                 "pf": full["pf"],
                 "trades": full["trades"],
+                "recent_net": (
+                    _window_stats(series, at_ms - int(recent_days) * 86_400_000, at_ms, meta)["net"]
+                    if recent_days > 0
+                    else 0.0
+                ),
                 "family": underlying_family(ticker),
             }
         )
@@ -312,6 +333,17 @@ class WalkForwardSettings:
     exclude_tickers: Tuple[str, ...] = ("NASD_CONT", "SPYF_CONT")
     # v4.4: доля бюджета ГО на одну позицию (0 = без ограничения).
     max_position_margin_pct: float = 35.0
+    # v4.5: ресенси-гард отбора — пара должна быть живой в последние `recent_days`.
+    recent_days: int = 15
+    recent_min_pf: float = 1.10
+    # v4.5: conviction-тиры. Сильный сетап (ER >= strong_er, лидер корзины PF >=
+    # strong_pf) получает `conviction_strong_boost`, пограничный (ER < bord_er или
+    # PF пары < bord_pf) — `conviction_border_cut`.
+    conviction_strong_er: float = 0.32
+    conviction_strong_boost: float = 1.35
+    conviction_border_er: float = 0.26
+    conviction_border_pf: float = 1.30
+    conviction_border_cut: float = 0.85
     free_slot_on_breakeven: bool = True
     max_total_open_positions: int = 8
     conviction_leader_boost: float = 1.45
@@ -415,6 +447,8 @@ def run_walkforward(
             core_min_pf=settings.core_min_pf,
             satellite_min_pf=settings.satellite_min_pf,
             exclude_tickers=settings.exclude_tickers,
+            recent_days=int(settings.recent_days),
+            recent_min_pf=float(settings.recent_min_pf),
         )
         rank_by_key = {
             (item["ticker"], item["engine"]): (item.get("rank", 99), item["pf"], item["trades"])
@@ -480,6 +514,14 @@ def run_walkforward(
                     and signal.conviction >= 1.1
                 ):
                     conviction = max(conviction, settings.conviction_leader_boost)
+                # v4.5: явные тиры поверх силы сигнала.
+                if signal.er >= settings.conviction_strong_er and signal.basket_pf >= 1.80:
+                    conviction = max(conviction, settings.conviction_strong_boost)
+                elif (
+                    signal.er < settings.conviction_border_er
+                    or signal.basket_pf < settings.conviction_border_pf
+                ):
+                    conviction = min(conviction, settings.conviction_border_cut)
             risk_budget = max(equity, 0.0) * float(settings.risk_pct_per_trade) / 100.0
             stop_rub = max(signal.stop_points * float(meta.rub_per_price_unit), 1e-9)
             quantity = int(risk_budget * conviction * throttle // stop_rub)

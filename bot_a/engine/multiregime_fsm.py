@@ -72,7 +72,7 @@ class MultiRegimeStateMachine(MomentumBreakoutStateMachine):
             return False
         if snapshot.atr_points <= 0 or snapshot.ema_fast <= 0 or snapshot.ema_slow <= 0:
             return False
-        fee = self._fee_round_trip(bar.close, 1)
+        fee = self._fee_round_trip(self._raw_price(bar.close, bar), 1)
         if fee <= 0 or snapshot.atr_rub / float(fee) < params.min_atr_to_fee_ratio:
             self.counters.fee_skips += 1
             return False
@@ -104,6 +104,8 @@ class MultiRegimeStateMachine(MomentumBreakoutStateMachine):
                 return None
             if not self._pullback_wave_ok(bar, atr, BreakoutSide.LONG):
                 return None
+            if not self._macro_ok(bar, snapshot, BreakoutSide.LONG):
+                return None
             swing_low = min(self._recent_lows) if self._recent_lows else float(bar.low)
             stop = dec(min(swing_low, float(bar.low)) - params.pullback_stop_atr * atr)
             if stop >= bar.close:
@@ -124,6 +126,8 @@ class MultiRegimeStateMachine(MomentumBreakoutStateMachine):
             if previous is not None and not self._pullback_thrust_ok(bar, atr, BreakoutSide.SHORT):
                 return None
             if not self._pullback_wave_ok(bar, atr, BreakoutSide.SHORT):
+                return None
+            if not self._macro_ok(bar, snapshot, BreakoutSide.SHORT):
                 return None
             swing_high = max(self._recent_highs) if self._recent_highs else float(bar.high)
             stop = dec(max(swing_high, float(bar.high)) + params.pullback_stop_atr * atr)
@@ -208,7 +212,7 @@ class MultiRegimeStateMachine(MomentumBreakoutStateMachine):
         lower = center - params.fade_keltner_atr * atr
         close = float(bar.close)
         rub = float(self._meta.rub_per_price_unit)
-        fee = float(self._fee_round_trip(bar.close, 1))
+        fee = float(self._fee_round_trip(self._raw_price(bar.close, bar), 1))
         if fee <= 0 or rub <= 0:
             return None
         # Шорт: вынесли выше верхней полосы и закрылись обратно внутрь (отбой).

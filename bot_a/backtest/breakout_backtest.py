@@ -258,6 +258,7 @@ def candles_to_bars(candles: Sequence[Candle]) -> List[Bar]:
             low=candle.low,
             close=candle.close,
             volume=int(candle.volume),
+            adj=float(getattr(candle, "adj", 0.0) or 0.0),
         )
         for candle in candles
     ]

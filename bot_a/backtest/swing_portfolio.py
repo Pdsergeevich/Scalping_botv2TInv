@@ -322,6 +322,7 @@ class SwingAccountBacktester:
                 low=candle.low,
                 close=candle.close,
                 volume=int(candle.volume),
+                adj=float(getattr(candle, "adj", 0.0) or 0.0),
             )
             meta = metas[ticker]
             machine = machines[ticker]
