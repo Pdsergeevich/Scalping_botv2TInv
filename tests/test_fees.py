@@ -21,12 +21,26 @@ def test_trader_tier_progression():
 
 
 def test_premium_tier_progression():
+    # Проверено по справке Т-Банка: первая ступень Premium — до 12 млн ₽ оборота по фьючерсам.
     calc = TinkoffFeeCalculator(Tariff.PREMIUM)
     assert calc.current_rate == Decimal("0.00025")
-    calc.register_notional(Decimal("5000001"))
+    calc.register_notional(Decimal("11999999"))
+    assert calc.current_rate == Decimal("0.00025")
+    calc.register_notional(Decimal("2"))
     assert calc.current_rate == Decimal("0.0002")
-    calc.register_notional(Decimal("12000000"))
+    calc.register_notional(Decimal("5000001"))
     assert calc.current_rate == Decimal("0.00015")
+
+
+def test_additional_list_futures_have_flat_rate():
+    """Фьючерсы из «дополнительного списка» платят 0.06 % на Premium независимо от оборота."""
+    calc = TinkoffFeeCalculator(Tariff.PREMIUM, additional_list_tickers=["EXOTIC"])
+    calc.register_notional(Decimal("50000000"))  # оборот вывел бы обычный инструмент на 3-ю ступень
+    plain = calc.fee_for_notional(Decimal("100000"))
+    exotic = calc.fee_for_notional(Decimal("100000"), "EXOTIC")
+    assert plain == Decimal("15.00")  # 0.015 % после 17 млн
+    assert exotic == Decimal("60.00")  # 0.06 % фиксированно
+    assert calc.register_notional(Decimal("100000"), "EXOTIC") == Decimal("60.00")
 
 
 def test_round_trip_fee_counts_sides_by_topology():

@@ -1,0 +1,1176 @@
+{
+  "params": {
+    "donchian_bars": 20,
+    "atr_bars": 15,
+    "squeeze_median_bars": 120,
+    "max_squeeze_ratio": 1.6,
+    "max_relative_squeeze": 0.0,
+    "ema_fast_bars": 20,
+    "ema_slow_bars": 90,
+    "volume_lookback": 20,
+    "volume_multiple": 1.5,
+    "close_in_range": 0.3,
+    "min_atr_to_fee_ratio": 2.5,
+    "obi_long_threshold": 0.2,
+    "obi_short_threshold": -0.2,
+    "breakout_buffer_steps": 1,
+    "max_entry_extension_atr": 0.35,
+    "entry_mode": "bar_close",
+    "allow_overnight_hold": true,
+    "close_losers_before_clearing": true,
+    "loser_close_bars": 2,
+    "max_hold_hours": 0.0,
+    "clearing_close": "18:40,23:40",
+    "session_windows": "10:15-13:45,14:10-18:35,19:10-22:30",
+    "trade_until": "18:35",
+    "initial_stop_atr_multiple": 2.5,
+    "min_stop_steps": 6,
+    "failed_breakout_minutes": 0,
+    "failed_breakout_bars": 2,
+    "failed_breakout_profit_atr": 0.6,
+    "breakeven_trigger_atr": 2.5,
+    "breakeven_fee_multiple": 1.5,
+    "breakeven_lock_atr": 1.0,
+    "trail_trigger_atr": 2.0,
+    "trail_atr_multiple": 3.0,
+    "take_profit_atr": 0.0,
+    "max_consecutive_stops": 2,
+    "cooldown_minutes": 45,
+    "slippage_steps": 1
+  },
+  "barMinutes": 30,
+  "entryMode": "bar_close",
+  "overnight": true,
+  "variant": "run2",
+  "capital": 50000.0,
+  "riskPct": 1.5,
+  "tickers": [
+    "CNYRUBF",
+    "GLDRUBF",
+    "NGZ6",
+    "SVZ6",
+    "USDRUBF"
+  ],
+  "periods": {
+    "oos": {
+      "perTicker": [
+        {
+          "ticker": "CNYRUBF",
+          "bars": 2042,
+          "trades": 11,
+          "days": 11,
+          "netRub": 636.59,
+          "grossRub": 768.86,
+          "feesRub": 132.27,
+          "winRate": 0.6364,
+          "profitFactor": 3.076,
+          "avgWinner": 134.75,
+          "avgLoser": -76.66,
+          "payoff": 1.758,
+          "maxDrawdownRub": 269.04,
+          "maxDrawdownPct": 2.69,
+          "returnPct": 6.37,
+          "annualizedPct": 28.67,
+          "avgHoldMinutes": 1246.4,
+          "bestTrade": 639.21,
+          "worstTrade": -124.63,
+          "sharpe": 4.71,
+          "counters": {
+            "signals": 1834,
+            "entries": 11,
+            "exits": 11,
+            "squeezeSkips": 84,
+            "trendSkips": 15,
+            "volumeSkips": 12,
+            "wickSkips": 9,
+            "obiSkips": 0,
+            "feeSkips": 33,
+            "windowSkips": 645,
+            "cooldownSkips": 15,
+            "extensionSkips": 74
+          }
+        },
+        {
+          "ticker": "GLDRUBF",
+          "bars": 2475,
+          "trades": 16,
+          "days": 14,
+          "netRub": 3.58,
+          "grossRub": 117.33,
+          "feesRub": 113.76,
+          "winRate": 0.1875,
+          "profitFactor": 1.007,
+          "avgWinner": 182.04,
+          "avgLoser": -41.73,
+          "payoff": 4.362,
+          "maxDrawdownRub": 332.22,
+          "maxDrawdownPct": 3.32,
+          "returnPct": 0.04,
+          "annualizedPct": 0.14,
+          "avgHoldMinutes": 219.4,
+          "bestTrade": 257.49,
+          "worstTrade": -93.22,
+          "sharpe": 0.04,
+          "counters": {
+            "signals": 2352,
+            "entries": 16,
+            "exits": 16,
+            "squeezeSkips": 195,
+            "trendSkips": 19,
+            "volumeSkips": 14,
+            "wickSkips": 15,
+            "obiSkips": 0,
+            "feeSkips": 29,
+            "windowSkips": 753,
+            "cooldownSkips": 4,
+            "extensionSkips": 99
+          }
+        },
+        {
+          "ticker": "NGZ6",
+          "bars": 606,
+          "trades": 0,
+          "days": 0,
+          "netRub": 0,
+          "grossRub": 0,
+          "feesRub": 0,
+          "winRate": 0.0,
+          "profitFactor": null,
+          "avgWinner": 0.0,
+          "avgLoser": 0.0,
+          "payoff": null,
+          "maxDrawdownRub": 0.0,
+          "maxDrawdownPct": 0.0,
+          "returnPct": 0.0,
+          "annualizedPct": 0.0,
+          "avgHoldMinutes": 0.0,
+          "bestTrade": 0.0,
+          "worstTrade": 0.0,
+          "sharpe": null,
+          "counters": {
+            "signals": 567,
+            "entries": 4,
+            "exits": 0,
+            "squeezeSkips": 17,
+            "trendSkips": 4,
+            "volumeSkips": 2,
+            "wickSkips": 1,
+            "obiSkips": 0,
+            "feeSkips": 0,
+            "windowSkips": 178,
+            "cooldownSkips": 0,
+            "extensionSkips": 22,
+            "noCapitalSkips": 4
+          }
+        },
+        {
+          "ticker": "SVZ6",
+          "bars": 2171,
+          "trades": 0,
+          "days": 0,
+          "netRub": 0,
+          "grossRub": 0,
+          "feesRub": 0,
+          "winRate": 0.0,
+          "profitFactor": null,
+          "avgWinner": 0.0,
+          "avgLoser": 0.0,
+          "payoff": null,
+          "maxDrawdownRub": 0.0,
+          "maxDrawdownPct": 0.0,
+          "returnPct": 0.0,
+          "annualizedPct": 0.0,
+          "avgHoldMinutes": 0.0,
+          "bestTrade": 0.0,
+          "worstTrade": 0.0,
+          "sharpe": null,
+          "counters": {
+            "signals": 2132,
+            "entries": 5,
+            "exits": 0,
+            "squeezeSkips": 367,
+            "trendSkips": 22,
+            "volumeSkips": 20,
+            "wickSkips": 3,
+            "obiSkips": 0,
+            "feeSkips": 2,
+            "windowSkips": 689,
+            "cooldownSkips": 0,
+            "extensionSkips": 108,
+            "noCapitalSkips": 5
+          }
+        },
+        {
+          "ticker": "USDRUBF",
+          "bars": 2039,
+          "trades": 0,
+          "days": 0,
+          "netRub": 0,
+          "grossRub": 0,
+          "feesRub": 0,
+          "winRate": 0.0,
+          "profitFactor": null,
+          "avgWinner": 0.0,
+          "avgLoser": 0.0,
+          "payoff": null,
+          "maxDrawdownRub": 0.0,
+          "maxDrawdownPct": 0.0,
+          "returnPct": 0.0,
+          "annualizedPct": 0.0,
+          "avgHoldMinutes": 0.0,
+          "bestTrade": 0.0,
+          "worstTrade": 0.0,
+          "sharpe": null,
+          "counters": {
+            "signals": 2000,
+            "entries": 8,
+            "exits": 0,
+            "squeezeSkips": 119,
+            "trendSkips": 12,
+            "volumeSkips": 9,
+            "wickSkips": 11,
+            "obiSkips": 0,
+            "feeSkips": 28,
+            "windowSkips": 701,
+            "cooldownSkips": 0,
+            "extensionSkips": 85,
+            "noCapitalSkips": 8
+          }
+        }
+      ],
+      "portfolio": {
+        "ticker": "PORTFOLIO",
+        "bars": 9333,
+        "trades": 27,
+        "days": 24,
+        "netRub": 640.17,
+        "grossRub": 886.2,
+        "feesRub": 246.03,
+        "winRate": 0.3704,
+        "profitFactor": 1.754,
+        "avgWinner": 148.94,
+        "avgLoser": -49.95,
+        "payoff": 2.982,
+        "maxDrawdownRub": 437.54,
+        "maxDrawdownPct": 0.88,
+        "returnPct": 1.28,
+        "annualizedPct": 5.22,
+        "avgHoldMinutes": 637.8,
+        "bestTrade": 639.21,
+        "worstTrade": -124.63,
+        "sharpe": 2.61,
+        "counters": {},
+        "tickers": [
+          "CNYRUBF",
+          "GLDRUBF",
+          "NGZ6",
+          "SVZ6",
+          "USDRUBF"
+        ]
+      },
+      "curve": {
+        "points": [
+          [
+            "2026-04-28",
+            257.49
+          ],
+          [
+            "2026-04-29",
+            240.14
+          ],
+          [
+            "2026-04-30",
+            146.92
+          ],
+          [
+            "2026-05-05",
+            109.32
+          ],
+          [
+            "2026-05-11",
+            129.83
+          ],
+          [
+            "2026-05-13",
+            95.91
+          ],
+          [
+            "2026-05-18",
+            735.13
+          ],
+          [
+            "2026-05-26",
+            717.96
+          ],
+          [
+            "2026-05-27",
+            658.8
+          ],
+          [
+            "2026-05-28",
+            653.21
+          ],
+          [
+            "2026-06-01",
+            584.49
+          ],
+          [
+            "2026-06-03",
+            459.85
+          ],
+          [
+            "2026-06-04",
+            376.71
+          ],
+          [
+            "2026-06-09",
+            442.24
+          ],
+          [
+            "2026-06-11",
+            409.46
+          ],
+          [
+            "2026-06-14",
+            358.84
+          ],
+          [
+            "2026-06-19",
+            297.58
+          ],
+          [
+            "2026-06-23",
+            386.9
+          ],
+          [
+            "2026-06-26",
+            685.4
+          ],
+          [
+            "2026-07-02",
+            670.38
+          ],
+          [
+            "2026-07-03",
+            690.97
+          ],
+          [
+            "2026-07-07",
+            739.54
+          ],
+          [
+            "2026-07-17",
+            609.74
+          ],
+          [
+            "2026-07-24",
+            640.17
+          ]
+        ],
+        "monthly": {
+          "2026-04": 146.92,
+          "2026-05": 506.29,
+          "2026-06": 32.18,
+          "2026-07": -45.23
+        },
+        "netRub": 640.17,
+        "maxDrawdownRub": 437.54,
+        "maxDrawdownPct": 0.88,
+        "sharpe": 2.61,
+        "days": 24,
+        "bestDay": 639.21,
+        "worstDay": -129.8
+      }
+    },
+    "is": {
+      "perTicker": [
+        {
+          "ticker": "CNYRUBF",
+          "bars": 3000,
+          "trades": 13,
+          "days": 12,
+          "netRub": 526.54,
+          "grossRub": 700.27,
+          "feesRub": 173.73,
+          "winRate": 0.4615,
+          "profitFactor": 2.198,
+          "avgWinner": 161.04,
+          "avgLoser": -62.81,
+          "payoff": 2.564,
+          "maxDrawdownRub": 220.54,
+          "maxDrawdownPct": 2.21,
+          "returnPct": 5.27,
+          "annualizedPct": 19.73,
+          "avgHoldMinutes": 1082.3,
+          "bestTrade": 501.74,
+          "worstTrade": -163.41,
+          "sharpe": 3.97,
+          "counters": {
+            "signals": 2705,
+            "entries": 13,
+            "exits": 13,
+            "squeezeSkips": 103,
+            "trendSkips": 20,
+            "volumeSkips": 17,
+            "wickSkips": 11,
+            "obiSkips": 0,
+            "feeSkips": 405,
+            "windowSkips": 895,
+            "cooldownSkips": 17,
+            "extensionSkips": 99
+          }
+        },
+        {
+          "ticker": "GLDRUBF",
+          "bars": 3004,
+          "trades": 17,
+          "days": 17,
+          "netRub": 185.57,
+          "grossRub": 333.66,
+          "feesRub": 148.09,
+          "winRate": 0.3529,
+          "profitFactor": 1.316,
+          "avgWinner": 128.67,
+          "avgLoser": -53.31,
+          "payoff": 2.413,
+          "maxDrawdownRub": 329.43,
+          "maxDrawdownPct": 3.29,
+          "returnPct": 1.86,
+          "annualizedPct": 6.64,
+          "avgHoldMinutes": 421.8,
+          "bestTrade": 331.21,
+          "worstTrade": -88.46,
+          "sharpe": 1.55,
+          "counters": {
+            "signals": 2814,
+            "entries": 17,
+            "exits": 17,
+            "squeezeSkips": 200,
+            "trendSkips": 22,
+            "volumeSkips": 27,
+            "wickSkips": 10,
+            "obiSkips": 0,
+            "feeSkips": 146,
+            "windowSkips": 968,
+            "cooldownSkips": 10,
+            "extensionSkips": 103
+          }
+        },
+        {
+          "ticker": "NGZ6",
+          "bars": 2439,
+          "trades": 0,
+          "days": 0,
+          "netRub": 0,
+          "grossRub": 0,
+          "feesRub": 0,
+          "winRate": 0.0,
+          "profitFactor": null,
+          "avgWinner": 0.0,
+          "avgLoser": 0.0,
+          "payoff": null,
+          "maxDrawdownRub": 0.0,
+          "maxDrawdownPct": 0.0,
+          "returnPct": 0.0,
+          "annualizedPct": 0.0,
+          "avgHoldMinutes": 0.0,
+          "bestTrade": 0.0,
+          "worstTrade": 0.0,
+          "sharpe": null,
+          "counters": {
+            "signals": 2400,
+            "entries": 11,
+            "exits": 0,
+            "squeezeSkips": 174,
+            "trendSkips": 23,
+            "volumeSkips": 12,
+            "wickSkips": 5,
+            "obiSkips": 0,
+            "feeSkips": 11,
+            "windowSkips": 796,
+            "cooldownSkips": 0,
+            "extensionSkips": 88,
+            "noCapitalSkips": 11
+          }
+        },
+        {
+          "ticker": "SVZ6",
+          "bars": 2978,
+          "trades": 0,
+          "days": 0,
+          "netRub": 0,
+          "grossRub": 0,
+          "feesRub": 0,
+          "winRate": 0.0,
+          "profitFactor": null,
+          "avgWinner": 0.0,
+          "avgLoser": 0.0,
+          "payoff": null,
+          "maxDrawdownRub": 0.0,
+          "maxDrawdownPct": 0.0,
+          "returnPct": 0.0,
+          "annualizedPct": 0.0,
+          "avgHoldMinutes": 0.0,
+          "bestTrade": 0.0,
+          "worstTrade": 0.0,
+          "sharpe": null,
+          "counters": {
+            "signals": 2939,
+            "entries": 18,
+            "exits": 0,
+            "squeezeSkips": 262,
+            "trendSkips": 28,
+            "volumeSkips": 27,
+            "wickSkips": 11,
+            "obiSkips": 0,
+            "feeSkips": 20,
+            "windowSkips": 987,
+            "cooldownSkips": 0,
+            "extensionSkips": 112,
+            "noCapitalSkips": 18
+          }
+        },
+        {
+          "ticker": "USDRUBF",
+          "bars": 2992,
+          "trades": 0,
+          "days": 0,
+          "netRub": 0,
+          "grossRub": 0,
+          "feesRub": 0,
+          "winRate": 0.0,
+          "profitFactor": null,
+          "avgWinner": 0.0,
+          "avgLoser": 0.0,
+          "payoff": null,
+          "maxDrawdownRub": 0.0,
+          "maxDrawdownPct": 0.0,
+          "returnPct": 0.0,
+          "annualizedPct": 0.0,
+          "avgHoldMinutes": 0.0,
+          "bestTrade": 0.0,
+          "worstTrade": 0.0,
+          "sharpe": null,
+          "counters": {
+            "signals": 2953,
+            "entries": 24,
+            "exits": 0,
+            "squeezeSkips": 145,
+            "trendSkips": 23,
+            "volumeSkips": 14,
+            "wickSkips": 13,
+            "obiSkips": 0,
+            "feeSkips": 381,
+            "windowSkips": 987,
+            "cooldownSkips": 0,
+            "extensionSkips": 116,
+            "noCapitalSkips": 24
+          }
+        }
+      ],
+      "portfolio": {
+        "ticker": "PORTFOLIO",
+        "bars": 14413,
+        "trades": 30,
+        "days": 28,
+        "netRub": 712.11,
+        "grossRub": 1033.93,
+        "feesRub": 321.82,
+        "winRate": 0.4,
+        "profitFactor": 1.694,
+        "avgWinner": 144.86,
+        "avgLoser": -57.01,
+        "payoff": 2.541,
+        "maxDrawdownRub": 345.26,
+        "maxDrawdownPct": 0.69,
+        "returnPct": 1.42,
+        "annualizedPct": 5.07,
+        "avgHoldMinutes": 708.0,
+        "bestTrade": 501.74,
+        "worstTrade": -163.41,
+        "sharpe": 2.95,
+        "counters": {},
+        "tickers": [
+          "CNYRUBF",
+          "GLDRUBF",
+          "NGZ6",
+          "SVZ6",
+          "USDRUBF"
+        ]
+      },
+      "curve": {
+        "points": [
+          [
+            "2026-08-03",
+            -61.0
+          ],
+          [
+            "2026-08-04",
+            -109.8
+          ],
+          [
+            "2026-08-06",
+            -148.23
+          ],
+          [
+            "2026-08-10",
+            85.94
+          ],
+          [
+            "2026-08-12",
+            -2.52
+          ],
+          [
+            "2026-08-13",
+            25.43
+          ],
+          [
+            "2026-08-14",
+            130.61
+          ],
+          [
+            "2026-08-23",
+            62.73
+          ],
+          [
+            "2026-08-31",
+            -10.22
+          ],
+          [
+            "2026-09-01",
+            -81.13
+          ],
+          [
+            "2026-09-03",
+            -168.22
+          ],
+          [
+            "2026-09-07",
+            -214.65
+          ],
+          [
+            "2026-09-11",
+            9.09
+          ],
+          [
+            "2026-09-17",
+            -23.51
+          ],
+          [
+            "2026-09-24",
+            1.73
+          ],
+          [
+            "2026-09-25",
+            -22.8
+          ],
+          [
+            "2026-09-29",
+            -186.21
+          ],
+          [
+            "2026-10-05",
+            -72.4
+          ],
+          [
+            "2026-10-06",
+            -100.75
+          ],
+          [
+            "2026-10-08",
+            -133.6
+          ],
+          [
+            "2026-10-15",
+            197.61
+          ],
+          [
+            "2026-10-19",
+            229.13
+          ],
+          [
+            "2026-10-20",
+            265.22
+          ],
+          [
+            "2026-10-21",
+            206.14
+          ],
+          [
+            "2026-10-22",
+            670.57
+          ],
+          [
+            "2026-10-26",
+            703.63
+          ],
+          [
+            "2026-10-27",
+            637.56
+          ],
+          [
+            "2026-10-30",
+            712.11
+          ]
+        ],
+        "monthly": {
+          "2026-08": -10.22,
+          "2026-09": -175.99,
+          "2026-10": 898.32
+        },
+        "netRub": 712.11,
+        "maxDrawdownRub": 345.26,
+        "maxDrawdownPct": 0.69,
+        "sharpe": 2.95,
+        "days": 28,
+        "bestDay": 464.43,
+        "worstDay": -163.41
+      }
+    },
+    "full": {
+      "perTicker": [
+        {
+          "ticker": "CNYRUBF",
+          "bars": 5017,
+          "trades": 24,
+          "days": 23,
+          "netRub": 1163.13,
+          "grossRub": 1469.13,
+          "feesRub": 306.0,
+          "winRate": 0.5417,
+          "profitFactor": 2.558,
+          "avgWinner": 146.88,
+          "avgLoser": -67.85,
+          "payoff": 2.165,
+          "maxDrawdownRub": 269.04,
+          "maxDrawdownPct": 2.69,
+          "returnPct": 11.63,
+          "annualizedPct": 23.2,
+          "avgHoldMinutes": 1157.5,
+          "bestTrade": 639.21,
+          "worstTrade": -163.41,
+          "sharpe": 4.32,
+          "counters": {
+            "signals": 4553,
+            "entries": 24,
+            "exits": 24,
+            "squeezeSkips": 187,
+            "trendSkips": 35,
+            "volumeSkips": 29,
+            "wickSkips": 20,
+            "obiSkips": 0,
+            "feeSkips": 449,
+            "windowSkips": 1542,
+            "cooldownSkips": 32,
+            "extensionSkips": 173
+          }
+        },
+        {
+          "ticker": "GLDRUBF",
+          "bars": 5454,
+          "trades": 33,
+          "days": 31,
+          "netRub": 189.15,
+          "grossRub": 450.99,
+          "feesRub": 261.84,
+          "winRate": 0.2727,
+          "profitFactor": 1.168,
+          "avgWinner": 146.46,
+          "avgLoser": -47.04,
+          "payoff": 3.113,
+          "maxDrawdownRub": 448.6,
+          "maxDrawdownPct": 4.49,
+          "returnPct": 1.89,
+          "annualizedPct": 3.57,
+          "avgHoldMinutes": 323.6,
+          "bestTrade": 331.21,
+          "worstTrade": -93.22,
+          "sharpe": 0.87,
+          "counters": {
+            "signals": 5180,
+            "entries": 33,
+            "exits": 33,
+            "squeezeSkips": 394,
+            "trendSkips": 42,
+            "volumeSkips": 41,
+            "wickSkips": 25,
+            "obiSkips": 0,
+            "feeSkips": 186,
+            "windowSkips": 1723,
+            "cooldownSkips": 14,
+            "extensionSkips": 203
+          }
+        },
+        {
+          "ticker": "NGZ6",
+          "bars": 3036,
+          "trades": 0,
+          "days": 0,
+          "netRub": 0,
+          "grossRub": 0,
+          "feesRub": 0,
+          "winRate": 0.0,
+          "profitFactor": null,
+          "avgWinner": 0.0,
+          "avgLoser": 0.0,
+          "payoff": null,
+          "maxDrawdownRub": 0.0,
+          "maxDrawdownPct": 0.0,
+          "returnPct": 0.0,
+          "annualizedPct": 0.0,
+          "avgHoldMinutes": 0.0,
+          "bestTrade": 0.0,
+          "worstTrade": 0.0,
+          "sharpe": null,
+          "counters": {
+            "signals": 2997,
+            "entries": 15,
+            "exits": 0,
+            "squeezeSkips": 191,
+            "trendSkips": 28,
+            "volumeSkips": 14,
+            "wickSkips": 6,
+            "obiSkips": 0,
+            "feeSkips": 11,
+            "windowSkips": 978,
+            "cooldownSkips": 0,
+            "extensionSkips": 112,
+            "noCapitalSkips": 15
+          }
+        },
+        {
+          "ticker": "SVZ6",
+          "bars": 5129,
+          "trades": 0,
+          "days": 0,
+          "netRub": 0,
+          "grossRub": 0,
+          "feesRub": 0,
+          "winRate": 0.0,
+          "profitFactor": null,
+          "avgWinner": 0.0,
+          "avgLoser": 0.0,
+          "payoff": null,
+          "maxDrawdownRub": 0.0,
+          "maxDrawdownPct": 0.0,
+          "returnPct": 0.0,
+          "annualizedPct": 0.0,
+          "avgHoldMinutes": 0.0,
+          "bestTrade": 0.0,
+          "worstTrade": 0.0,
+          "sharpe": null,
+          "counters": {
+            "signals": 5090,
+            "entries": 23,
+            "exits": 0,
+            "squeezeSkips": 638,
+            "trendSkips": 51,
+            "volumeSkips": 47,
+            "wickSkips": 14,
+            "obiSkips": 0,
+            "feeSkips": 22,
+            "windowSkips": 1679,
+            "cooldownSkips": 0,
+            "extensionSkips": 223,
+            "noCapitalSkips": 23
+          }
+        },
+        {
+          "ticker": "USDRUBF",
+          "bars": 5006,
+          "trades": 0,
+          "days": 0,
+          "netRub": 0,
+          "grossRub": 0,
+          "feesRub": 0,
+          "winRate": 0.0,
+          "profitFactor": null,
+          "avgWinner": 0.0,
+          "avgLoser": 0.0,
+          "payoff": null,
+          "maxDrawdownRub": 0.0,
+          "maxDrawdownPct": 0.0,
+          "returnPct": 0.0,
+          "annualizedPct": 0.0,
+          "avgHoldMinutes": 0.0,
+          "bestTrade": 0.0,
+          "worstTrade": 0.0,
+          "sharpe": null,
+          "counters": {
+            "signals": 4967,
+            "entries": 32,
+            "exits": 0,
+            "squeezeSkips": 264,
+            "trendSkips": 35,
+            "volumeSkips": 23,
+            "wickSkips": 24,
+            "obiSkips": 0,
+            "feeSkips": 420,
+            "windowSkips": 1690,
+            "cooldownSkips": 0,
+            "extensionSkips": 201,
+            "noCapitalSkips": 32
+          }
+        }
+      ],
+      "portfolio": {
+        "ticker": "PORTFOLIO",
+        "bars": 23642,
+        "trades": 57,
+        "days": 52,
+        "netRub": 1352.28,
+        "grossRub": 1920.12,
+        "feesRub": 567.85,
+        "winRate": 0.386,
+        "profitFactor": 1.721,
+        "avgWinner": 146.71,
+        "avgLoser": -53.58,
+        "payoff": 2.738,
+        "maxDrawdownRub": 437.54,
+        "maxDrawdownPct": 0.88,
+        "returnPct": 2.7,
+        "annualizedPct": 5.13,
+        "avgHoldMinutes": 674.7,
+        "bestTrade": 639.21,
+        "worstTrade": -163.41,
+        "sharpe": 2.77,
+        "counters": {},
+        "tickers": [
+          "CNYRUBF",
+          "GLDRUBF",
+          "NGZ6",
+          "SVZ6",
+          "USDRUBF"
+        ]
+      },
+      "curve": {
+        "points": [
+          [
+            "2026-04-28",
+            257.49
+          ],
+          [
+            "2026-04-29",
+            240.14
+          ],
+          [
+            "2026-04-30",
+            146.92
+          ],
+          [
+            "2026-05-05",
+            109.32
+          ],
+          [
+            "2026-05-11",
+            129.83
+          ],
+          [
+            "2026-05-13",
+            95.91
+          ],
+          [
+            "2026-05-18",
+            735.13
+          ],
+          [
+            "2026-05-26",
+            717.96
+          ],
+          [
+            "2026-05-27",
+            658.8
+          ],
+          [
+            "2026-05-28",
+            653.21
+          ],
+          [
+            "2026-06-01",
+            584.49
+          ],
+          [
+            "2026-06-03",
+            459.85
+          ],
+          [
+            "2026-06-04",
+            376.71
+          ],
+          [
+            "2026-06-09",
+            442.24
+          ],
+          [
+            "2026-06-11",
+            409.46
+          ],
+          [
+            "2026-06-14",
+            358.84
+          ],
+          [
+            "2026-06-19",
+            297.58
+          ],
+          [
+            "2026-06-23",
+            386.9
+          ],
+          [
+            "2026-06-26",
+            685.4
+          ],
+          [
+            "2026-07-02",
+            670.38
+          ],
+          [
+            "2026-07-03",
+            690.97
+          ],
+          [
+            "2026-07-07",
+            739.54
+          ],
+          [
+            "2026-07-17",
+            609.74
+          ],
+          [
+            "2026-07-24",
+            640.17
+          ],
+          [
+            "2026-08-03",
+            579.17
+          ],
+          [
+            "2026-08-04",
+            530.37
+          ],
+          [
+            "2026-08-06",
+            491.94
+          ],
+          [
+            "2026-08-10",
+            726.11
+          ],
+          [
+            "2026-08-12",
+            637.65
+          ],
+          [
+            "2026-08-13",
+            665.59
+          ],
+          [
+            "2026-08-14",
+            770.78
+          ],
+          [
+            "2026-08-23",
+            702.9
+          ],
+          [
+            "2026-08-31",
+            629.95
+          ],
+          [
+            "2026-09-01",
+            559.04
+          ],
+          [
+            "2026-09-03",
+            471.95
+          ],
+          [
+            "2026-09-07",
+            425.52
+          ],
+          [
+            "2026-09-11",
+            649.26
+          ],
+          [
+            "2026-09-17",
+            616.66
+          ],
+          [
+            "2026-09-24",
+            641.89
+          ],
+          [
+            "2026-09-25",
+            617.37
+          ],
+          [
+            "2026-09-29",
+            453.96
+          ],
+          [
+            "2026-10-05",
+            567.77
+          ],
+          [
+            "2026-10-06",
+            539.42
+          ],
+          [
+            "2026-10-08",
+            506.57
+          ],
+          [
+            "2026-10-15",
+            837.78
+          ],
+          [
+            "2026-10-19",
+            869.3
+          ],
+          [
+            "2026-10-20",
+            905.39
+          ],
+          [
+            "2026-10-21",
+            846.3
+          ],
+          [
+            "2026-10-22",
+            1310.73
+          ],
+          [
+            "2026-10-26",
+            1343.8
+          ],
+          [
+            "2026-10-27",
+            1277.73
+          ],
+          [
+            "2026-10-30",
+            1352.28
+          ]
+        ],
+        "monthly": {
+          "2026-04": 146.92,
+          "2026-05": 506.29,
+          "2026-06": 32.18,
+          "2026-07": -45.23,
+          "2026-08": -10.22,
+          "2026-09": -175.99,
+          "2026-10": 898.32
+        },
+        "netRub": 1352.28,
+        "maxDrawdownRub": 437.54,
+        "maxDrawdownPct": 0.88,
+        "sharpe": 2.77,
+        "days": 52,
+        "bestDay": 639.21,
+        "worstDay": -163.41
+      }
+    }
+  }
+}

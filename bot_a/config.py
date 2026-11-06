@@ -172,7 +172,7 @@ class AppConfig:
 
     def breakout(self, name: Optional[str] = None) -> BreakoutParams:
         """Параметры пробойной стратегии v3.0 для инструмента ``name``."""
-        key = name or self.active_breakout
+        key = (name or self.active_breakout or "").upper()
         if not key:
             if not self.breakout_presets:
                 return BreakoutParams()

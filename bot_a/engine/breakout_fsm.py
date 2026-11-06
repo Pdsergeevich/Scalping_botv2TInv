@@ -34,6 +34,7 @@ from bot_a.utils.quotation import dec
 from bot_a.utils.time_provider import MSK
 
 TWO = Decimal(2)
+ZERO = Decimal(0)
 
 
 class BreakoutSide(str, Enum):
@@ -48,6 +49,8 @@ class BreakoutExitReason(str, Enum):
     FAILED_BREAKOUT = "FailedBreakout"
     TAKE_PROFIT = "TakeProfit"
     SESSION_CLOSE = "SessionClose"
+    CLEARING = "Clearing"
+    MAX_HOLD = "MaxHold"
     DATA_END = "DataEnd"
 
 
@@ -71,6 +74,14 @@ class BreakoutParams:
     obi_short_threshold: float = -0.20
     breakout_buffer_steps: int = 1
     max_entry_extension_atr: float = 0.0
+    # --- режим входа (v3.1) ---
+    entry_mode: str = "bar_close"  # "bar_close" | "stop_level"
+    # --- удержание через вечернюю сессию и ночь (v3.1) ---
+    allow_overnight_hold: bool = False
+    close_losers_before_clearing: bool = False
+    loser_close_bars: int = 4
+    max_hold_hours: float = 0.0
+    clearing_close: str = "18:40,23:40"
     # --- окна входа (MSK, минуты от полуночи) ---
     session_windows: str = "10:15-13:45,14:10-18:20"
     trade_until: str = "18:35"
@@ -78,6 +89,7 @@ class BreakoutParams:
     initial_stop_atr_multiple: float = 1.2
     min_stop_steps: int = 6
     failed_breakout_minutes: int = 12
+    failed_breakout_bars: int = 0
     failed_breakout_profit_atr: float = 0.6
     breakeven_trigger_atr: float = 1.2
     breakeven_fee_multiple: float = 1.5
@@ -410,6 +422,20 @@ class MomentumBreakoutStateMachine:
         self._consecutive_stops = 0
         self._stops_day: Optional[int] = None
         self.events: List[BreakoutEvent] = []
+        # v3.1: взведённый стоп-уровень для входа «по касанию» (entryMode = stop_level)
+        self._armed_side: Optional[BreakoutSide] = None
+        self._armed_trigger: Decimal = ZERO
+        self._armed_atr: float = 0.0
+        self._armed_bar_ms: int = 0
+        # v3.1: уже срезанные «предклиринговые» убытки (день + минута отсечки)
+        self._loser_cuts: set = set()
+        self._bar_minutes = 1
+        self._last_bar_ms = 0
+        self._clearing_minutes = tuple(
+            minute
+            for minute in (_minutes(chunk) for chunk in str(self._p.clearing_close).split(","))
+            if minute is not None
+        )
 
     # ------------------------------------------------------------------ оценка издержек
     def _fee_round_trip(self, price: Decimal, quantity: int) -> Decimal:
@@ -425,6 +451,11 @@ class MomentumBreakoutStateMachine:
     # ------------------------------------------------------------------ основной вход
     def on_bar(self, bar: Bar, obi: Optional[float] = None) -> List[BreakoutEvent]:
         """Обрабатывает завершённый бар и возвращает решения по нему."""
+        if self._last_bar_ms and bar.time_ms > self._last_bar_ms:
+            self._bar_minutes = max(
+                1, int(round((bar.time_ms - self._last_bar_ms) / 60_000.0))
+            )
+        self._last_bar_ms = bar.time_ms
         self._roll_day(bar.time_ms)
         snapshot = self._indicators.update(bar)
         self._bar_index += 1
@@ -449,37 +480,102 @@ class MomentumBreakoutStateMachine:
     def _maybe_enter(
         self, bar: Bar, snapshot: IndicatorSnapshot, obi: Optional[float]
     ) -> Optional[BreakoutEvent]:
+        if str(self._p.entry_mode).lower() == "stop_level":
+            return self._stop_level_entry(bar, snapshot, obi)
+        return self._bar_close_entry(bar, snapshot, obi)
+
+    def _common_setup_ok(
+        self, bar: Bar, snapshot: IndicatorSnapshot
+    ) -> Optional[str]:
+        """Общие гейты входа. Возвращает ``None``, если вход разрешён, иначе причину."""
         params = self._p
         if not snapshot.ready:
-            return None
+            return "not_ready"
         self.counters.signals += 1
         if not in_windows(bar.time_ms, self._windows):
             self.counters.window_skips += 1
-            return None
+            return "window"
+        if not params.allow_overnight_hold:
+            moment = datetime.fromtimestamp(bar.time_ms / 1000, tz=MSK)
+            if moment.hour * 60 + moment.minute >= self._trade_until:
+                # Интрадей-режим: после времени закрытия новых входов нет.
+                self.counters.window_skips += 1
+                return "window"
         if bar.time_ms < self._cooldown_until_ms:
             self.counters.cooldown_skips += 1
-            return None
+            return "cooldown"
         if self._consecutive_stops >= max(int(params.max_consecutive_stops), 1):
             self.counters.cooldown_skips += 1
-            return None
+            return "cooldown"
         if params.max_squeeze_ratio > 0 and snapshot.squeeze_ratio > params.max_squeeze_ratio:
             self.counters.squeeze_skips += 1
-            return None
-        # Второй, относительный фильтр: канал уже своей 120-минутной медианы.
+            return "squeeze"
         if (
             params.max_relative_squeeze > 0
             and snapshot.median_width > 0
             and snapshot.channel_width > params.max_relative_squeeze * snapshot.median_width
         ):
             self.counters.squeeze_skips += 1
-            return None
-        close = float(bar.close)
+            return "squeeze"
         if snapshot.ema_slow <= 0:
-            return None
+            return "trend"
         fair_fee = self._fee_round_trip(bar.close, 1)
         if fair_fee <= 0 or snapshot.atr_rub / float(fair_fee) < params.min_atr_to_fee_ratio:
             self.counters.fee_skips += 1
+            return "fee"
+        return None
+
+    def _open_position(
+        self,
+        bar: Bar,
+        side: BreakoutSide,
+        entry_price: Decimal,
+        atr_points: float,
+        note: str,
+    ) -> BreakoutEvent:
+        """Создаёт позицию и возвращает событие входа."""
+        step = float(self._meta.min_price_increment)
+        stop_points = max(
+            self._p.initial_stop_atr_multiple * atr_points,
+            step * max(int(self._p.min_stop_steps), 1),
+        )
+        stop_price = (
+            entry_price - dec(stop_points)
+            if side is BreakoutSide.LONG
+            else entry_price + dec(stop_points)
+        )
+        position = BreakoutPosition(
+            side=side,
+            quantity=1,
+            entry_price=entry_price,
+            entry_ms=bar.time_ms,
+            atr_points=atr_points,
+            stop_price=stop_price,
+            initial_stop=stop_price,
+            fee_round_trip_rub=self._fee_round_trip(entry_price, 1),
+            max_price=entry_price if side is BreakoutSide.LONG else Decimal(0),
+            min_price=entry_price if side is BreakoutSide.SHORT else Decimal(0),
+            entry_bar_index=self._bar_index,
+        )
+        self.position = position
+        self.counters.entries += 1
+        self._armed_side = None
+        return BreakoutEvent(
+            kind="entry",
+            time_ms=bar.time_ms,
+            side=side,
+            price=entry_price,
+            note=f"{note} atr={atr_points:.4f} stop={stop_price}",
+        )
+
+    def _bar_close_entry(
+        self, bar: Bar, snapshot: IndicatorSnapshot, obi: Optional[float]
+    ) -> Optional[BreakoutEvent]:
+        """Классический вход по закрытию бара пробоя (v3.0)."""
+        params = self._p
+        if self._common_setup_ok(bar, snapshot) is not None:
             return None
+        close = float(bar.close)
         step = float(self._meta.min_price_increment)
         buffer_points = step * max(int(params.breakout_buffer_steps), 1)
         volume_ok = float(bar.volume) >= params.volume_multiple * max(snapshot.volume_avg, 1.0)
@@ -521,43 +617,108 @@ class MomentumBreakoutStateMachine:
             if long_break or short_break:
                 self.counters.trend_skips += 1
             return None
-        quantity = 1
-        stop_points = max(
-            params.initial_stop_atr_multiple * snapshot.atr_points,
-            step * max(int(params.min_stop_steps), 1),
-        )
-        stop_price = (
-            bar.close - dec(stop_points)
-            if side is BreakoutSide.LONG
-            else bar.close + dec(stop_points)
-        )
-        fee_rt = self._fee_round_trip(bar.close, quantity)
-        position = BreakoutPosition(
-            side=side,
-            quantity=quantity,
-            entry_price=bar.close,
-            entry_ms=bar.time_ms,
-            atr_points=snapshot.atr_points,
-            stop_price=stop_price,
-            initial_stop=stop_price,
-            fee_round_trip_rub=fee_rt,
-            max_price=bar.high if side is BreakoutSide.LONG else Decimal(0),
-            min_price=bar.low if side is BreakoutSide.SHORT else Decimal(0),
-            entry_bar_index=self._bar_index,
-        )
-        self.position = position
-        self.counters.entries += 1
-        return BreakoutEvent(
-            kind="entry",
-            time_ms=bar.time_ms,
-            side=side,
-            price=bar.close,
+        return self._open_position(
+            bar,
+            side,
+            bar.close,
+            snapshot.atr_points,
             note=(
-                f"squeeze={snapshot.squeeze_ratio:.2f} atr={snapshot.atr_points:.3f} "
-                f"vol×{float(bar.volume) / max(snapshot.volume_avg, 1.0):.2f} "
-                f"stop={stop_price}"
+                f"squeeze={snapshot.squeeze_ratio:.2f} "
+                f"vol×{float(bar.volume) / max(snapshot.volume_avg, 1.0):.2f}"
             ),
         )
+
+    # ------------------------------------------------------------------ вход по касанию уровня
+    def _stop_level_entry(
+        self, bar: Bar, snapshot: IndicatorSnapshot, obi: Optional[float]
+    ) -> Optional[BreakoutEvent]:
+        """Вход стоп-заявкой на `H + 1 шаг` / `L - 1 шаг` по уровню предыдущего бара (v3.1).
+
+        Логика двухфазная: на закрытии бара `t-1` уровень взводится (если выполнены
+        тренд/сжатие/ATR-к-комиссии), на баре `t` проверяется касание. Цена входа —
+        `max(open, trigger)` (LONG) с отсечкой гэпа больше `maxEntryExtensionAtr × ATR`.
+        """
+        params = self._p
+        step = dec(self._meta.min_price_increment)
+        # 1) Проверяем взведённый уровень на текущем баре (до обновления канала этим баром).
+        if self._armed_side is not None:
+            trigger = self._armed_trigger
+            atr_points = self._armed_atr
+            side = self._armed_side
+            limit = (
+                dec(params.max_entry_extension_atr * atr_points)
+                if params.max_entry_extension_atr > 0 and atr_points > 0
+                else dec(atr_points)
+            )
+            touched = bar.high >= trigger if side is BreakoutSide.LONG else bar.low <= trigger
+            if not touched:
+                self._armed_side = None
+            else:
+                gap = bar.open - trigger if side is BreakoutSide.LONG else trigger - bar.open
+                if gap > limit:
+                    self.counters.extension_skips += 1
+                    self._armed_side = None
+                else:
+                    entry_price = (
+                        max(bar.open, trigger) if side is BreakoutSide.LONG else min(bar.open, trigger)
+                    )
+                    ready = self._common_setup_ok(bar, snapshot)
+                    if ready is None:
+                        return self._open_position(
+                            bar,
+                            side,
+                            entry_price,
+                            atr_points,
+                            note=f"squeeze={snapshot.squeeze_ratio:.2f} stoplevel={trigger}",
+                        )
+                    self._armed_side = None
+        # 2) Взводим уровень на следующий бар по закрытию текущего.
+        if not snapshot.ready:
+            return None
+        if self._consecutive_stops >= max(int(params.max_consecutive_stops), 1):
+            return None
+        if params.max_squeeze_ratio > 0 and snapshot.squeeze_ratio > params.max_squeeze_ratio:
+            return None
+        if (
+            params.max_relative_squeeze > 0
+            and snapshot.median_width > 0
+            and snapshot.channel_width > params.max_relative_squeeze * snapshot.median_width
+        ):
+            return None
+        fair_fee = self._fee_round_trip(bar.close, 1)
+        if fair_fee <= 0 or snapshot.atr_rub / float(fair_fee) < params.min_atr_to_fee_ratio:
+            return None
+        close = float(bar.close)
+        if snapshot.ema_slow <= 0:
+            return None
+        # Взводим уровень только после «сильного» бара: объёмный всплеск и закрытие
+        # в направлении пробоя (объём бара исполнения нам неизвестен в момент заявки).
+        if float(bar.volume) < params.volume_multiple * max(snapshot.volume_avg, 1.0):
+            self.counters.volume_skips += 1
+            self._armed_side = None
+            return None
+        buffer_points = dec(
+            float(step) * max(int(params.breakout_buffer_steps), 1)
+        )
+        if close > snapshot.ema_slow and snapshot.ema_fast >= snapshot.ema_slow:
+            if bar.close_position < 1.0 - params.close_in_range:
+                self.counters.wick_skips += 1
+                self._armed_side = None
+                return None
+            self._armed_side = BreakoutSide.LONG
+            self._armed_trigger = dec(snapshot.donchian_high) + buffer_points
+        elif close < snapshot.ema_slow and snapshot.ema_fast <= snapshot.ema_slow:
+            if bar.close_position > params.close_in_range:
+                self.counters.wick_skips += 1
+                self._armed_side = None
+                return None
+            self._armed_side = BreakoutSide.SHORT
+            self._armed_trigger = dec(snapshot.donchian_low) - buffer_points
+        else:
+            self._armed_side = None
+        self._armed_atr = snapshot.atr_points
+        self._armed_bar_ms = bar.time_ms
+        return None
 
     # ------------------------------------------------------------------ ведение позиции
     def _manage(self, bar: Bar, snapshot: IndicatorSnapshot) -> List[BreakoutEvent]:
@@ -617,6 +778,13 @@ class MomentumBreakoutStateMachine:
                 else bar.high >= position.stop_price
             )
             if hit:
+                # Гэп через стоп (актуально для переноса через ночь) исполняется по open.
+                if position.side is BreakoutSide.LONG and bar.open < position.stop_price:
+                    fill = bar.open
+                elif position.side is BreakoutSide.SHORT and bar.open > position.stop_price:
+                    fill = bar.open
+                else:
+                    fill = position.stop_price
                 reason = (
                     BreakoutExitReason.BREAKEVEN_STOP
                     if position.breakeven_done and position.mfe_points < params.trail_trigger_atr * atr
@@ -626,9 +794,7 @@ class MomentumBreakoutStateMachine:
                         else BreakoutExitReason.HARD_STOP
                     )
                 )
-                events.append(
-                    self._close(position, position.stop_price, bar.time_ms, reason, bar)
-                )
+                events.append(self._close(position, fill, bar.time_ms, reason, bar))
                 return events
         # 4) Тейк-профит.
         if params.take_profit_atr > 0:
@@ -651,8 +817,13 @@ class MomentumBreakoutStateMachine:
         # 5) Неудавшийся пробой: 12 минут без +0.6 ATR и в минусе.
         held_minutes = (bar.time_ms - position.entry_ms) / 60_000.0
         unrealized = position.unrealized_points(bar.close)
+        fail_after = float(params.failed_breakout_minutes)
+        if params.failed_breakout_bars > 0:
+            # На старших таймфреймах порог задаётся в барах: 12 минут на 60-мин баре
+            # означали бы выход на первом же баре после входа.
+            fail_after = max(fail_after, params.failed_breakout_bars * self._bar_minutes)
         if (
-            held_minutes >= params.failed_breakout_minutes
+            held_minutes >= fail_after
             and position.mfe_points < params.failed_breakout_profit_atr * atr
             and unrealized < 0
         ):
@@ -660,9 +831,33 @@ class MomentumBreakoutStateMachine:
                 self._close(position, bar.close, bar.time_ms, BreakoutExitReason.FAILED_BREAKOUT, bar)
             )
             return events
-        # 6) Закрытие сессии.
+        # 6) Срез «проигрышных» позиций перед клирингом и лимит времени удержания (v3.1).
         moment = datetime.fromtimestamp(bar.time_ms / 1000, tz=MSK)
-        if moment.hour * 60 + moment.minute >= self._trade_until:
+        minute_of_day = moment.hour * 60 + moment.minute
+        bars_held = max(
+            int(round((bar.time_ms - position.entry_ms) / max(self._bar_minutes * 60_000, 1))), 0
+        )
+        if params.max_hold_hours > 0 and held_minutes >= params.max_hold_hours * 60.0:
+            events.append(
+                self._close(position, bar.close, bar.time_ms, BreakoutExitReason.MAX_HOLD, bar)
+            )
+            return events
+        if params.allow_overnight_hold and params.close_losers_before_clearing:
+            for cutoff in self._clearing_minutes:
+                key = (moment.date(), cutoff)
+                if cutoff <= minute_of_day < cutoff + max(self._bar_minutes, 1) and (
+                    key not in self._loser_cuts
+                ):
+                    self._loser_cuts.add(key)
+                    if unrealized < 0 and bars_held >= max(int(params.loser_close_bars), 1):
+                        events.append(
+                            self._close(
+                                position, bar.close, bar.time_ms, BreakoutExitReason.CLEARING, bar
+                            )
+                        )
+                        return events
+        # 7) Закрытие сессии — только в интрадей-режиме (без переноса через ночь).
+        if not params.allow_overnight_hold and minute_of_day >= self._trade_until:
             events.append(
                 self._close(position, bar.close, bar.time_ms, BreakoutExitReason.SESSION_CLOSE, bar)
             )

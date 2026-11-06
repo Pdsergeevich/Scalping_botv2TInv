@@ -187,6 +187,29 @@ class BreakoutResult:
             {datetime.fromtimestamp(trade.entry_ms / 1000, tz=MSK).date() for trade in self.trades}
         )
 
+    def daily_pnl(self) -> Dict[date, float]:
+        """Реализованный PnL по дням закрытия сделок (MSK)."""
+        result: Dict[date, float] = {}
+        for trade in self.trades:
+            day = datetime.fromtimestamp(trade.exit_ms / 1000, tz=MSK).date()
+            result[day] = result.get(day, 0.0) + trade.net_rub
+        return result
+
+    def sharpe(self, capital: float, trading_days_per_year: int = 252) -> Optional[float]:
+        """Годовой Sharpe по дневным доходностям капитала (0 = нет сделок в этот день)."""
+        if capital <= 0 or not self.trades:
+            return None
+        curve = self.daily_pnl()
+        if len(curve) < 3:
+            return None
+        returns = [value / capital for value in curve.values()]
+        mean = statistics.fmean(returns)
+        sigma = statistics.pstdev(returns) if len(returns) > 1 else 0.0
+        if sigma <= 1e-12:
+            return None
+        # Дни без сделок дают нулевую доходность — они тоже часть ряда (честнее для Sharpe).
+        return mean / sigma * (trading_days_per_year ** 0.5)
+
     def annualized_pct(self, capital: float) -> float:
         """Годовая доходность по сложному проценту за фактический период данных."""
         if capital <= 0 or self.first_ms <= 0 or self.last_ms <= self.first_ms:
@@ -220,6 +243,7 @@ class BreakoutResult:
             "avgHoldMinutes": round(self.avg_hold_minutes, 1),
             "bestTrade": round(self.best_trade, 2),
             "worstTrade": round(self.worst_trade, 2),
+            "sharpe": None if self.sharpe(capital) is None else round(self.sharpe(capital), 2),
             "counters": dict(self.counters),
         }
 
@@ -414,3 +438,59 @@ def aggregate(results: Sequence[BreakoutResult], capital: float) -> Dict[str, ob
     summary = combined.summary(capital)
     summary["tickers"] = [result.ticker for result in results]
     return summary
+
+
+def portfolio_curve(
+    results: Sequence[BreakoutResult], capital: float
+) -> Dict[str, object]:
+    """Объединённая кривая эквити портфеля: сделки всех инструментов по времени выхода.
+
+    Возвращает точки ``[(дата, накопленный PnL)]`` (по дню закрытия) и статистику:
+    Net, Max DD в рублях и процентах капитала, Sharpe по дневным доходностям.
+    """
+    daily: Dict[date, float] = {}
+    for result in results:
+        for day, value in result.daily_pnl().items():
+            daily[day] = daily.get(day, 0.0) + value
+    if not daily:
+        return {
+            "points": [],
+            "netRub": 0.0,
+            "maxDrawdownRub": 0.0,
+            "maxDrawdownPct": 0.0,
+            "sharpe": None,
+            "days": 0,
+            "bestDay": 0.0,
+            "worstDay": 0.0,
+        }
+    points: List[Tuple[str, float]] = []
+    total = 0.0
+    peak = 0.0
+    worst = 0.0
+    for day in sorted(daily):
+        total += daily[day]
+        peak = max(peak, total)
+        worst = max(worst, peak - total)
+        points.append((day.isoformat(), round(total, 2)))
+    values = [daily[day] / capital for day in sorted(daily)] if capital > 0 else []
+    sharpe = None
+    if len(values) >= 3:
+        mean = statistics.fmean(values)
+        sigma = statistics.pstdev(values)
+        if sigma > 1e-12:
+            sharpe = mean / sigma * (252 ** 0.5)
+    monthly: Dict[str, float] = {}
+    for day, value in daily.items():
+        key = f"{day.year}-{day.month:02d}"
+        monthly[key] = monthly.get(key, 0.0) + value
+    return {
+        "points": points,
+        "monthly": {key: round(value, 2) for key, value in sorted(monthly.items())},
+        "netRub": round(sum(daily.values()), 2),
+        "maxDrawdownRub": round(worst, 2),
+        "maxDrawdownPct": round(worst / capital * 100.0, 2) if capital > 0 else 0.0,
+        "sharpe": None if sharpe is None else round(sharpe, 2),
+        "days": len(daily),
+        "bestDay": round(max(daily.values()), 2),
+        "worstDay": round(min(daily.values()), 2),
+    }

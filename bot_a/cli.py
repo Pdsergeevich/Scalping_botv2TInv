@@ -73,7 +73,27 @@ def build_parser() -> argparse.ArgumentParser:
         dest="bar_minutes",
         type=int,
         default=1,
-        help="таймфрейм пробойной стратегии в минутах (1 по умолчанию; отчёт v3.0 рекомендует 15)",
+        help="таймфрейм пробойной стратегии в минутах (1 по умолчанию; v3.1 рекомендует 30)",
+    )
+    parser.add_argument(
+        "--entry-mode",
+        dest="entry_mode",
+        default=None,
+        choices=["bar_close", "stop_level"],
+        help="вход по закрытию бара пробоя или по касанию уровня H+1 шаг (v3.1)",
+    )
+    parser.add_argument(
+        "--overnight",
+        dest="overnight",
+        action="store_true",
+        default=None,
+        help="разрешить перенос позиции через вечернюю сессию и ночь (v3.1)",
+    )
+    parser.add_argument(
+        "--no-overnight",
+        dest="overnight",
+        action="store_false",
+        help="только интрадей: закрывать позиции в 18:35 MSK",
     )
     parser.add_argument(
         "--capital",
@@ -348,7 +368,22 @@ async def _dispatch_breakout(args: argparse.Namespace, config: AppConfig, logger
             "Не задан инструмент: укажите --ticker (например CNYRUBF) или activeBreakout в конфиге"
         )
         return 2
-    params = config.breakout(ticker)
+    params = config.breakout(ticker) if ticker in config.breakout_names() else None
+    if params is None:
+        from bot_a.engine.breakout_fsm import BreakoutParams
+
+        params = BreakoutParams()
+        logger.warning(
+            "Для %s нет пресета в breakoutPresets — использую параметры по умолчанию", ticker
+        )
+    overrides = {}
+    if getattr(args, "entry_mode", None):
+        overrides["entry_mode"] = args.entry_mode
+    if getattr(args, "overnight", None) is not None:
+        overrides["allow_overnight_hold"] = bool(args.overnight)
+        overrides["close_losers_before_clearing"] = bool(args.overnight)
+    if overrides:
+        params = params.overrides(**overrides)
     try:
         meta = await asyncio.to_thread(fetch_futures_metadata, ticker)
     except Exception as exc:  # noqa: BLE001 — метаданные FORTS обязательны
@@ -363,7 +398,8 @@ async def _dispatch_breakout(args: argparse.Namespace, config: AppConfig, logger
     source = IssCandleSource(config.path(config.storage.data_cache_dir))
     bar_minutes = max(int(getattr(args, "bar_minutes", 1) or 1), 1)
     logger.info(
-        "Пробой %s: шаг %s, 1 шаг = %s RUB, ГО %s RUB, капитал %.0f RUB, тариф %s, бары %d мин",
+        "Пробой %s: шаг %s, 1 шаг = %s RUB, ГО %s RUB, капитал %.0f RUB, тариф %s, бары %d мин, "
+        "вход %s, ночь %s",
         ticker,
         meta.min_price_increment,
         meta.min_price_increment_amount,
@@ -371,6 +407,8 @@ async def _dispatch_breakout(args: argparse.Namespace, config: AppConfig, logger
         settings.capital_rub,
         config.fees.tariff.value,
         bar_minutes,
+        params.entry_mode,
+        "да" if params.allow_overnight_hold else "нет",
     )
 
     if args.mode == "backtest":
@@ -466,7 +504,7 @@ async def _dispatch_breakout(args: argparse.Namespace, config: AppConfig, logger
 def _render_breakout(summary: dict) -> str:
     pf = summary["profitFactor"]
     lines = [
-        f"=== Пробой v3.0: {summary['ticker']} ===",
+        f"=== Пробой v3.1: {summary['ticker']} ===",
         f"Баров: {summary['bars']}  Сделок: {summary['trades']} в {summary['days']} днях",
         f"Net PnL: {summary['netRub']:+.2f} RUB (gross {summary['grossRub']:+.2f}, "
         f"комиссии {summary['feesRub']:.2f})",
@@ -484,7 +522,7 @@ def _render_breakout(summary: dict) -> str:
 def _render_live(summary: dict) -> str:
     net = summary["net"]
     lines = [
-        f"=== Пробой v3.0 (live): {summary['ticker']} ===",
+        f"=== Пробой v3.1 (live): {summary['ticker']} ===",
         f"Баров: {summary['bars']}  Сделок: {net['trades']}",
         f"Реализовано: {net['realizedRub']:+.2f} RUB  Нереализовано: {net['unrealizedRub']:+.2f} RUB",
         f"Комиссии: {net['feesRub']:.2f} RUB  Итог: {summary['netRub']:+.2f} RUB",

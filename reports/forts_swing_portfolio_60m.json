@@ -1,0 +1,593 @@
+{
+  "params": {
+    "donchian_bars": 20,
+    "atr_bars": 15,
+    "squeeze_median_bars": 120,
+    "max_squeeze_ratio": 1.6,
+    "max_relative_squeeze": 0.0,
+    "ema_fast_bars": 20,
+    "ema_slow_bars": 90,
+    "volume_lookback": 20,
+    "volume_multiple": 1.5,
+    "close_in_range": 0.3,
+    "min_atr_to_fee_ratio": 2.5,
+    "obi_long_threshold": 0.2,
+    "obi_short_threshold": -0.2,
+    "breakout_buffer_steps": 1,
+    "max_entry_extension_atr": 0.35,
+    "entry_mode": "bar_close",
+    "allow_overnight_hold": true,
+    "close_losers_before_clearing": true,
+    "loser_close_bars": 2,
+    "max_hold_hours": 0.0,
+    "clearing_close": "18:40,23:40",
+    "session_windows": "10:15-13:45,14:10-18:35,19:10-22:30",
+    "trade_until": "18:35",
+    "initial_stop_atr_multiple": 1.5,
+    "min_stop_steps": 6,
+    "failed_breakout_minutes": 0,
+    "failed_breakout_bars": 2,
+    "failed_breakout_profit_atr": 0.6,
+    "breakeven_trigger_atr": 2.0,
+    "breakeven_fee_multiple": 1.5,
+    "breakeven_lock_atr": 1.0,
+    "trail_trigger_atr": 1.5,
+    "trail_atr_multiple": 2.5,
+    "take_profit_atr": 5.0,
+    "max_consecutive_stops": 2,
+    "cooldown_minutes": 45,
+    "slippage_steps": 1
+  },
+  "barMinutes": 60,
+  "entryMode": "bar_close",
+  "overnight": true,
+  "variant": "tight",
+  "capital": 50000.0,
+  "riskPct": 1.5,
+  "tickers": [
+    "CNYRUBF",
+    "GLDRUBF"
+  ],
+  "periods": {
+    "oos": {
+      "perTicker": [
+        {
+          "ticker": "CNYRUBF",
+          "bars": 1052,
+          "trades": 1,
+          "days": 1,
+          "netRub": -63.92,
+          "grossRub": -35.0,
+          "feesRub": 28.92,
+          "winRate": 0.0,
+          "profitFactor": 0.0,
+          "avgWinner": 0.0,
+          "avgLoser": -63.92,
+          "payoff": 0.0,
+          "maxDrawdownRub": 63.92,
+          "maxDrawdownPct": 0.26,
+          "returnPct": -0.26,
+          "annualizedPct": -1.04,
+          "avgHoldMinutes": 180.0,
+          "bestTrade": -63.92,
+          "worstTrade": -63.92,
+          "sharpe": null,
+          "counters": {
+            "signals": 1011,
+            "entries": 1,
+            "exits": 1,
+            "squeezeSkips": 76,
+            "trendSkips": 6,
+            "volumeSkips": 11,
+            "wickSkips": 3,
+            "obiSkips": 0,
+            "feeSkips": 0,
+            "windowSkips": 386,
+            "cooldownSkips": 0,
+            "extensionSkips": 37
+          }
+        },
+        {
+          "ticker": "GLDRUBF",
+          "bars": 1277,
+          "trades": 5,
+          "days": 5,
+          "netRub": 570.63,
+          "grossRub": 667.05,
+          "feesRub": 96.41,
+          "winRate": 0.4,
+          "profitFactor": 1.848,
+          "avgWinner": 621.62,
+          "avgLoser": -224.2,
+          "payoff": 2.773,
+          "maxDrawdownRub": 343.78,
+          "maxDrawdownPct": 1.38,
+          "returnPct": 2.28,
+          "annualizedPct": 9.45,
+          "avgHoldMinutes": 360.0,
+          "bestTrade": 1065.42,
+          "worstTrade": -328.83,
+          "sharpe": 3.59,
+          "counters": {
+            "signals": 1221,
+            "entries": 5,
+            "exits": 5,
+            "squeezeSkips": 108,
+            "trendSkips": 19,
+            "volumeSkips": 8,
+            "wickSkips": 7,
+            "obiSkips": 0,
+            "feeSkips": 0,
+            "windowSkips": 433,
+            "cooldownSkips": 2,
+            "extensionSkips": 52
+          }
+        }
+      ],
+      "portfolio": {
+        "ticker": "PORTFOLIO",
+        "bars": 2329,
+        "trades": 6,
+        "days": 6,
+        "netRub": 506.72,
+        "grossRub": 632.05,
+        "feesRub": 125.33,
+        "winRate": 0.3333,
+        "profitFactor": 1.688,
+        "avgWinner": 621.62,
+        "avgLoser": -184.13,
+        "payoff": 3.376,
+        "maxDrawdownRub": 392.75,
+        "maxDrawdownPct": 0.79,
+        "returnPct": 1.01,
+        "annualizedPct": 4.11,
+        "avgHoldMinutes": 330.0,
+        "bestTrade": 1065.42,
+        "worstTrade": -328.83,
+        "sharpe": 2.88,
+        "counters": {},
+        "tickers": [
+          "CNYRUBF",
+          "GLDRUBF"
+        ]
+      },
+      "curve": {
+        "points": [
+          [
+            "2026-04-29",
+            177.83
+          ],
+          [
+            "2026-05-27",
+            52.0
+          ],
+          [
+            "2026-05-28",
+            -165.96
+          ],
+          [
+            "2026-06-10",
+            899.46
+          ],
+          [
+            "2026-07-08",
+            570.63
+          ],
+          [
+            "2026-07-16",
+            506.72
+          ]
+        ],
+        "monthly": {
+          "2026-04": 177.83,
+          "2026-05": -343.78,
+          "2026-06": 1065.42,
+          "2026-07": -392.75
+        },
+        "netRub": 506.72,
+        "maxDrawdownRub": 392.75,
+        "maxDrawdownPct": 0.79,
+        "sharpe": 2.88,
+        "days": 6,
+        "bestDay": 1065.42,
+        "worstDay": -328.83
+      }
+    },
+    "is": {
+      "perTicker": [
+        {
+          "ticker": "CNYRUBF",
+          "bars": 1545,
+          "trades": 8,
+          "days": 8,
+          "netRub": 2074.18,
+          "grossRub": 2456.16,
+          "feesRub": 381.98,
+          "winRate": 0.5,
+          "profitFactor": 2.464,
+          "avgWinner": 872.77,
+          "avgLoser": -354.22,
+          "payoff": 2.464,
+          "maxDrawdownRub": 1004.66,
+          "maxDrawdownPct": 4.02,
+          "returnPct": 8.3,
+          "annualizedPct": 32.27,
+          "avgHoldMinutes": 1237.5,
+          "bestTrade": 1189.92,
+          "worstTrade": -417.84,
+          "sharpe": 6.03,
+          "counters": {
+            "signals": 1433,
+            "entries": 8,
+            "exits": 8,
+            "squeezeSkips": 98,
+            "trendSkips": 10,
+            "volumeSkips": 10,
+            "wickSkips": 8,
+            "obiSkips": 0,
+            "feeSkips": 54,
+            "windowSkips": 579,
+            "cooldownSkips": 3,
+            "extensionSkips": 50
+          }
+        },
+        {
+          "ticker": "GLDRUBF",
+          "bars": 1547,
+          "trades": 9,
+          "days": 9,
+          "netRub": 173.25,
+          "grossRub": 434.66,
+          "feesRub": 261.41,
+          "winRate": 0.3333,
+          "profitFactor": 1.106,
+          "avgWinner": 605.06,
+          "avgLoser": -273.66,
+          "payoff": 2.211,
+          "maxDrawdownRub": 1499.89,
+          "maxDrawdownPct": 6.0,
+          "returnPct": 0.69,
+          "annualizedPct": 2.44,
+          "avgHoldMinutes": 740.0,
+          "bestTrade": 1166.14,
+          "worstTrade": -383.94,
+          "sharpe": 0.63,
+          "counters": {
+            "signals": 1447,
+            "entries": 9,
+            "exits": 9,
+            "squeezeSkips": 94,
+            "trendSkips": 5,
+            "volumeSkips": 16,
+            "wickSkips": 8,
+            "obiSkips": 0,
+            "feeSkips": 0,
+            "windowSkips": 602,
+            "cooldownSkips": 4,
+            "extensionSkips": 63
+          }
+        }
+      ],
+      "portfolio": {
+        "ticker": "PORTFOLIO",
+        "bars": 3092,
+        "trades": 17,
+        "days": 16,
+        "netRub": 2247.43,
+        "grossRub": 2890.82,
+        "feesRub": 643.38,
+        "winRate": 0.4118,
+        "profitFactor": 1.735,
+        "avgWinner": 758.04,
+        "avgLoser": -305.88,
+        "payoff": 2.478,
+        "maxDrawdownRub": 915.59,
+        "maxDrawdownPct": 1.83,
+        "returnPct": 4.49,
+        "annualizedPct": 16.62,
+        "avgHoldMinutes": 974.1,
+        "bestTrade": 1189.92,
+        "worstTrade": -417.84,
+        "sharpe": 3.72,
+        "counters": {},
+        "tickers": [
+          "CNYRUBF",
+          "GLDRUBF"
+        ]
+      },
+      "curve": {
+        "points": [
+          [
+            "2026-08-12",
+            178.49
+          ],
+          [
+            "2026-08-18",
+            -21.87
+          ],
+          [
+            "2026-08-21",
+            -434.11
+          ],
+          [
+            "2026-08-27",
+            755.81
+          ],
+          [
+            "2026-09-07",
+            371.86
+          ],
+          [
+            "2026-09-10",
+            1409.2
+          ],
+          [
+            "2026-09-24",
+            1214.14
+          ],
+          [
+            "2026-09-30",
+            838.41
+          ],
+          [
+            "2026-10-06",
+            493.61
+          ],
+          [
+            "2026-10-14",
+            1659.75
+          ],
+          [
+            "2026-10-15",
+            1827.39
+          ],
+          [
+            "2026-10-22",
+            2781.52
+          ],
+          [
+            "2026-10-26",
+            2598.64
+          ],
+          [
+            "2026-10-29",
+            2180.8
+          ],
+          [
+            "2026-11-02",
+            2651.37
+          ],
+          [
+            "2026-11-05",
+            2247.43
+          ]
+        ],
+        "monthly": {
+          "2026-08": 755.81,
+          "2026-09": 82.6,
+          "2026-10": 1342.39,
+          "2026-11": 66.64
+        },
+        "netRub": 2247.43,
+        "maxDrawdownRub": 915.59,
+        "maxDrawdownPct": 1.83,
+        "sharpe": 3.72,
+        "days": 16,
+        "bestDay": 1189.92,
+        "worstDay": -417.84
+      }
+    },
+    "full": {
+      "perTicker": [
+        {
+          "ticker": "CNYRUBF",
+          "bars": 2584,
+          "trades": 9,
+          "days": 9,
+          "netRub": 2010.27,
+          "grossRub": 2421.16,
+          "feesRub": 410.89,
+          "winRate": 0.4444,
+          "profitFactor": 2.358,
+          "avgWinner": 872.77,
+          "avgLoser": -296.16,
+          "payoff": 2.947,
+          "maxDrawdownRub": 1004.66,
+          "maxDrawdownPct": 4.02,
+          "returnPct": 8.04,
+          "annualizedPct": 15.8,
+          "avgHoldMinutes": 1120.0,
+          "bestTrade": 1189.92,
+          "worstTrade": -417.84,
+          "sharpe": 5.44,
+          "counters": {
+            "signals": 2470,
+            "entries": 9,
+            "exits": 9,
+            "squeezeSkips": 174,
+            "trendSkips": 16,
+            "volumeSkips": 21,
+            "wickSkips": 11,
+            "obiSkips": 0,
+            "feeSkips": 55,
+            "windowSkips": 973,
+            "cooldownSkips": 3,
+            "extensionSkips": 88
+          }
+        },
+        {
+          "ticker": "GLDRUBF",
+          "bars": 2811,
+          "trades": 14,
+          "days": 14,
+          "netRub": 743.88,
+          "grossRub": 1101.7,
+          "feesRub": 357.82,
+          "winRate": 0.3571,
+          "profitFactor": 1.321,
+          "avgWinner": 611.69,
+          "avgLoser": -257.17,
+          "payoff": 2.379,
+          "maxDrawdownRub": 1650.23,
+          "maxDrawdownPct": 6.6,
+          "returnPct": 2.98,
+          "annualizedPct": 5.65,
+          "avgHoldMinutes": 604.3,
+          "bestTrade": 1166.14,
+          "worstTrade": -383.94,
+          "sharpe": 1.71,
+          "counters": {
+            "signals": 2694,
+            "entries": 14,
+            "exits": 14,
+            "squeezeSkips": 204,
+            "trendSkips": 25,
+            "volumeSkips": 24,
+            "wickSkips": 15,
+            "obiSkips": 0,
+            "feeSkips": 0,
+            "windowSkips": 1043,
+            "cooldownSkips": 6,
+            "extensionSkips": 116
+          }
+        }
+      ],
+      "portfolio": {
+        "ticker": "PORTFOLIO",
+        "bars": 5395,
+        "trades": 23,
+        "days": 22,
+        "netRub": 2754.15,
+        "grossRub": 3522.86,
+        "feesRub": 768.71,
+        "winRate": 0.3913,
+        "profitFactor": 1.726,
+        "avgWinner": 727.72,
+        "avgLoser": -271.1,
+        "payoff": 2.684,
+        "maxDrawdownRub": 915.59,
+        "maxDrawdownPct": 1.83,
+        "returnPct": 5.51,
+        "annualizedPct": 10.57,
+        "avgHoldMinutes": 806.1,
+        "bestTrade": 1189.92,
+        "worstTrade": -417.84,
+        "sharpe": 3.51,
+        "counters": {},
+        "tickers": [
+          "CNYRUBF",
+          "GLDRUBF"
+        ]
+      },
+      "curve": {
+        "points": [
+          [
+            "2026-04-29",
+            177.83
+          ],
+          [
+            "2026-05-27",
+            52.0
+          ],
+          [
+            "2026-05-28",
+            -165.96
+          ],
+          [
+            "2026-06-10",
+            899.46
+          ],
+          [
+            "2026-07-08",
+            570.63
+          ],
+          [
+            "2026-07-16",
+            506.72
+          ],
+          [
+            "2026-08-12",
+            685.2
+          ],
+          [
+            "2026-08-18",
+            484.85
+          ],
+          [
+            "2026-08-21",
+            72.6
+          ],
+          [
+            "2026-08-27",
+            1262.52
+          ],
+          [
+            "2026-09-07",
+            878.58
+          ],
+          [
+            "2026-09-10",
+            1915.92
+          ],
+          [
+            "2026-09-24",
+            1720.86
+          ],
+          [
+            "2026-09-30",
+            1345.12
+          ],
+          [
+            "2026-10-06",
+            1000.33
+          ],
+          [
+            "2026-10-14",
+            2166.46
+          ],
+          [
+            "2026-10-15",
+            2334.1
+          ],
+          [
+            "2026-10-22",
+            3288.24
+          ],
+          [
+            "2026-10-26",
+            3105.36
+          ],
+          [
+            "2026-10-29",
+            2687.52
+          ],
+          [
+            "2026-11-02",
+            3158.09
+          ],
+          [
+            "2026-11-05",
+            2754.15
+          ]
+        ],
+        "monthly": {
+          "2026-04": 177.83,
+          "2026-05": -343.78,
+          "2026-06": 1065.42,
+          "2026-07": -392.75,
+          "2026-08": 755.81,
+          "2026-09": 82.6,
+          "2026-10": 1342.39,
+          "2026-11": 66.64
+        },
+        "netRub": 2754.15,
+        "maxDrawdownRub": 915.59,
+        "maxDrawdownPct": 1.83,
+        "sharpe": 3.51,
+        "days": 22,
+        "bestDay": 1189.92,
+        "worstDay": -417.84
+      }
+    }
+  }
+}
