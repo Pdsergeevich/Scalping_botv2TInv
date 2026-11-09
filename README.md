@@ -1272,3 +1272,41 @@ Engine C (фейд) намеренно без фильтра.
 
 Цель `+25 000…+40 000 ₽` не достигнута: лучший честный результат — `+19 117 ₽` (30m, 2 месяца
 в плюсе) либо `+14 040 ₽` с пятью положительными месяцами (60m). Тесты: **404 passed**.
+
+## 23. Как запустить v4.5 и смотреть работу бота
+
+Настройки берутся из `appsettings.json` (`swingBasket` + `swingPortfolio`), флаги CLI имеют приоритет.
+Таймфрейм v4.5 — **60 мин** (`swingPortfolio.barMinutes`), риск `1.0 %`, 4 риск-слота, `Top-6` пар.
+Корзина `*_CONT` в live/paper/watch автоматически резолвится в активный фронт-контракт
+(`Eu_CONT → EuZ6`, `GAZR_CONT → GZZ6`, …).
+
+```bash
+# 1) Проверка окружения (счёт, ГО, тариф, торговый статус)
+py -3 -m bot_a --mode preflight --monday-ready
+
+# 2) История: что и где бот входил/выходил за период
+py -3 -m bot_a --mode backtest --strategy breakout --ticker ALL_SWING     --from 2026-04-25 --to 2026-11-05 --charts
+
+# 3) Живое наблюдение без денег (dry-run, реальные котировки MOEX ISS, токен не нужен)
+py -3 -m bot_a --mode watch --strategy breakout --ticker ALL_SWING --duration 3600 --log-level Debug
+
+# 4) Симуляция исполнения (полные комиссии/слиппедж, ордера не отправляются)
+py -3 -m bot_a --mode paper --strategy breakout --ticker ALL_SWING --duration 3600
+
+# 5) Реальная торговля (только осознанно, нужен доступ к счёту)
+py -3 -m bot_a --mode live --strategy breakout --ticker ALL_SWING --yes
+```
+
+**Где смотреть входы и выходы**
+
+| Что | Где |
+|---|---|
+| Онлайн-события в консоли | строки `Свинг-корзина <тикер>: ВХОД Long 3 x 87 500 (стоп 86 900, ATR 620, ГО 12 000 ₽)` и `…: ВЫХОД Long по 88 800 (TrailStop) нетто +312.40 ₽` |
+| Файл лога (с Debug) | `logs/bot_a.log` — `Get-Content logs\bot_a.log -Wait -Tail 50` |
+| Журнал сделок JSONL | `reports/swing_basket_<дата>_<время>.jsonl` — по строке на `entry`/`partial`/`exit` с ценой входа/выхода, стопом, причиной (`HardStop`, `TrailStop`, `MomentumStall`, `RollSwitch`, `TakeProfit`), комиссиями, `netRub`, `holdMin` |
+| Открытые позиции и эквити | `state/swing_positions.json` (переживает перезапуск; удалите файл, чтобы начать с чистого счёта) |
+| Итог прогона | консольный блок `=== Свинг-корзина (watch/paper) ===` + JSON в `reports/`, графики при `--charts` (`reports/charts/<префикс>/`) |
+
+Причины выхода: `HardStop`/`SoftStop`/`BreakevenStop`/`MomentumStall` (стопы), `TrailStop`
+(Chandelier), `TakeProfit`, `RollSwitch` (переключение контракта `*_CONT`), `SessionClose`,
+`MaxHold`, `DataEnd`.

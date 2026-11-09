@@ -158,6 +158,11 @@ class SwingBasketRunner:
         self._trades: List[BreakoutTrade] = []
         self._started_ms = int(datetime.now(tz=MSK).timestamp() * 1000)
         self._last_ms: Dict[str, int] = {}
+        self._journal = Path(self._settings.journal_path) if self._settings.journal_path else None
+        if self._journal is not None:
+            self._journal.parent.mkdir(parents=True, exist_ok=True)
+            # Файл создаём сразу: его можно `tail -f` ещё до первой сделки.
+            self._journal.touch(exist_ok=True)
         for meta, params in instruments:
             self._register(meta, params)
 
@@ -398,6 +403,18 @@ class SwingBasketRunner:
             margin_rub=margin,
             entry_fee=entry_fee,
         )
+        self._write_journal(
+            "entry",
+            ticker,
+            time_ms=event.time_ms,
+            side=event.side.value,
+            qty=int(quantity),
+            price=fill,
+            stop=stop,
+            atr=round(position.atr_points, 4),
+            marginRub=round(margin, 2),
+            note=str(event.note or ""),
+        )
         if self._log is not None:
             self._log.info(
                 "Свинг-корзина %s: ВХОД %s %d x %s (стоп %s, ATR %s, ГО %.0f ₽)",
@@ -429,6 +446,15 @@ class SwingBasketRunner:
         position.margin_rub -= share_margin
         position.entry_fee -= share_fee
         self._fees_paid += float(exit_fee)
+        self._write_journal(
+            "partial",
+            ticker,
+            time_ms=event.time_ms,
+            side=event.side.value,
+            qty=int(closed),
+            price=exit_price,
+            reason=getattr(event.reason, "value", str(event.reason)),
+        )
         if self._log is not None:
             self._log.info(
                 "Свинг-корзина %s: ЧАСТИЧНО закрыто %d, осталось %d",
@@ -454,6 +480,23 @@ class SwingBasketRunner:
             ticker, position, event, exit_price, position.quantity, gross, fees
         )
         self._positions.pop(ticker, None)
+        self._write_journal(
+            "exit",
+            ticker,
+            time_ms=event.time_ms,
+            side=event.side.value,
+            qty=int(position.quantity),
+            entry=position.entry_price,
+            entryMs=position.entry_ms,
+            price=exit_price,
+            stop=position.stop_price,
+            reason=trade.reason.value,
+            grossRub=round(gross, 2),
+            feesRub=round(fees, 2),
+            netRub=round(trade.net_rub, 2),
+            mfe=round(position.mfe_points, 4),
+            holdMin=round(trade.hold_minutes, 1),
+        )
         if self._log is not None:
             self._log.info(
                 "Свинг-корзина %s: ВЫХОД %s по %s (%s) нетто %+.2f ₽",
@@ -495,6 +538,29 @@ class SwingBasketRunner:
         self._realized += net
         self._equity += net
         return trade
+
+    def _write_journal(self, kind: str, ticker: str, **fields: Any) -> None:
+        """JSONL-журнал сделок: одна строка на вход/частичное закрытие/выход."""
+        if self._journal is None:
+            return
+        moment = int(fields.get("time_ms") or datetime.now(tz=MSK).timestamp() * 1000)
+        record: Dict[str, Any] = {
+            "ts": moment,
+            "iso": datetime.fromtimestamp(moment / 1000, tz=MSK).isoformat(timespec="seconds"),
+            "kind": kind,
+            "ticker": ticker,
+            "dryRun": bool(self._settings.dry_run),
+            "equity": round(self._equity, 2),
+        }
+        for key, value in fields.items():
+            if key == "time_ms":
+                continue
+            record[key] = float(value) if isinstance(value, Decimal) else value
+        try:
+            with self._journal.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+        except OSError:  # журнал не должен ронять торговлю
+            pass
 
     # ------------------------------------------------------------------ расчёты
     def _round_trip_fee(self, meta: InstrumentMetadata, price: Decimal, quantity: int) -> Decimal:

@@ -78,8 +78,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--bar-minutes",
         dest="bar_minutes",
         type=int,
-        default=1,
-        help="таймфрейм пробойной стратегии в минутах (1 по умолчанию; v3.1 рекомендует 30)",
+        default=None,
+        help=(
+            "таймфрейм пробойной стратегии в минутах; по умолчанию из swingPortfolio"
+            ".barMinutes (v4.5: 60), иначе 1"
+        ),
     )
     parser.add_argument(
         "--entry-mode",
@@ -406,7 +409,11 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
     if not tickers:
         logger.error("Корзина свинга пуста: заполните swingBasket или breakoutPresets")
         return 2
-    bar_minutes = max(int(getattr(args, "bar_minutes", 1) or 1), 1)
+    # Порядок: явный --bar-minutes → swingPortfolio.barMinutes → 30 (рекомендация v3.1+).
+    bar_minutes = int(
+        getattr(args, "bar_minutes", None) or config.swing_setting("bar_minutes", 30) or 30
+    )
+    bar_minutes = max(bar_minutes, 1)
     capital = float(getattr(args, "capital", 50_000.0) or 50_000.0)
     # Приоритет: явный флаг CLI → блок swingPortfolio из appsettings → дефолт.
     risk = float(
@@ -719,7 +726,7 @@ async def _dispatch_breakout(args: argparse.Namespace, config: AppConfig, logger
         margin_safety_buffer_pct=config.risk.margin_safety_buffer_pct,
     )
     source = IssCandleSource(cache_dir)
-    bar_minutes = max(int(getattr(args, "bar_minutes", 1) or 1), 1)
+    bar_minutes = max(int(getattr(args, "bar_minutes", None) or 1), 1)
     logger.info(
         "Пробой %s: шаг %s, 1 шаг = %s RUB, ГО %s RUB, капитал %.0f RUB, тариф %s, бары %d мин, "
         "вход %s, ночь %s",
