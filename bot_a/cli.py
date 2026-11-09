@@ -27,7 +27,7 @@ from bot_a.config import AppConfig
 from bot_a.economics.fees import Tariff
 from bot_a.engine.fsm import StrategyParams
 from bot_a.logging_setup import configure_logging
-from bot_a.models.domain import ExecutionTopology
+from bot_a.models.domain import ExecutionTopology, MarketKind
 from bot_a.services.live_worker import LiveTradingWorker
 from bot_a.services.preflight import run_preflight
 from bot_a.utils.time_provider import MSK, msk_to_ms
@@ -408,16 +408,28 @@ async def _resolve_live_metas(
     fetch: Any,
     logger: Any,
     cache_dir: Optional[Path] = None,
+    tinvest: Any = None,
 ) -> Dict[str, Any]:
     """Метаданные для live/paper/watch: continuous-пресет → живой фронт-контракт.
 
     `Eu_CONT` — это имя склейки для бэктеста; у него другой `InstrumentUid`/SECID,
     чем у торгуемого `EuZ6`. Без подмены метаданных стакан и свечи запрашивались
     по несуществующему инструменту, и 4 из 6 инструментов корзины молча не торговали.
+
+    `tinvest` (REST-клиент с токеном) важнее кэша: T-Invest принимает только свой
+    `InstrumentUid`, а в локальном кэше лежит `uid = тикер` (годится для MOEX ISS).
     """
     resolved: Dict[str, Any] = {}
     for preset, meta in metas.items():
         live = live_map.get(preset, preset)
+        if tinvest is not None:
+            try:
+                resolved[live] = await tinvest.resolve_instrument(
+                    live, "SPBFUT", MarketKind.FUTURES
+                )
+                continue
+            except Exception as exc:  # noqa: BLE001 — сеть/токен могут не пускать
+                logger.warning("Метаданные %s из T-Invest недоступны: %s", live, exc)
         if live == preset:
             resolved[preset] = meta
             continue
@@ -619,8 +631,29 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
                 ", ".join(f"{k}→{v}" for k, v in resolved.items()),
             )
         tickers = [live_map[ticker] for ticker in tickers]
-        metas = await _resolve_live_metas(metas, live_map, fetch_futures_metadata, logger, cache_dir)
+        tinvest_meta_client = None
+        if config.t_invest.resolve_token(config.base_dir):
+            from bot_a.broker.tinkoff_rest_client import TInvestRestClient
 
+            tinvest_meta_client = TInvestRestClient(
+                config.t_invest.resolve_token(config.base_dir),
+                config.t_invest.app_name,
+                timeout=config.t_invest.request_timeout_seconds,
+            )
+        metas = await _resolve_live_metas(
+            metas,
+            live_map,
+            fetch_futures_metadata,
+            logger,
+            cache_dir,
+            tinvest=tinvest_meta_client,
+        )
+
+    # T-Invest REST отдаёт стакан ограниченно (429 при <1 c на инструмент):
+    # на 60-мин барах достаточно редкого опроса — 6 инструментов раз в 5 c ≈ 72 запроса/мин.
+    poll_ms = max(int(getattr(args, "record_interval_ms", 1000) or 1000), 1000)
+    poll_ms = max(poll_ms, min(int(bar_minutes) * 1000, 5000))
+    logger.info("Свинг-корзина: опрос стакана каждые %d мс", poll_ms)
     warmup_days = max(int(getattr(args, "days", 10) or 10), 1)
     now_ms = int(datetime.now(tz=MSK).timestamp() * 1000)
     state_path = config.path(config.storage.state_dir) / "swing_positions.json"
@@ -638,7 +671,7 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
             max_margin_utilization_pct=utilization,
             max_concurrent_positions=slots,
             bar_minutes=bar_minutes,
-            poll_ms=int(args.record_interval_ms),
+            poll_ms=poll_ms,
             state_path=state_path,
             journal_path=None if args.no_report else journal,
             tariff=config.fees.tariff,

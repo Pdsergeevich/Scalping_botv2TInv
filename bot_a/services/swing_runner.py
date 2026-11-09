@@ -163,6 +163,9 @@ class SwingBasketRunner:
         self._last_ms: Dict[str, int] = {}
         # v4.6: история завершённых баров для веб-дашборда (графики по инструментам).
         self._bars: Dict[str, "deque[Bar]"] = {}
+        # v4.6: ошибки канала данных не должны спамить лог на каждом поллинге.
+        self._feed_errors: Dict[str, int] = {}
+        self._feed_error_at: Dict[str, int] = {}
         self._journal = Path(self._settings.journal_path) if self._settings.journal_path else None
         if self._journal is not None:
             self._journal.parent.mkdir(parents=True, exist_ok=True)
@@ -298,16 +301,24 @@ class SwingBasketRunner:
     ) -> Dict[str, Any]:
         loop = asyncio.get_running_loop()
         deadline = loop.time() + duration_seconds if duration_seconds else None
+        base_delay = max(self._settings.poll_ms / 1000.0, 0.2)
+        delay = base_delay
         while True:
             if stop_event is not None and stop_event.is_set():
                 break
             if deadline is not None and loop.time() >= deadline:
                 break
+            before = sum(self._feed_errors.values())
             await asyncio.gather(
                 *(self._poll(ticker, client) for ticker, client in clients.items()),
                 return_exceptions=True,
             )
-            await asyncio.sleep(self._settings.poll_ms / 1000.0)
+            # Backoff на ошибках канала (429/сеть): не долбим брокера, но возвращаемся к норме.
+            if sum(self._feed_errors.values()) > before:
+                delay = min(delay * 2.0, 30.0)
+            elif delay > base_delay:
+                delay = max(base_delay, delay / 2.0)
+            await asyncio.sleep(delay)
         self.save_state()
         return self.summary()
 
@@ -316,11 +327,25 @@ class SwingBasketRunner:
         try:
             book = await client.get_order_book(meta.instrument_uid, depth=5)
         except Exception as exc:  # noqa: BLE001 — сеть не должна ронять корзину
-            if self._log is not None:
-                self._log.warning("Свинг-корзина %s: ошибка стакана: %s", ticker, exc)
+            self._note_feed_error(ticker, exc)
             return
         if book is not None:
             self.on_book(ticker, book)
+
+    def _note_feed_error(self, ticker: str, exc: Exception) -> None:
+        """Считает ошибки канала и пишет в лог не чаще раза в 60 с на тикер."""
+        self._feed_errors[ticker] = self._feed_errors.get(ticker, 0) + 1
+        now = int(datetime.now(tz=MSK).timestamp() * 1000)
+        last = self._feed_error_at.get(ticker, 0)
+        if self._log is None or now - last < 60_000:
+            return
+        self._feed_error_at[ticker] = now
+        self._log.warning(
+            "Свинг-корзина %s: ошибка стакана (%d за сессию): %s",
+            ticker,
+            self._feed_errors[ticker],
+            exc,
+        )
 
     # ------------------------------------------------------------------ обработка стакана
     def on_book(self, ticker: str, book: OrderBookSnapshot) -> Optional[BreakoutEvent]:
@@ -686,6 +711,7 @@ class SwingBasketRunner:
                 "emaHtf": round(float(getattr(snapshot, "ema_htf", 0.0) or 0.0), 6),
                 "er": round(float(getattr(snapshot, "efficiency_ratio", 0.0) or 0.0), 4),
                 "ready": bool(getattr(snapshot, "ready", False)),
+                "feedErrors": int(self._feed_errors.get(ticker, 0)),
                 "bars": [
                     [bar.time_ms, float(bar.open), float(bar.high), float(bar.low), float(bar.close)]
                     for bar in bars
