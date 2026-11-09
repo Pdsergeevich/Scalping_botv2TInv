@@ -177,6 +177,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="порт live-дашборда для --mode watch (по умолчанию 8099)",
     )
     parser.add_argument(
+        "--dashboard-port",
+        dest="dashboard_port",
+        type=int,
+        default=8099,
+        help="порт веб-дашборда свинг-корзины (--mode watch/paper/live, по умолчанию 8099)",
+    )
+    parser.add_argument(
+        "--no-dashboard",
+        dest="no_dashboard",
+        action="store_true",
+        help="не поднимать веб-дашборд",
+    )
+    parser.add_argument(
         "--record-l2",
         dest="record_l2",
         action="store_true",
@@ -389,6 +402,43 @@ async def _run_all_active(args: argparse.Namespace, config: AppConfig, logger) -
     return 0
 
 
+async def _resolve_live_metas(
+    metas: Dict[str, Any],
+    live_map: Dict[str, str],
+    fetch: Any,
+    logger: Any,
+    cache_dir: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Метаданные для live/paper/watch: continuous-пресет → живой фронт-контракт.
+
+    `Eu_CONT` — это имя склейки для бэктеста; у него другой `InstrumentUid`/SECID,
+    чем у торгуемого `EuZ6`. Без подмены метаданных стакан и свечи запрашивались
+    по несуществующему инструменту, и 4 из 6 инструментов корзины молча не торговали.
+    """
+    resolved: Dict[str, Any] = {}
+    for preset, meta in metas.items():
+        live = live_map.get(preset, preset)
+        if live == preset:
+            resolved[preset] = meta
+            continue
+        fresh = None
+        if cache_dir is not None:
+            try:
+                fresh = cached_futures_metadata(live, cache_dir)
+            except Exception:  # noqa: BLE001 — в кэше может не быть живого контракта
+                fresh = None
+        if fresh is None:
+            try:
+                fresh = await asyncio.to_thread(fetch, live)
+            except Exception as exc:  # noqa: BLE001 — сеть не должна ронять запуск
+                logger.warning(
+                    "Метаданные %s (live) недоступны: %s — использую прокси от %s", live, exc, preset
+                )
+                fresh = meta
+        resolved[live] = fresh
+    return resolved
+
+
 async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, logger) -> int:
     """`--ticker ALL_SWING`: корзина свинга с общим счётом и общей маржой (v3.2)."""
     from bot_a.backtest.breakout_backtest import aggregate, portfolio_curve
@@ -569,7 +619,7 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
                 ", ".join(f"{k}→{v}" for k, v in resolved.items()),
             )
         tickers = [live_map[ticker] for ticker in tickers]
-        metas = {live_map[preset]: meta for preset, meta in metas.items()}
+        metas = await _resolve_live_metas(metas, live_map, fetch_futures_metadata, logger, cache_dir)
 
     warmup_days = max(int(getattr(args, "days", 10) or 10), 1)
     now_ms = int(datetime.now(tz=MSK).timestamp() * 1000)
@@ -613,6 +663,18 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
         ]
     runner.warmup(warmup)
     runner.restore()
+    dashboard = None
+    if not getattr(args, "no_dashboard", False):
+        from bot_a.services.swing_dashboard import SwingDashboard
+
+        dashboard = SwingDashboard(runner, port=int(getattr(args, "dashboard_port", 8099) or 8099))
+        try:
+            dashboard.start()
+            logger.info("Свинг-дашборд: %s (обновление каждые 3 с, Ctrl+C — остановка)", dashboard.url)
+            print(f"Свинг-дашборд: {dashboard.url}")
+        except OSError as exc:
+            logger.warning("Не удалось поднять дашборд на порту %s: %s", args.dashboard_port, exc)
+            dashboard = None
     stop = asyncio.Event()
     _install_stop_handler(stop)
     token = config.t_invest.resolve_token(config.base_dir)
@@ -633,7 +695,11 @@ async def _dispatch_swing_basket(args: argparse.Namespace, config: AppConfig, lo
             for ticker in tickers
         }
         logger.info("Свинг-корзина: стакан из MOEX ISS (без токена)")
-    summary = await runner.run(clients, duration_seconds=args.duration, stop_event=stop)
+    try:
+        summary = await runner.run(clients, duration_seconds=args.duration, stop_event=stop)
+    finally:
+        if dashboard is not None:
+            dashboard.stop()
     runner.save_state()
     print(json.dumps(summary, ensure_ascii=False, indent=2) if args.json else _render_basket_live(summary))
     return 0

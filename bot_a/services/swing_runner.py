@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
@@ -59,6 +60,8 @@ class SwingBasketSettings:
     max_position_margin_pct: float = 35.0
     bar_minutes: int = 30
     poll_ms: int = 2000
+    # v4.6: сколько завершённых баров держать для графиков дашборда.
+    dashboard_bars: int = 400
     state_path: Optional[Path] = None
     journal_path: Optional[Path] = None
     tariff: Tariff = Tariff.PREMIUM
@@ -158,6 +161,8 @@ class SwingBasketRunner:
         self._trades: List[BreakoutTrade] = []
         self._started_ms = int(datetime.now(tz=MSK).timestamp() * 1000)
         self._last_ms: Dict[str, int] = {}
+        # v4.6: история завершённых баров для веб-дашборда (графики по инструментам).
+        self._bars: Dict[str, "deque[Bar]"] = {}
         self._journal = Path(self._settings.journal_path) if self._settings.journal_path else None
         if self._journal is not None:
             self._journal.parent.mkdir(parents=True, exist_ok=True)
@@ -177,6 +182,7 @@ class SwingBasketRunner:
             fee_calculator=lambda price, qty, _meta=meta: self._round_trip_fee(_meta, price, qty),
         )
         self._builders[ticker] = BreakoutBarBuilder(minutes=max(int(self._settings.bar_minutes), 1))
+        self._bars.setdefault(ticker, deque(maxlen=int(self._settings.dashboard_bars)))
         self._obi[ticker] = []
 
     @property
@@ -202,6 +208,9 @@ class SwingBasketRunner:
             machine = self._machines.get(ticker)
             if machine is None:
                 continue
+            self._bars.setdefault(ticker, deque(maxlen=int(self._settings.dashboard_bars))).extend(
+                list(bars)[-int(self._settings.dashboard_bars):]
+            )
             for bar in bars:
                 machine.on_bar(bar)
             machine.position = None  # история нужна только индикаторам
@@ -331,6 +340,7 @@ class SwingBasketRunner:
         completed = self._builders[ticker].update(price, delta, book.time_ms)
         if completed is None:
             return None
+        self._bars.setdefault(ticker, deque(maxlen=int(self._settings.dashboard_bars))).append(completed)
         obi_avg = sum(samples) / len(samples)
         event: Optional[BreakoutEvent] = None
         for item in self._machines[ticker].on_bar(completed, obi=obi_avg):
@@ -624,6 +634,125 @@ class SwingBasketRunner:
                 }
                 for trade in self._trades
             ],
+        }
+
+
+    # -------------------------------------------------------------- снапшот для дашборда
+    def snapshot(self) -> Dict[str, Any]:
+        """Полное состояние корзины для веб-дашборда (JSON-совместимо).
+
+        Содержит портфель, открытые позиции (со стопом и целью — «когда выходить»),
+        историю завершённых сделок, бары для графиков и значения индикаторов.
+        """
+        now = int(datetime.now(tz=MSK).timestamp() * 1000)
+        trades_by_ticker: Dict[str, List[Dict[str, Any]]] = {}
+        for trade in self._trades:
+            trades_by_ticker.setdefault(trade.ticker, []).append(
+                {
+                    "entryMs": trade.entry_ms,
+                    "exitMs": trade.exit_ms,
+                    "entry": float(trade.entry_price),
+                    "exit": float(trade.exit_price),
+                    "qty": int(trade.quantity),
+                    "side": trade.side.value,
+                    "reason": trade.reason.value,
+                    "grossRub": round(trade.gross_rub, 2),
+                    "feesRub": round(trade.fees_rub, 2),
+                    "netRub": round(trade.net_rub, 2),
+                    "holdMin": round(trade.hold_minutes, 1),
+                }
+            )
+
+        instruments: List[Dict[str, Any]] = []
+        for ticker in sorted(self._metas):
+            meta = self._metas[ticker]
+            snapshot = getattr(self._machines[ticker]._indicators, "snapshot", None)
+            bars = list(self._bars.get(ticker, ()))
+            last = float(bars[-1].close) if bars else 0.0
+            position = self._positions.get(ticker)
+            machine_position = self._machines[ticker].position
+            target = 0.0
+            if machine_position is not None and machine_position.target_price > 0:
+                target = float(machine_position.target_price)
+            payload: Dict[str, Any] = {
+                "ticker": ticker,
+                "name": getattr(meta, "name", ticker),
+                "family": ticker,
+                "last": last,
+                "barMinutes": int(self._settings.bar_minutes),
+                "atr": round(float(getattr(snapshot, "atr_points", 0.0) or 0.0), 6),
+                "emaFast": round(float(getattr(snapshot, "ema_fast", 0.0) or 0.0), 6),
+                "emaSlow": round(float(getattr(snapshot, "ema_slow", 0.0) or 0.0), 6),
+                "emaHtf": round(float(getattr(snapshot, "ema_htf", 0.0) or 0.0), 6),
+                "er": round(float(getattr(snapshot, "efficiency_ratio", 0.0) or 0.0), 4),
+                "ready": bool(getattr(snapshot, "ready", False)),
+                "bars": [
+                    [bar.time_ms, float(bar.open), float(bar.high), float(bar.low), float(bar.close)]
+                    for bar in bars
+                ],
+                "position": None,
+                "trades": trades_by_ticker.get(ticker, [])[-40:],
+            }
+            if position is not None:
+                rub = float(meta.rub_per_price_unit)
+                sign = 1.0 if position.side is BreakoutSide.LONG else -1.0
+                unrealized = (last - float(position.entry_price)) * sign * rub * position.quantity
+                stop_distance = (float(position.stop_price) - last) * sign
+                payload["position"] = {
+                    "side": position.side.value,
+                    "qty": int(position.quantity),
+                    "entry": float(position.entry_price),
+                    "entryMs": position.entry_ms,
+                    "stop": float(position.stop_price),
+                    "initialStop": float(position.initial_stop),
+                    "target": target,
+                    "atr": round(position.atr_points, 6),
+                    "mfe": round(position.mfe_points, 6),
+                    "marginRub": round(position.margin_rub, 2),
+                    "unrealizedRub": round(unrealized, 2),
+                    "stopDistancePoints": round(stop_distance, 6),
+                    "breakevenDone": position.breakeven_done,
+                    "trailActive": position.trail_active,
+                    "holdMin": round((now - position.entry_ms) / 60_000.0, 1),
+                }
+            instruments.append(payload)
+
+        equity_curve = self._settings.capital_rub + self._realized
+        wins = sum(1 for trade in self._trades if trade.net_rub > 0)
+        profits = sum(trade.net_rub for trade in self._trades if trade.net_rub > 0)
+        losses = -sum(trade.net_rub for trade in self._trades if trade.net_rub <= 0)
+        return {
+            "generatedMs": now,
+            "mode": "watch" if self._settings.dry_run else "paper/live",
+            "dryRun": bool(self._settings.dry_run),
+            "barMinutes": int(self._settings.bar_minutes),
+            "portfolio": {
+                "capital": round(self._settings.capital_rub, 2),
+                "equity": round(equity_curve, 2),
+                "realizedRub": round(self._realized, 2),
+                "unrealizedRub": round(
+                    sum(
+                        item["position"]["unrealizedRub"]
+                        for item in instruments
+                        if item["position"]
+                    ),
+                    2,
+                ),
+                "feesRub": round(self._fees_paid, 2),
+                "marginUsed": round(self.margin_used, 2),
+                "marginLimitRub": round(
+                    equity_curve * float(self._settings.max_margin_utilization_pct) / 100.0, 2
+                ),
+                "openPositions": len(self._positions),
+                "maxOpenPositions": int(self._settings.max_total_open_positions or 0),
+                "maxRiskPositions": int(self._settings.max_concurrent_positions or 0),
+                "trades": len(self._trades),
+                "wins": wins,
+                "winRate": round(100.0 * wins / len(self._trades), 1) if self._trades else 0.0,
+                "profitFactor": round(profits / losses, 3) if losses > 0 else None,
+                "riskPct": float(self._settings.risk_pct_per_trade),
+            },
+            "instruments": instruments,
         }
 
 
